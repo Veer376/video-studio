@@ -10,7 +10,7 @@ This file is maintained by the `content-creator` skill. After each video is appr
 
 | Date | Video Slug | Template Chosen | Templates Rejected | Rejection Reason |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| 2026-07-31 | 2026-07-31_vivekananda-facing-fear | Template 1 — The Varanasi Chase | Template 2, Template 3 | None (user deferred to recommendation) |
 
 ---
 
@@ -20,7 +20,7 @@ This file is maintained by the `content-creator` skill. After each video is appr
 
 | Date | Video Slug | Observation |
 |---|---|---|
-| — | — | — |
+| 2026-07-31 | 2026-07-31_vivekananda-facing-fear | Pre-flight settings: motivational tone, student audience, cinematic pacing, Puck Hindi voice, subtitles enabled |
 
 ---
 
