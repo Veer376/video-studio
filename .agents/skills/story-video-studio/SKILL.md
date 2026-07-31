@@ -32,7 +32,7 @@ Know what tools you have before starting:
 | `search_web` | Searches the web for real stories, sources, emotional hooks | Content Creator — Phase 1 |
 | `run_command` | Executes shell commands: CLI renders, ffprobe checks, git commits | Story Video Producer — Steps 4–6 |
 | `write_to_file` / `view_file` | Reads and writes project files (session.json, script.md, story.json) | All skills |
-| Gemini TTS API | Synthesises narration audio in Hindi/multilingual | Called via `python3 -m story_video.cli voice` |
+| Gemini TTS API | Synthesises narration audio in Hindi/multilingual | Called via `python3 -m cli voice` |
 
 **Image generation note:** Use the agent's native `generate_image` tool exclusively. There is no CLI command or external script for image generation in this project.
 
@@ -73,7 +73,7 @@ story-video-maker/
 │       │   └── scene-002.wav ...
 │       └── output/
 │           └── final-video.mp4
-├── src/story_video/                       ← rendering engine (Python)
+├── src/                                   ← rendering engine (Python)
 └── .agents/skills/                        ← all skill definitions
 ```
 
@@ -147,13 +147,13 @@ For each scene in `story.json`, call `generate_image` with the scene's `image_pr
 
 **3c. Generate Narration Audio**
 ```bash
-PYTHONPATH=src python3 -m story_video.cli voice library/<slug>/story.json
+PYTHONPATH=src python3 -m cli voice library/<slug>/story.json
 ```
 The API key is loaded automatically from `~/.config/story-video-maker/.env`.
 
 **3d. Render Final Video**
 ```bash
-PYTHONPATH=src python3 -m story_video.cli render library/<slug>/story.json
+PYTHONPATH=src python3 -m cli render library/<slug>/story.json
 ```
 Output: `library/<slug>/output/final-video.mp4`
 

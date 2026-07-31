@@ -1,7 +1,7 @@
 import unittest
 
-from story_video.manifest import parse_manifest
-from story_video.models import ManifestError
+from manifest import parse_manifest
+from models import ManifestError
 
 
 def minimal_manifest():
@@ -13,8 +13,8 @@ def minimal_manifest():
                 "id": "scene-001",
                 "narration": "नमस्ते",
                 "image_prompt": "placeholder",
-                "image_path": "generated/images/scene-001.png",
-                "audio_path": "generated/audio/scene-001.wav",
+                "image_path": "images/scene-001.png",
+                "audio_path": "audio/scene-001.wav",
             }
         ],
     }

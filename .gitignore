@@ -2,11 +2,9 @@
 __pycache__/
 *.py[cod]
 
-# Generated provider/render artifacts. Keep locally, do not commit by default.
-generated/
-output/
+# All video library content is local-only. Only code is tracked.
+library/
 
 # Local secrets.
 .env
 .env.*
-

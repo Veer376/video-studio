@@ -2,7 +2,7 @@
 
 The `story.json` manifest coordinates the entire story rendering pipeline, including project specifications, voice synthesis configurations, character definitions, visual style constraints, and individual scene components.
 
-Below is the structure of the JSON manifest, which maps to the Python dataclasses defined in `src/story_video/models.py`.
+Below is the structure of the JSON manifest, which maps to the Python dataclasses defined in `src/models.py`.
 
 ## Top-Level Fields
 

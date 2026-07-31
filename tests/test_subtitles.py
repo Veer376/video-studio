@@ -1,6 +1,6 @@
 import unittest
 
-from story_video.subtitles import break_subtitle, format_srt_time
+from subtitles import break_subtitle, format_srt_time
 
 
 class SubtitleTests(unittest.TestCase):

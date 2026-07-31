@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .models import Manifest
+from models import Manifest
 
 
 def write_srt(manifest: Manifest, out_path: Path) -> Path:

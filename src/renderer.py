@@ -3,10 +3,10 @@ from __future__ import annotations
 import platform
 from pathlib import Path
 
-from . import ffmpeg
-from .images import validate_image
-from .models import Manifest, Scene
-from .subtitles import write_srt, write_word_subtitle_frames
+import ffmpeg
+from images import validate_image
+from models import Manifest, Scene
+from subtitles import write_srt, write_word_subtitle_frames
 
 
 def prepare_dirs(base_dir: Path) -> None:

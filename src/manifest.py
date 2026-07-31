@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .models import Manifest, ManifestError, Motion, Project, Scene, Transition, Voice
+from models import Manifest, ManifestError, Motion, Project, Scene, Transition, Voice
 
 
 def load_manifest(path: str | Path) -> Manifest:

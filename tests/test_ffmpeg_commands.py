@@ -1,7 +1,7 @@
 import unittest
 
-from story_video.audio import _atempo_chain
-from story_video.renderer import motion_filter
+from audio.base import _atempo_chain
+from renderer import motion_filter
 
 
 class FFmpegCommandTests(unittest.TestCase):

@@ -35,16 +35,16 @@ GROQ_API_KEY="your_key_here"
 ---
 
 
-Always preserve the separation of concerns within the `src/story_video/` package. Never combine media rendering logic with API callers or CLI argument parsing:
+Always preserve the separation of concerns within the `src/` directory. Never combine media rendering logic with API callers or CLI argument parsing:
 
-* **[models.py](file:///Users/aryaveer/Projects/story-video-maker/src/story_video/models.py)**: Dataclasses mapping to `story.json` schema. Keep parsing rules here.
-* **[manifest.py](file:///Users/aryaveer/Projects/story-video-maker/src/story_video/manifest.py)**: Manifest file loaders, savers, and file path validators.
-* **[audio.py](file:///Users/aryaveer/Projects/story-video-maker/src/story_video/audio.py)**: Handles all external TTS integrations (Gemini, Sarvam, Groq) and raw PCM conversions.
-* **[images.py](file:///Users/aryaveer/Projects/story-video-maker/src/story_video/images.py)**: Core image handling, aspect ratio validation, and dev placeholders.
-* **[subtitles.py](file:///Users/aryaveer/Projects/story-video-maker/src/story_video/subtitles.py)**: SRT generator and subtitles burner overlays.
-* **[renderer.py](file:///Users/aryaveer/Projects/story-video-maker/src/story_video/renderer.py)**: Main FFmpeg composition logic (Ken Burns pan/zoom, audio mixing, concatenation).
-* **[ffmpeg.py](file:///Users/aryaveer/Projects/story-video-maker/src/story_video/ffmpeg.py)**: Low-level shell wrappers executing `ffmpeg` and `ffprobe` subprocesses.
-* **[cli.py](file:///Users/aryaveer/Projects/story-video-maker/src/story_video/cli.py)**: Argument parsing entry point. Avoid putting business logic here.
+* **[models.py](file:///Users/aryaveer/Projects/story-video-maker/src/models.py)**: Dataclasses mapping to `story.json` schema. Keep parsing rules here.
+* **[manifest.py](file:///Users/aryaveer/Projects/story-video-maker/src/manifest.py)**: Manifest file loaders, savers, and file path validators.
+* **[audio/](file:///Users/aryaveer/Projects/story-video-maker/src/audio)**: Package that handles all external TTS integrations (Gemini, Sarvam, Groq) and raw PCM conversions.
+* **[images.py](file:///Users/aryaveer/Projects/story-video-maker/src/images.py)**: Core image handling and aspect ratio validation.
+* **[subtitles.py](file:///Users/aryaveer/Projects/story-video-maker/src/subtitles.py)**: SRT generator and subtitles burner overlays.
+* **[renderer.py](file:///Users/aryaveer/Projects/story-video-maker/src/renderer.py)**: Main FFmpeg composition logic (Ken Burns pan/zoom, audio mixing, concatenation).
+* **[ffmpeg.py](file:///Users/aryaveer/Projects/story-video-maker/src/ffmpeg.py)**: Low-level shell wrappers executing `ffmpeg` and `ffprobe` subprocesses.
+* **[cli.py](file:///Users/aryaveer/Projects/story-video-maker/src/cli.py)**: Argument parsing entry point. Avoid putting business logic here.
 
 ---
 

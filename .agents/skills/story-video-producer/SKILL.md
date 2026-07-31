@@ -110,7 +110,7 @@ Do not proceed to audio generation until all scene images are saved and paths ar
 Run the CLI voice command against the compiled manifest:
 
 ```bash
-PYTHONPATH=src python3 -m story_video.cli voice library/<project_slug>/story.json
+PYTHONPATH=src python3 -m cli voice library/<project_slug>/story.json
 ```
 
 This command reads the `voice` block from `story.json`, calls the configured TTS provider (e.g. `gemini_tts`) for each scene's narration text, and saves audio files to:
@@ -131,7 +131,7 @@ If audio generation fails for any scene, diagnose the error before retrying. Com
 If the user requested a specific pacing (e.g. cinematic slowdown), run:
 
 ```bash
-PYTHONPATH=src python3 -m story_video.cli pace library/<project_slug>/story.json --factor 0.92
+PYTHONPATH=src python3 -m cli pace library/<project_slug>/story.json --factor 0.92
 ```
 
 Pacing factors: `0.85` (slow/cinematic) · `0.92` (slightly relaxed) · `1.0` (natural speed, skip this step).
@@ -143,7 +143,7 @@ Pacing factors: `0.85` (slow/cinematic) · `0.92` (slightly relaxed) · `1.0` (n
 Run the render command:
 
 ```bash
-PYTHONPATH=src python3 -m story_video.cli render library/<project_slug>/story.json
+PYTHONPATH=src python3 -m cli render library/<project_slug>/story.json
 ```
 
 The renderer reads the manifest, processes each scene with Ken Burns motion and crossfade transitions, burns subtitles if enabled, mixes background music if configured, and writes the final output to:

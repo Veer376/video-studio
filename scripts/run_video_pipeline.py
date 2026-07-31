@@ -9,7 +9,7 @@ from pathlib import Path
 def main() -> int:
     project = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(project / "src"))
-    runpy.run_module("story_video.cli", run_name="__main__")
+    runpy.run_module("cli", run_name="__main__")
     return 0
 
 
