@@ -40,9 +40,8 @@ Always preserve the separation of concerns within the `src/` directory. Never co
 * **[models.py](file:///Users/aryaveer/Projects/story-video-maker/src/models.py)**: Dataclasses mapping to `story.json` schema. Keep parsing rules here.
 * **[manifest.py](file:///Users/aryaveer/Projects/story-video-maker/src/manifest.py)**: Manifest file loaders, savers, and file path validators.
 * **[audio/](file:///Users/aryaveer/Projects/story-video-maker/src/audio)**: Package that handles all external TTS integrations (Gemini, Sarvam, Groq) and raw PCM conversions.
-* **[images.py](file:///Users/aryaveer/Projects/story-video-maker/src/images.py)**: Core image handling and aspect ratio validation.
 * **[subtitles.py](file:///Users/aryaveer/Projects/story-video-maker/src/subtitles.py)**: SRT generator and subtitles burner overlays.
-* **[renderer.py](file:///Users/aryaveer/Projects/story-video-maker/src/renderer.py)**: Main FFmpeg composition logic (Ken Burns pan/zoom, audio mixing, concatenation).
+* **[renderer.py](file:///Users/aryaveer/Projects/story-video-maker/src/renderer.py)**: Main FFmpeg composition logic (Ken Burns pan/zoom, audio mixing, concatenation) and image resolution/existence validation.
 * **[ffmpeg.py](file:///Users/aryaveer/Projects/story-video-maker/src/ffmpeg.py)**: Low-level shell wrappers executing `ffmpeg` and `ffprobe` subprocesses.
 * **[cli.py](file:///Users/aryaveer/Projects/story-video-maker/src/cli.py)**: Argument parsing entry point. Avoid putting business logic here.
 
