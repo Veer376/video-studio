@@ -133,7 +133,36 @@ def _wrap_text_px(draw: "ImageDraw.ImageDraw", text: str, font: "ImageFont.FreeT
 
 # ── Word-by-word subtitle constants ──────────────────────────────────────────
 SUBTITLE_SPEED_FACTOR: float = 0.93
-SUBTITLE_WORDS_PER_STEP: int = 1   # words revealed per step (1 = true word-by-word)
+SUBTITLE_WORDS_PER_STEP: int = 1    # words revealed per step (1 = true word-by-word)
+SUBTITLE_FADE_DURATION: float = 0.10  # seconds for each new-word fade-in animation
+SUBTITLE_FADE_FRAMES: int = 5         # blend frames per fade (higher = smoother, more files)
+
+
+def _write_blended_frame(
+    prev_path: Path | None,
+    curr_path: Path,
+    out_path: Path,
+    alpha: float,
+) -> None:
+    """Write a blended frame between prev and curr at a given alpha (0.0=prev, 1.0=curr).
+
+    Because both PNGs share the same locked layout, pixels for already-visible words
+    are identical in both images. Only the newly added word pixels differ, so they
+    are the only ones that visually fade in.
+    """
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise RuntimeError("Pillow is required for subtitle fade animation") from exc
+
+    curr_img = Image.open(curr_path).convert("RGBA")
+    if prev_path is not None and prev_path.exists():
+        prev_img = Image.open(prev_path).convert("RGBA")
+    else:
+        prev_img = Image.new("RGBA", curr_img.size, (0, 0, 0, 0))
+
+    result = Image.blend(prev_img, curr_img, alpha)
+    result.save(out_path)
 
 
 def write_word_subtitle_frames(
@@ -146,11 +175,16 @@ def write_word_subtitle_frames(
     h_margin_pct: float = 0.10,
     speed_factor: float = SUBTITLE_SPEED_FACTOR,
     words_per_step: int = SUBTITLE_WORDS_PER_STEP,
+    fade_duration: float = SUBTITLE_FADE_DURATION,
+    fade_frames: int = SUBTITLE_FADE_FRAMES,
 ) -> list[tuple[Path, float, float]]:
-    """Generate cumulative word-reveal subtitle PNGs for one scene.
+    """Generate cumulative word-reveal subtitle PNGs with fade-in animation for one scene.
 
-    Returns a list of (png_path, t_start, t_end) tuples, one per word step.
-    The PNGs are written to ``out_dir/<scene_id>-word-NNNN.png``.
+    Each new word fades in smoothly over ``fade_duration`` seconds by blending
+    from the previous state PNG into the current state PNG. Existing words are
+    pixel-identical in both PNGs, so only the newly revealed word animates.
+
+    Returns a list of (png_path, t_start, t_end) tuples ordered by t_start.
     """
     words = text.split()
     if not words:
@@ -168,9 +202,33 @@ def write_word_subtitle_frames(
             t_end = scene_duration
         else:
             t_end = (step + 1) * t_per * speed_factor
-        png_path = out_dir / f"{scene_id}-word-{step:04d}.png"
-        write_subtitle_overlay(visible, png_path, size, font_path, h_margin_pct, full_text=text)
-        frames.append((png_path, t_start, t_end))
+        step_dur = t_end - t_start
+
+        # Render the full (final) PNG for this step
+        curr_path = out_dir / f"{scene_id}-word-{step:04d}.png"
+        write_subtitle_overlay(visible, curr_path, size, font_path, h_margin_pct, full_text=text)
+
+        # Previous step's full PNG (used as fade-in start point)
+        prev_path = out_dir / f"{scene_id}-word-{step - 1:04d}.png" if step > 0 else None
+
+        # Clamp fade to at most half the step duration so the word is always fully visible
+        actual_fade = min(fade_duration, step_dur * 0.5)
+        n_fade = fade_frames if actual_fade > 0.001 else 0
+
+        if n_fade > 0:
+            fade_t_per = actual_fade / n_fade
+            for f in range(n_fade):
+                # alpha goes from 1/n_fade … 1.0 (never shows a fully transparent frame)
+                alpha = (f + 1) / n_fade
+                fade_path = out_dir / f"{scene_id}-word-{step:04d}-f{f:02d}.png"
+                _write_blended_frame(prev_path, curr_path, fade_path, alpha)
+                ft_start = t_start + f * fade_t_per
+                ft_end = t_start + (f + 1) * fade_t_per
+                frames.append((fade_path, ft_start, ft_end))
+            # Hold the fully-revealed frame for the rest of the step
+            frames.append((curr_path, t_start + actual_fade, t_end))
+        else:
+            frames.append((curr_path, t_start, t_end))
 
     return frames
 
