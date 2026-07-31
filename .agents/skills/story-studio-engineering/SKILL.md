@@ -1,9 +1,9 @@
 ---
-name: maintain-story-video-maker
-description: Developer guidelines for extending, testing, and maintaining the story-video-maker codebase. Use when modifying the rendering pipeline, adding new TTS/Image providers, or managing project dependencies.
+name: story-studio-engineering
+description: Engineering handbook for the story video studio codebase. Use when modifying the rendering pipeline, adding new TTS providers, writing tests, debugging media issues, or managing project architecture and dependencies.
 ---
 
-# Maintain Story Video Maker
+# Story Studio Engineering
 
 Use this skill when developing, refactoring, or extending the `story-video-maker` rendering codebase. It ensures high code quality, clean architecture, automated testing, and proper version control.
 
