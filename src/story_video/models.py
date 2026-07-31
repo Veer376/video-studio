@@ -63,6 +63,7 @@ class Voice:
     response_format: str = "wav"
     sample_rate: int | None = None
     speed: float | None = None
+    transport: str | None = None
 
 
 @dataclass

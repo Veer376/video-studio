@@ -114,7 +114,7 @@ class GroqAudioTests(unittest.TestCase):
         manifest = parse_manifest(
             {
                 "project": {"title": "x", "language": "hi-IN", "aspect_ratio": "16:9", "resolution": "320x180", "fps": 15},
-                "voice": {"provider": "sarvam_tts", "model": "bulbul:v3", "voice": "shubh", "response_format": "wav"},
+                "voice": {"provider": "sarvam_tts", "model": "bulbul:v3", "voice": "shubh", "response_format": "wav", "transport": "rest"},
                 "scenes": [
                     {
                         "id": "scene-001",
@@ -138,3 +138,32 @@ class GroqAudioTests(unittest.TestCase):
             self.assertEqual(out_path.read_bytes(), b"fake-wav")
             request = mocked.call_args.args[0]
             self.assertEqual(request.headers["Api-subscription-key"], "test-key")
+
+    def test_sarvam_preview_stream_writes_binary_audio(self):
+        manifest = parse_manifest(
+            {
+                "project": {"title": "x", "language": "hi-IN", "aspect_ratio": "16:9", "resolution": "320x180", "fps": 15},
+                "voice": {"provider": "sarvam_tts", "model": "bulbul:v3", "voice": "shubh", "response_format": "wav", "transport": "rest_stream"},
+                "scenes": [
+                    {
+                        "id": "scene-001",
+                        "narration": "नमस्ते",
+                        "image_prompt": "x",
+                        "image_path": "generated/images/scene-001.png",
+                        "audio_path": None,
+                    }
+                ],
+            }
+        )
+        response = FakeResponse()
+        response.payload = b"stream-wav"
+        with TemporaryDirectory() as temp_dir:
+            base_dir = Path(temp_dir)
+            with patch.dict(os.environ, {"SARVAM_API_KEY": "test-key"}):
+                with patch("story_video.audio.urllib.request.urlopen", return_value=response) as mocked:
+                    with patch("story_video.audio._ssl_context", return_value=None):
+                        with patch("story_video.audio.ffmpeg.probe_duration", return_value=1.0):
+                            out_path = generate_sarvam_preview(manifest, base_dir, force=True)
+            self.assertEqual(out_path.read_bytes(), b"stream-wav")
+            request = mocked.call_args.args[0]
+            self.assertEqual(request.full_url, "https://api.sarvam.ai/text-to-speech/stream")
