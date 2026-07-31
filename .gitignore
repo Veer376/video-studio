@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+
+# Generated provider/render artifacts. Keep locally, do not commit by default.
+generated/
+output/
+
+# Local secrets.
+.env
+.env.*
+
