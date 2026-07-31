@@ -79,18 +79,25 @@ The `seconds_per_scene` mapping:
 
 ## Output
 
-Write the completed session config as `session.json` in the library project folder:
+Follow these steps in exact order:
 
-```
-library/<project_slug>/session.json
-```
+1. **Derive the `project_slug`** from the topic: lowercase, spaces replaced with hyphens, prefixed with today's date. Example: `2026-07-31_aarav-ka-sapna`.
 
-Follow the exact schema defined in [session-config-schema.md](file:///Users/aryaveer/Projects/story-video-maker/.agents/skills/interview-story-config/references/session-config-schema.md).
+2. **Create the project folder** if it does not already exist:
+   ```
+   library/<project_slug>/
+   ```
+   This is the root of everything for this video. All subsequent skills write into this folder.
 
-Set `status: "interview_complete"` in the output.
+3. **Write `session.json`** inside that folder:
+   ```
+   library/<project_slug>/session.json
+   ```
+   Follow the exact schema defined in [session-config-schema.md](file:///Users/aryaveer/Projects/story-video-maker/.agents/skills/interview-story-config/references/session-config-schema.md).
+   Set `status: "interview_complete"` in the output.
 
-After writing the file, confirm to the user:
-> "Got it. Here's your creative brief — [summarise in 3 lines]. Ready to generate story templates?"
+4. **Confirm to the user** with a 3-line summary of the creative brief:
+   > "Got it. Here's your creative brief — [summarise in 3 lines]. Ready to generate story templates?"
 
 ---
 
