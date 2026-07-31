@@ -97,6 +97,49 @@ def _wrap_text_px(draw: "ImageDraw.ImageDraw", text: str, font: "ImageFont.FreeT
     return lines[:2]
 
 
+# ── Word-by-word subtitle constants ──────────────────────────────────────────
+# Each word is shown for (scene_duration / word_count) * SUBTITLE_SPEED_FACTOR seconds.
+# Values < 1.0 make text appear slightly ahead of the speech, giving a leading feel.
+SUBTITLE_SPEED_FACTOR: float = 0.93
+SUBTITLE_WORDS_PER_STEP: int = 1   # words revealed per step (1 = true word-by-word)
+
+
+def write_word_subtitle_frames(
+    text: str,
+    out_dir: Path,
+    scene_id: str,
+    scene_duration: float,
+    size: tuple[int, int],
+    font_path: Path | None,
+    h_margin_pct: float = 0.10,
+    speed_factor: float = SUBTITLE_SPEED_FACTOR,
+    words_per_step: int = SUBTITLE_WORDS_PER_STEP,
+) -> list[tuple[Path, float, float]]:
+    """Generate cumulative word-reveal subtitle PNGs for one scene.
+
+    Returns a list of (png_path, t_start, t_end) tuples, one per word step.
+    The PNGs are written to ``out_dir/<scene_id>-word-NNNN.png``.
+    """
+    words = text.split()
+    if not words:
+        return []
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    n_steps = max(1, -(-len(words) // words_per_step))   # ceiling division
+    t_per = scene_duration / n_steps
+    frames: list[tuple[Path, float, float]] = []
+
+    for step in range(n_steps):
+        visible = " ".join(words[: (step + 1) * words_per_step])
+        t_start = step * t_per
+        t_end = min((step + 1) * t_per * speed_factor, scene_duration - 0.04)
+        png_path = out_dir / f"{scene_id}-word-{step:04d}.png"
+        write_subtitle_overlay(visible, png_path, size, font_path, h_margin_pct)
+        frames.append((png_path, t_start, t_end))
+
+    return frames
+
+
 def break_subtitle(text: str, max_chars: int = 42) -> str:
     words = text.split()
     lines: list[str] = []

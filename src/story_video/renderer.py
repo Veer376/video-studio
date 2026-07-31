@@ -6,16 +6,16 @@ from pathlib import Path
 from . import ffmpeg
 from .images import validate_image
 from .models import Manifest, Scene
-from .subtitles import write_srt, write_subtitle_overlay
+from .subtitles import write_srt, write_word_subtitle_frames
 
 
 def prepare_dirs(base_dir: Path) -> None:
     for rel in [
-        "generated/images",
-        "generated/audio",
-        "generated/subtitles",
-        "generated/scenes",
-        "generated/temp",
+        "images",
+        "audio",
+        "subtitles",
+        "scenes",
+        "temp",
         "output",
         "assets/music",
         "assets/fonts",
@@ -29,7 +29,7 @@ def render_video(manifest: Manifest, base_dir: Path, force: bool = False) -> Pat
     prepare_dirs(base_dir)
     width, height = manifest.project.width_height
     if manifest.subtitles_enabled:
-        write_srt(manifest, base_dir / "generated/subtitles/story.srt")
+        write_srt(manifest, base_dir / "subtitles/story.srt")
 
     scene_paths: list[Path] = []
     visual_durations: list[float] = []
@@ -50,10 +50,10 @@ def render_video(manifest: Manifest, base_dir: Path, force: bool = False) -> Pat
             )
         )
 
-    concat_video = base_dir / "generated/temp/concat-video.mp4"
+    concat_video = base_dir / "temp/concat-video.mp4"
     concat_scenes(scene_paths, visual_durations, [scene.transition.duration_seconds for scene in manifest.scenes[:-1]], concat_video)
 
-    audio_path = base_dir / "generated/temp/narration.wav"
+    audio_path = base_dir / "temp/narration.wav"
     concat_audio(manifest, base_dir, audio_path)
 
     output_path = base_dir / "output/final-video.mp4"
@@ -77,7 +77,7 @@ def render_scene(
         raise ValueError(f"{scene.id}: scene requires image_path, audio_path, and duration_seconds")
     image_path = base_dir / scene.image_path
     validate_image(image_path)
-    out_path = base_dir / f"generated/scenes/{scene.id}.mp4"
+    out_path = base_dir / f"scenes/{scene.id}.mp4"
     if out_path.exists() and not force:
         return out_path
 
@@ -89,36 +89,47 @@ def render_scene(
         f"zoompan=z='{zoom_expr}':x='{x_expr}':y='{y_expr}':d={frames}:s={width}x{height}:fps={fps}"
     )
     args = ["ffmpeg", "-y", "-loop", "1", "-i", str(image_path)]
-    if subtitles_enabled:
-        overlay_path = base_dir / f"generated/subtitles/{scene.id}-overlay.png"
-        write_subtitle_overlay(scene.subtitle or scene.narration, overlay_path, (width, height), detect_devanagari_font(base_dir))
-        vf = f"{vf}[v0];[v0][1:v]overlay=0:0:format=auto,format=yuv420p[v]"
-        args.extend(["-loop", "1", "-i", str(overlay_path)])
-        filter_flag = "-filter_complex"
-        map_args = ["-map", "[v]"]
+    if subtitles_enabled and scene.duration_seconds:
+        subtitle_dir = base_dir / f"subtitles/{scene.id}"
+        frames = write_word_subtitle_frames(
+            scene.subtitle or scene.narration,
+            subtitle_dir,
+            scene.id,
+            float(scene.duration_seconds),
+            (width, height),
+            detect_devanagari_font(base_dir),
+        )
+        # Build a filter_complex that overlays each word-step PNG for its timed window.
+        # Input 0 = Ken Burns video, inputs 1..N = word-step PNGs.
+        for png_path, _t_start, _t_end in frames:
+            args.extend(["-loop", "1", "-i", str(png_path)])
+
+        chains: list[str] = []
+        prev = "[kbv]"
+        # Name the Ken Burns output
+        kb_vf = f"{vf}[kbv]"
+        for idx, (_png, t_start, t_end) in enumerate(frames, start=1):
+            out_label = f"[ov{idx}]"
+            chains.append(
+                f"{prev}[{idx}:v]overlay=0:0:enable='between(t,{t_start:.4f},{t_end:.4f})':format=auto{out_label}"
+            )
+            prev = out_label
+        full_filter = kb_vf + ";" + ";".join(chains) + f";{prev}format=yuv420p[vout]"
+        args.extend([
+            "-t", f"{visual_duration:.3f}",
+            "-filter_complex", full_filter,
+            "-map", "[vout]",
+            "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+            "-movflags", "+faststart", str(out_path),
+        ])
     else:
         vf = f"{vf},format=yuv420p"
-        filter_flag = "-vf"
-        map_args = []
-    args.extend(
-        [
-            "-t",
-            f"{visual_duration:.3f}",
-            filter_flag,
-            vf,
-            *map_args,
-            "-an",
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
-            "-crf",
-            "18",
-            "-movflags",
-            "+faststart",
-            str(out_path),
-        ]
-    )
+        args.extend([
+            "-t", f"{visual_duration:.3f}",
+            "-vf", vf,
+            "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+            "-movflags", "+faststart", str(out_path),
+        ])
     ffmpeg.run(args)
     return out_path
 
