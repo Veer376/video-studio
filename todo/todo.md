@@ -60,4 +60,4 @@ Yes, during the execution of this project, I identified several **discrepancies 
 * **Discrepancy:** There is no CLI script or provider integration for generating scene images. The pipeline relies entirely on the agent executing native tools to create the image, then manually copying and converting them.
 * **Correction/Improvement:** 
   * Add support for the Gemini Imagen API inside the Python engine. 
-  * This would allow running a single command like `PYTHONPATH=src python3 -m story_video.cli images library/<slug>/story.json` to generate all scene visual assets in one go, making the project truly runnable end-to-end without agent intervention.
+  * This would allow running a single command like `PYTHONPATH=src python3 -m cli images library/<slug>/story.json` to generate all scene visual assets in one go, making the project truly runnable end-to-end without agent intervention.
