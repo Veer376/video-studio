@@ -5,6 +5,7 @@ import math
 import os
 from pathlib import Path
 import ssl
+import base64
 import urllib.error
 import urllib.request
 
@@ -55,6 +56,9 @@ def prepare_narration_audio(manifest: Manifest, base_dir: Path, force: bool = Fa
         return
     if provider == "groq_tts":
         generate_groq_audio(manifest, base_dir, force=force)
+        return
+    if provider == "sarvam_tts":
+        generate_sarvam_audio(manifest, base_dir, force=force)
         return
     raise ValueError(f"Unsupported voice provider: {provider}")
 
@@ -185,6 +189,86 @@ def generate_groq_preview(
     return destination
 
 
+def generate_voice_preview(
+    manifest: Manifest,
+    base_dir: Path,
+    text: str | None = None,
+    out_path: Path | None = None,
+    force: bool = False,
+) -> Path:
+    if manifest.voice.provider == "groq_tts":
+        return generate_groq_preview(manifest, base_dir, text=text, out_path=out_path, force=force)
+    if manifest.voice.provider == "sarvam_tts":
+        return generate_sarvam_preview(manifest, base_dir, text=text, out_path=out_path, force=force)
+    raise ValueError(f"voice-preview is not supported for provider: {manifest.voice.provider}")
+
+
+def generate_sarvam_audio(manifest: Manifest, base_dir: Path, force: bool = False) -> None:
+    api_key = os.environ.get("SARVAM_API_KEY")
+    if not api_key:
+        raise RuntimeError("SARVAM_API_KEY is not set")
+
+    model = manifest.voice.model or "bulbul:v3"
+    speaker = manifest.voice.voice or "shubh"
+    response_format = manifest.voice.response_format or "wav"
+
+    for scene in manifest.scenes:
+        if len(scene.narration) > _sarvam_text_limit(model):
+            raise ValueError(f"{scene.id}: Sarvam TTS input exceeds {_sarvam_text_limit(model)} characters")
+        scene.audio_path = _raw_audio_path(scene.id, response_format)
+        out_path = base_dir / scene.audio_path
+        if out_path.exists() and not force:
+            continue
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        _call_sarvam_tts(
+            api_key=api_key,
+            model=model,
+            speaker=speaker,
+            text=scene.narration,
+            target_language_code=manifest.project.language,
+            output_audio_codec=response_format,
+            sample_rate=manifest.voice.sample_rate,
+            pace=manifest.voice.speed,
+            out_path=out_path,
+        )
+        ffmpeg.probe_duration(out_path)
+
+
+def generate_sarvam_preview(
+    manifest: Manifest,
+    base_dir: Path,
+    text: str | None = None,
+    out_path: Path | None = None,
+    force: bool = False,
+) -> Path:
+    api_key = os.environ.get("SARVAM_API_KEY")
+    if not api_key:
+        raise RuntimeError("SARVAM_API_KEY is not set")
+    model = manifest.voice.model or "bulbul:v3"
+    speaker = manifest.voice.voice or "shubh"
+    response_format = manifest.voice.response_format or "wav"
+    preview_text = text or "नमस्ते, आज मैं आपकी क्या मदद कर सकता हूँ?"
+    if len(preview_text) > _sarvam_text_limit(model):
+        raise ValueError(f"Sarvam TTS preview input exceeds {_sarvam_text_limit(model)} characters")
+    destination = out_path or base_dir / f"generated/audio/previews/{model.replace(':', '-')}-{speaker}.{response_format}"
+    if destination.exists() and not force:
+        return destination
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    _call_sarvam_tts(
+        api_key=api_key,
+        model=model,
+        speaker=speaker,
+        text=preview_text,
+        target_language_code=manifest.project.language,
+        output_audio_codec=response_format,
+        sample_rate=manifest.voice.sample_rate,
+        pace=manifest.voice.speed,
+        out_path=destination,
+    )
+    ffmpeg.probe_duration(destination)
+    return destination
+
+
 def _raw_audio_path(scene_id: str, response_format: str | None = "wav") -> str:
     extension = "wav" if response_format == "mulaw" else (response_format or "wav")
     return f"generated/audio/{scene_id}.{extension}"
@@ -230,6 +314,58 @@ def _call_groq_tts(
         raise RuntimeError(f"Groq TTS request failed with HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(f"Groq TTS request failed: {exc.reason}") from exc
+
+
+def _call_sarvam_tts(
+    *,
+    api_key: str,
+    model: str,
+    speaker: str,
+    text: str,
+    target_language_code: str,
+    output_audio_codec: str,
+    sample_rate: int | None,
+    pace: float | None,
+    out_path: Path,
+) -> None:
+    body = {
+        "model": model,
+        "text": text,
+        "target_language_code": target_language_code,
+        "speaker": speaker,
+        "output_audio_codec": output_audio_codec,
+    }
+    if sample_rate is not None:
+        body["speech_sample_rate"] = sample_rate
+    if pace is not None:
+        body["pace"] = pace
+    request = urllib.request.Request(
+        "https://api.sarvam.ai/text-to-speech",
+        data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "api-subscription-key": api_key,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "story-video-maker/0.1",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=90, context=_ssl_context()) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:1200]
+        raise RuntimeError(f"Sarvam TTS request failed with HTTP {exc.code}: {detail}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Sarvam TTS request failed: {exc.reason}") from exc
+    audios = data.get("audios") or []
+    if not audios:
+        raise RuntimeError("Sarvam TTS response did not contain audio")
+    out_path.write_bytes(base64.b64decode(audios[0]))
+
+
+def _sarvam_text_limit(model: str) -> int:
+    return 1500 if model == "bulbul:v2" else 2500
 
 
 def _ssl_context() -> ssl.SSLContext:

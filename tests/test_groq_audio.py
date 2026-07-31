@@ -4,11 +4,13 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from story_video.audio import generate_groq_audio, pace_narration_audio
+from story_video.audio import generate_groq_audio, generate_sarvam_preview, pace_narration_audio
 from story_video.manifest import parse_manifest
 
 
 class FakeResponse:
+    payload = b"fake-wav"
+
     def __enter__(self):
         return self
 
@@ -16,7 +18,7 @@ class FakeResponse:
         return False
 
     def read(self):
-        return b"fake-wav"
+        return self.payload
 
 
 class GroqAudioTests(unittest.TestCase):
@@ -107,3 +109,32 @@ class GroqAudioTests(unittest.TestCase):
                             generate_groq_audio(manifest, base_dir, force=True)
             self.assertEqual(manifest.scenes[0].audio_path, "generated/audio/scene-001.wav")
             self.assertTrue((base_dir / "generated/audio/scene-001.wav").exists())
+
+    def test_sarvam_preview_decodes_base64_audio(self):
+        manifest = parse_manifest(
+            {
+                "project": {"title": "x", "language": "hi-IN", "aspect_ratio": "16:9", "resolution": "320x180", "fps": 15},
+                "voice": {"provider": "sarvam_tts", "model": "bulbul:v3", "voice": "shubh", "response_format": "wav"},
+                "scenes": [
+                    {
+                        "id": "scene-001",
+                        "narration": "नमस्ते",
+                        "image_prompt": "x",
+                        "image_path": "generated/images/scene-001.png",
+                        "audio_path": None,
+                    }
+                ],
+            }
+        )
+        response = FakeResponse()
+        response.payload = b'{"audios":["ZmFrZS13YXY="]}'
+        with TemporaryDirectory() as temp_dir:
+            base_dir = Path(temp_dir)
+            with patch.dict(os.environ, {"SARVAM_API_KEY": "test-key"}):
+                with patch("story_video.audio.urllib.request.urlopen", return_value=response) as mocked:
+                    with patch("story_video.audio._ssl_context", return_value=None):
+                        with patch("story_video.audio.ffmpeg.probe_duration", return_value=1.0):
+                            out_path = generate_sarvam_preview(manifest, base_dir, force=True)
+            self.assertEqual(out_path.read_bytes(), b"fake-wav")
+            request = mocked.call_args.args[0]
+            self.assertEqual(request.headers["Api-subscription-key"], "test-key")
