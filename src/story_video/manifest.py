@@ -46,6 +46,8 @@ def parse_manifest(data: dict[str, Any]) -> Manifest:
     voice = Voice(
         provider=_require_str(voice_data, "provider"),
         voice=voice_data.get("voice"),
+        male_voice=voice_data.get("male_voice"),
+        female_voice=voice_data.get("female_voice"),
         instructions=voice_data.get("instructions"),
         model=voice_data.get("model"),
         response_format=str(voice_data.get("response_format", "wav")),
@@ -121,6 +123,8 @@ def to_dict(manifest: Manifest) -> dict[str, Any]:
         "voice": {
             "provider": manifest.voice.provider,
             "voice": manifest.voice.voice,
+            "male_voice": manifest.voice.male_voice,
+            "female_voice": manifest.voice.female_voice,
             "instructions": manifest.voice.instructions,
             "model": manifest.voice.model,
             "response_format": manifest.voice.response_format,

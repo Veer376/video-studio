@@ -209,7 +209,7 @@ def generate_sarvam_audio(manifest: Manifest, base_dir: Path, force: bool = Fals
         raise RuntimeError("SARVAM_API_KEY is not set")
 
     model = manifest.voice.model or "bulbul:v3"
-    speaker = manifest.voice.voice or "priya"
+    speaker = _sarvam_speaker(manifest)
     response_format = manifest.voice.response_format or "wav"
     transport = manifest.voice.transport or "rest_stream"
 
@@ -248,7 +248,7 @@ def generate_sarvam_preview(
     if not api_key:
         raise RuntimeError("SARVAM_API_KEY is not set")
     model = manifest.voice.model or "bulbul:v3"
-    speaker = manifest.voice.voice or "priya"
+    speaker = _sarvam_speaker(manifest)
     response_format = manifest.voice.response_format or "wav"
     transport = manifest.voice.transport or "rest_stream"
     preview_text = text or "नमस्ते, आज मैं आपकी क्या मदद कर सकता हूँ?"
@@ -278,6 +278,22 @@ def generate_sarvam_preview(
 def _raw_audio_path(scene_id: str, response_format: str | None = "wav") -> str:
     extension = "wav" if response_format == "mulaw" else (response_format or "wav")
     return f"generated/audio/{scene_id}.{extension}"
+
+
+def _sarvam_speaker(manifest: Manifest) -> str:
+    return manifest.voice.voice or manifest.voice.female_voice or "priya"
+
+
+def set_voice_gender(manifest: Manifest, gender: str) -> None:
+    if manifest.voice.provider != "sarvam_tts":
+        raise ValueError("--voice-gender is currently supported only for sarvam_tts")
+    if gender == "male":
+        manifest.voice.voice = manifest.voice.male_voice or "gokul"
+        return
+    if gender == "female":
+        manifest.voice.voice = manifest.voice.female_voice or "priya"
+        return
+    raise ValueError(f"Unsupported voice gender: {gender}")
 
 
 def _call_groq_tts(

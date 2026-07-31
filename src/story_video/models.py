@@ -58,6 +58,8 @@ class Scene:
 class Voice:
     provider: str
     voice: str | None = None
+    male_voice: str | None = None
+    female_voice: str | None = None
     instructions: str | None = None
     model: str | None = None
     response_format: str = "wav"

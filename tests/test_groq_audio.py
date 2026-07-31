@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from story_video.audio import generate_groq_audio, generate_sarvam_preview, pace_narration_audio
+from story_video.audio import generate_groq_audio, generate_sarvam_preview, pace_narration_audio, set_voice_gender
 from story_video.manifest import parse_manifest
 
 
@@ -167,3 +167,32 @@ class GroqAudioTests(unittest.TestCase):
             self.assertEqual(out_path.read_bytes(), b"stream-wav")
             request = mocked.call_args.args[0]
             self.assertEqual(request.full_url, "https://api.sarvam.ai/text-to-speech/stream")
+
+    def test_sarvam_voice_gender_selects_configured_defaults(self):
+        manifest = parse_manifest(
+            {
+                "project": {"title": "x", "language": "hi-IN", "aspect_ratio": "16:9", "resolution": "320x180", "fps": 15},
+                "voice": {
+                    "provider": "sarvam_tts",
+                    "model": "bulbul:v3",
+                    "voice": "priya",
+                    "male_voice": "gokul",
+                    "female_voice": "priya",
+                    "response_format": "wav",
+                    "transport": "rest_stream",
+                },
+                "scenes": [
+                    {
+                        "id": "scene-001",
+                        "narration": "नमस्ते",
+                        "image_prompt": "x",
+                        "image_path": "generated/images/scene-001.png",
+                        "audio_path": None,
+                    }
+                ],
+            }
+        )
+        set_voice_gender(manifest, "male")
+        self.assertEqual(manifest.voice.voice, "gokul")
+        set_voice_gender(manifest, "female")
+        self.assertEqual(manifest.voice.voice, "priya")

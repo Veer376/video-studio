@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from . import ffmpeg
-from .audio import create_placeholder_audio, estimate_placeholder_duration, generate_voice_preview, measure_scene_audio, pace_narration_audio, prepare_narration_audio
+from .audio import create_placeholder_audio, estimate_placeholder_duration, generate_voice_preview, measure_scene_audio, pace_narration_audio, prepare_narration_audio, set_voice_gender
 from .images import create_placeholder_image
 from .manifest import load_manifest, save_manifest, validate_assets
 from .renderer import prepare_dirs, render_video
@@ -19,6 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--placeholder-assets", action="store_true", help="Create deterministic local placeholders for missing images/audio.")
     parser.add_argument("--voice-model", help="Override manifest voice.model for this run.")
     parser.add_argument("--voice-name", help="Override manifest voice.voice for this run.")
+    parser.add_argument("--voice-gender", choices=["male", "female"], help="Use the configured provider default voice for this gender.")
     parser.add_argument("--preview-text", help="Text to synthesize for voice-preview. Defaults to the first scene narration.")
     parser.add_argument("--preview-out", type=Path, help="Output path for voice-preview.")
     args = parser.parse_args(argv)
@@ -27,6 +28,8 @@ def main(argv: list[str] | None = None) -> int:
         manifest = load_manifest(args.manifest)
         if args.voice_model:
             manifest.voice.model = args.voice_model
+        if args.voice_gender:
+            set_voice_gender(manifest, args.voice_gender)
         if args.voice_name:
             manifest.voice.voice = args.voice_name
         base_dir = args.manifest.resolve().parent
