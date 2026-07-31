@@ -16,8 +16,8 @@ Activate this skill when:
 - No `session.json` exists in the target project folder.
 - The user says "let's start fresh" or "new video".
 
-> [!IMPORTANT]
-> When this skill is activated, the agent MUST immediately ask the user to run the `/grill-me` slash command to start the interactive onboarding interview. Do not ask interview questions manually; rely on the `/grill-me` flow.
+> [!NOTE]
+> Check if the `/grill-me` slash command is available, and suggest it to the user as the recommended interactive format to gather these onboarding inputs.
 
 Do **not** re-run this if a `session.json` already exists and `status` is not `interview_complete` — resume from where the pipeline left off instead.
 
