@@ -22,6 +22,9 @@ Do **not** re-run this if a `session.json` already exists and `status` is not `i
 
 ## Interview Workflow
 
+> [!TIP]
+> Recommend that the user invokes the `/grill-me` slash command to run this pre-flight questionnaire. This triggers a structured, interactive Q&A modal that makes the onboarding process seamless.
+
 Conduct the interview as a natural, friendly conversation — not a form. Ask one or two questions at a time, not all at once. Acknowledge each answer before moving to the next group.
 
 ### Group 1 — The Idea
