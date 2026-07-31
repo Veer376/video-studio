@@ -62,7 +62,7 @@ Construct the manifest from the extracted fields and `session.json` values:
       "id": "scene-001",
       "narration": "<narration text from script.md Scene 1>",
       "image_prompt": "<image direction from script.md Scene 1>",
-      "image_path": "images/scene-001.png",
+      "image_path": "generated/images/scene-001.png",
       "audio_path": null
     }
   ]
@@ -70,7 +70,7 @@ Construct the manifest from the extracted fields and `session.json` values:
 ```
 
 Scene IDs must be zero-padded three digits: `scene-001`, `scene-002`, etc.
-Image paths must be relative: `images/scene-NNN.png` (not absolute paths).
+Image paths must be relative: `generated/images/scene-NNN.png` (not absolute paths).
 
 Write the compiled manifest to:
 ```
@@ -94,11 +94,11 @@ For each scene, generate one image using the **agent's native `generate_image` t
 4. **Aspect ratio** must match `session.json: video.aspect_ratio`. Pass `16:9` or `9:16` to the image tool accordingly.
 5. **Save path**: Save each image to:
    ```
-   library/<project_slug>/images/scene-001.png
-   library/<project_slug>/images/scene-002.png
+   library/<project_slug>/generated/images/scene-001.png
+   library/<project_slug>/generated/images/scene-002.png
    ...
    ```
-   Create the `images/` folder if it does not exist.
+   Create the `generated/images/` folder if it does not exist.
 6. **Update `story.json`** after saving each image — confirm the `image_path` field for that scene points to the saved file.
 
 Do not proceed to audio generation until all scene images are saved and paths are confirmed in `story.json`.

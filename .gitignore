@@ -5,7 +5,6 @@ __pycache__/
 # Generated provider/render artifacts. Keep locally, do not commit by default.
 generated/
 output/
-library/*/images/
 
 # Local secrets.
 .env
