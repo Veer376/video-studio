@@ -61,8 +61,8 @@ class Voice:
     instructions: str | None = None
     model: str | None = None
     response_format: str = "wav"
-    sample_rate: int = 44100
-    speed: float = 1.0
+    sample_rate: int | None = None
+    speed: float | None = None
 
 
 @dataclass

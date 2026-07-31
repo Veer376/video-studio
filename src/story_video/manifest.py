@@ -49,14 +49,14 @@ def parse_manifest(data: dict[str, Any]) -> Manifest:
         instructions=voice_data.get("instructions"),
         model=voice_data.get("model"),
         response_format=str(voice_data.get("response_format", "wav")),
-        sample_rate=int(voice_data.get("sample_rate", 44100)),
-        speed=float(voice_data.get("speed", 1.0)),
+        sample_rate=int(voice_data["sample_rate"]) if voice_data.get("sample_rate") is not None else None,
+        speed=float(voice_data["speed"]) if voice_data.get("speed") is not None else None,
     )
     if voice.response_format not in {"wav", "mp3", "flac", "ogg", "mulaw"}:
         raise ManifestError(f"Unsupported voice response_format: {voice.response_format}")
-    if voice.sample_rate not in {8000, 16000, 22050, 24000, 32000, 44100, 48000}:
+    if voice.sample_rate is not None and voice.sample_rate not in {8000, 16000, 22050, 24000, 32000, 44100, 48000}:
         raise ManifestError(f"Unsupported voice sample_rate: {voice.sample_rate}")
-    if not 0.5 <= voice.speed <= 5:
+    if voice.speed is not None and not 0.5 <= voice.speed <= 5:
         raise ManifestError("Voice speed must be between 0.5 and 5")
 
     scenes: list[Scene] = []

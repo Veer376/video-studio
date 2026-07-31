@@ -61,11 +61,14 @@ def prepare_narration_audio(manifest: Manifest, base_dir: Path, force: bool = Fa
 
 def pace_narration_audio(manifest: Manifest, base_dir: Path, force: bool = False) -> None:
     for scene in manifest.scenes:
-        if not scene.audio_path:
-            raise FileNotFoundError(f"{scene.id}: missing audio_path")
-        source_path = base_dir / scene.audio_path
+        source_rel = _raw_audio_path(scene.id, manifest.voice.response_format)
+        source_path = base_dir / source_rel
         if not source_path.exists():
-            raise FileNotFoundError(f"{scene.id}: audio not found: {scene.audio_path}")
+            if not scene.audio_path:
+                raise FileNotFoundError(f"{scene.id}: missing audio_path")
+            source_path = base_dir / scene.audio_path
+        if not source_path.exists():
+            raise FileNotFoundError(f"{scene.id}: audio not found: {source_path}")
         source_duration = ffmpeg.probe_duration(source_path)
         target_duration = max(source_duration, estimate_placeholder_duration(scene.narration))
         paced_rel = f"generated/audio/paced/{scene.id}.wav"
@@ -123,32 +126,68 @@ def generate_groq_audio(manifest: Manifest, base_dir: Path, force: bool = False)
         raise RuntimeError("GROQ_API_KEY is not set")
 
     model = manifest.voice.model or "canopylabs/orpheus-v1-english"
-    voice = manifest.voice.voice or "troy"
+    voice = manifest.voice.voice or "autumn"
     response_format = manifest.voice.response_format or "wav"
-    extension = "wav" if response_format == "mulaw" else response_format
 
     for scene in manifest.scenes:
         if len(scene.narration) > 200 and model.startswith("canopylabs/orpheus"):
             raise ValueError(f"{scene.id}: Groq Orpheus TTS input exceeds 200 characters")
-        scene.audio_path = scene.audio_path or f"generated/audio/{scene.id}.{extension}"
+        scene.audio_path = _raw_audio_path(scene.id, response_format)
         out_path = base_dir / scene.audio_path
         if out_path.exists() and not force:
             continue
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        text = scene.narration
-        if manifest.voice.instructions and model.startswith("canopylabs/orpheus") and len(text) + len(manifest.voice.instructions) + 3 <= 200:
-            text = f"[{manifest.voice.instructions}] {text}"
         _call_groq_tts(
             api_key=api_key,
             model=model,
             voice=voice,
-            text=text,
+            text=scene.narration,
             response_format=response_format,
             sample_rate=manifest.voice.sample_rate,
             speed=manifest.voice.speed,
             out_path=out_path,
         )
         ffmpeg.probe_duration(out_path)
+
+
+def generate_groq_preview(
+    manifest: Manifest,
+    base_dir: Path,
+    text: str | None = None,
+    out_path: Path | None = None,
+    force: bool = False,
+) -> Path:
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is not set")
+    model = manifest.voice.model or "canopylabs/orpheus-v1-english"
+    voice = manifest.voice.voice or "autumn"
+    response_format = manifest.voice.response_format or "wav"
+    preview_text = text or manifest.scenes[0].narration
+    if len(preview_text) > 200 and model.startswith("canopylabs/orpheus"):
+        raise ValueError("Groq Orpheus TTS preview input exceeds 200 characters")
+    extension = "wav" if response_format == "mulaw" else response_format
+    destination = out_path or base_dir / f"generated/audio/previews/{model.split('/')[-1]}-{voice}.{extension}"
+    if destination.exists() and not force:
+        return destination
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    _call_groq_tts(
+        api_key=api_key,
+        model=model,
+        voice=voice,
+        text=preview_text,
+        response_format=response_format,
+        sample_rate=manifest.voice.sample_rate,
+        speed=manifest.voice.speed,
+        out_path=destination,
+    )
+    ffmpeg.probe_duration(destination)
+    return destination
+
+
+def _raw_audio_path(scene_id: str, response_format: str | None = "wav") -> str:
+    extension = "wav" if response_format == "mulaw" else (response_format or "wav")
+    return f"generated/audio/{scene_id}.{extension}"
 
 
 def _call_groq_tts(
@@ -158,8 +197,8 @@ def _call_groq_tts(
     voice: str,
     text: str,
     response_format: str,
-    sample_rate: int,
-    speed: float,
+    sample_rate: int | None,
+    speed: float | None,
     out_path: Path,
 ) -> None:
     body = {
@@ -167,9 +206,11 @@ def _call_groq_tts(
         "voice": voice,
         "input": text,
         "response_format": response_format,
-        "sample_rate": sample_rate,
-        "speed": speed,
     }
+    if sample_rate is not None:
+        body["sample_rate"] = sample_rate
+    if speed is not None:
+        body["speed"] = speed
     request = urllib.request.Request(
         "https://api.groq.com/openai/v1/audio/speech",
         data=json.dumps(body, ensure_ascii=False).encode("utf-8"),

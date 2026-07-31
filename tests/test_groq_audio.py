@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from story_video.audio import generate_groq_audio
+from story_video.audio import generate_groq_audio, pace_narration_audio
 from story_video.manifest import parse_manifest
 
 
@@ -81,3 +81,29 @@ class GroqAudioTests(unittest.TestCase):
                     generate_groq_audio(manifest, base_dir)
             mocked.assert_not_called()
             self.assertEqual(out.read_bytes(), b"existing")
+
+    def test_groq_generation_resets_paced_manifest_path_to_raw_path(self):
+        manifest = parse_manifest(
+            {
+                "project": {"title": "x", "language": "hi-IN", "aspect_ratio": "16:9", "resolution": "320x180", "fps": 15},
+                "voice": {"provider": "groq_tts", "voice": "autumn", "response_format": "wav"},
+                "scenes": [
+                    {
+                        "id": "scene-001",
+                        "narration": "नमस्ते",
+                        "image_prompt": "x",
+                        "image_path": "generated/images/scene-001.png",
+                        "audio_path": "generated/audio/paced/scene-001.wav",
+                    }
+                ],
+            }
+        )
+        with TemporaryDirectory() as temp_dir:
+            base_dir = Path(temp_dir)
+            with patch.dict(os.environ, {"GROQ_API_KEY": "test-key"}):
+                with patch("story_video.audio.urllib.request.urlopen", return_value=FakeResponse()):
+                    with patch("story_video.audio._ssl_context", return_value=None):
+                        with patch("story_video.audio.ffmpeg.probe_duration", return_value=1.0):
+                            generate_groq_audio(manifest, base_dir, force=True)
+            self.assertEqual(manifest.scenes[0].audio_path, "generated/audio/scene-001.wav")
+            self.assertTrue((base_dir / "generated/audio/scene-001.wav").exists())

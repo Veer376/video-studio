@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from . import ffmpeg
-from .audio import create_placeholder_audio, estimate_placeholder_duration, measure_scene_audio, pace_narration_audio, prepare_narration_audio
+from .audio import create_placeholder_audio, estimate_placeholder_duration, generate_groq_preview, measure_scene_audio, pace_narration_audio, prepare_narration_audio
 from .images import create_placeholder_image
 from .manifest import load_manifest, save_manifest, validate_assets
 from .renderer import prepare_dirs, render_video
@@ -13,12 +13,14 @@ from .renderer import prepare_dirs, render_video
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="story-video")
-    parser.add_argument("command", choices=["validate", "prepare", "voice", "pace", "render", "build"])
+    parser.add_argument("command", choices=["validate", "prepare", "voice-preview", "voice", "pace", "render", "build"])
     parser.add_argument("manifest", type=Path)
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--placeholder-assets", action="store_true", help="Create deterministic local placeholders for missing images/audio.")
     parser.add_argument("--voice-model", help="Override manifest voice.model for this run.")
     parser.add_argument("--voice-name", help="Override manifest voice.voice for this run.")
+    parser.add_argument("--preview-text", help="Text to synthesize for voice-preview. Defaults to the first scene narration.")
+    parser.add_argument("--preview-out", type=Path, help="Output path for voice-preview.")
     args = parser.parse_args(argv)
 
     try:
@@ -51,6 +53,11 @@ def main(argv: list[str] | None = None) -> int:
             measure_scene_audio(manifest, base_dir)
             save_manifest(manifest)
             print("Narration audio is ready.")
+            return 0
+        if args.command == "voice-preview":
+            prepare_dirs(base_dir)
+            out_path = generate_groq_preview(manifest, base_dir, text=args.preview_text, out_path=args.preview_out, force=args.force)
+            print(out_path)
             return 0
         if args.command == "pace":
             prepare_dirs(base_dir)
