@@ -13,6 +13,38 @@ from . import ffmpeg
 from .models import Manifest
 
 
+def _load_env_keys() -> None:
+    """Load API keys from the namespaced XDG config file and the project-local .env.
+
+    Priority order (first match wins, already-set env vars are never overwritten):
+      1. ~/.config/story-video-maker/.env  — project-scoped, outside the repo, never committed.
+      2. <project_root>/.env               — optional local override (gitignored).
+    """
+    project_root = Path(__file__).resolve().parent.parent.parent
+    candidates = [
+        Path.home() / ".config" / "story-video-maker" / ".env",
+        project_root / ".env",
+    ]
+    for env_path in candidates:
+        if not env_path.exists():
+            continue
+        try:
+            for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+                line = raw_line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, val = line.partition("=")
+                key = key.strip()
+                val = val.strip().strip('"').strip("'")
+                if key and key not in os.environ:
+                    os.environ[key] = val
+        except Exception:
+            pass  # never crash the pipeline due to a missing or malformed .env
+
+
+_load_env_keys()
+
+
 def create_placeholder_audio(path: Path, duration: float, force: bool = False) -> None:
     if path.exists() and not force:
         return
@@ -513,9 +545,11 @@ def _detect_ca_file() -> Path | None:
 
 
 def generate_gemini_audio(manifest: Manifest, base_dir: Path, force: bool = False) -> None:
-    api_key = os.environ.get("GEMINI_API_KEY") or "AQ.Ab8RN6Kl07UQxL5cWt-RLZDrcrlxNtkmwBpDBw6kxI0UF_p9MA"
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is not set")
+        raise RuntimeError(
+            "GEMINI_API_KEY is not set. Add it to ~/.config/story-video-maker/.env"
+        )
 
     model = manifest.voice.model or "gemini-3.1-flash-tts-preview"
     voice = manifest.voice.voice or "Puck"
@@ -544,9 +578,11 @@ def generate_gemini_preview(
     out_path: Path | None = None,
     force: bool = False,
 ) -> Path:
-    api_key = os.environ.get("GEMINI_API_KEY") or "AQ.Ab8RN6Kl07UQxL5cWt-RLZDrcrlxNtkmwBpDBw6kxI0UF_p9MA"
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is not set")
+        raise RuntimeError(
+            "GEMINI_API_KEY is not set. Add it to ~/.config/story-video-maker/.env"
+        )
     model = manifest.voice.model or "gemini-3.1-flash-tts-preview"
     voice = manifest.voice.voice or "Puck"
     response_format = manifest.voice.response_format or "wav"

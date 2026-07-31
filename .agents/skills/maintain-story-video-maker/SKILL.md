@@ -9,7 +9,31 @@ Use this skill when developing, refactoring, or extending the `story-video-maker
 
 ---
 
-## 1. Project Hierarchy & Structure
+## 1. API Key Management
+
+API keys are **never** hardcoded in source files and **never** committed to git. This project uses a namespaced XDG config file that is automatically loaded at import time via `_load_env_keys()` in `audio.py`.
+
+### Location (required)
+```
+~/.config/story-video-maker/.env
+```
+
+### Format
+```env
+# story-video-maker API keys
+GEMINI_API_KEY="your_key_here"
+SARVAM_API_KEY="your_key_here"
+GROQ_API_KEY="your_key_here"
+```
+
+### Rules
+- This file lives **outside the project repository** so it is physically impossible to commit it to git.
+- The project root `.env` (gitignored) can be used as a local per-session override for development, but should never be the primary location.
+- The loader uses a **first-match wins, never overwrite** policy. A key already present in `os.environ` (e.g., set by CI/CD) is never clobbered.
+- When adding a new API provider, add its key variable to this section and document its name here.
+
+---
+
 
 Always preserve the separation of concerns within the `src/story_video/` package. Never combine media rendering logic with API callers or CLI argument parsing:
 
