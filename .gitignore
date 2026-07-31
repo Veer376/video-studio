@@ -2,8 +2,14 @@
 __pycache__/
 *.py[cod]
 
-# All video library content is local-only. Only code is tracked.
-library/
+# Ignore generated media folders in library, but keep configurations
+library/**/images/
+library/**/audio/
+library/**/scenes/
+library/**/temp/
+library/**/output/
+library/**/subtitles/
+library/**/assets/
 
 # Local secrets.
 .env
