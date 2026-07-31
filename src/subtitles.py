@@ -26,6 +26,7 @@ def write_subtitle_overlay(
     size: tuple[int, int],
     font_path: Path | None,
     h_margin_pct: float = 0.10,
+    full_text: str | None = None,
 ) -> Path:
     """Render subtitle text as a transparent RGBA PNG overlay.
 
@@ -35,6 +36,8 @@ def write_subtitle_overlay(
         size:          Canvas size (width, height) in pixels.
         font_path:     Path to a Devanagari-compatible .ttf/.ttc font.
         h_margin_pct:  Fraction of width reserved as left+right margin (default 10% each side).
+        full_text:     If provided, the complete sentence is used to lock the layout
+                       and line wrap structure, preventing text shifting as words are revealed.
     """
     try:
         from PIL import Image, ImageDraw, ImageFont
@@ -47,32 +50,63 @@ def write_subtitle_overlay(
     draw = ImageDraw.Draw(image)
 
     font_size = max(24, round(height * 0.047))
-    font = ImageFont.truetype(str(font_path), font_size) if font_path else ImageFont.load_default(size=font_size)
+    try:
+        font = ImageFont.truetype(str(font_path), font_size) if font_path else ImageFont.load_default(size=font_size)
+    except Exception:
+        font = ImageFont.load_default()
+
+    try:
+        ascent, descent = font.getmetrics()
+        line_height = ascent + descent
+    except AttributeError:
+        line_height = font_size
 
     # Maximum pixel width a line of text may occupy (canvas minus horizontal margins)
     max_line_px = width - 2 * round(width * h_margin_pct)
 
-    # Pixel-width-aware word wrapping — never measure by character count
-    lines = _wrap_text_px(draw, text, font, max_line_px)
+    # Use full_text if provided to lock the line wrap structure of the complete sentence
+    wrap_target = full_text if full_text is not None else text
+    full_lines = _wrap_text_px(draw, wrap_target, font, max_line_px)
+    total_lines = len(full_lines)
 
     line_gap = round(font_size * 0.35)
-    metrics = [draw.textbbox((0, 0), line, font=font) for line in lines]
-    total_height = sum(box[3] - box[1] for box in metrics) + line_gap * max(0, len(lines) - 1)
-    y = height - total_height - round(height * 0.07)
+    total_height = total_lines * line_height + line_gap * max(0, total_lines - 1)
+    y_start = height - total_height - round(height * 0.07)
+
+    # Calculate fixed vertical positions for all possible lines
+    line_positions = [y_start + i * (line_height + line_gap) for i in range(total_lines)]
+
+    # Distribute the current visible words into the pre-calculated lines
+    if full_text is not None:
+        full_line_word_counts = [len(line.split()) for line in full_lines]
+        visible_words = text.split()
+        visible_lines = []
+        word_idx = 0
+        for count in full_line_word_counts:
+            line_words = visible_words[word_idx : word_idx + count]
+            visible_lines.append(" ".join(line_words))
+            word_idx += count
+    else:
+        visible_lines = _wrap_text_px(draw, text, font, max_line_px)
+
     pad_x = round(font_size * 0.45)
     pad_y = round(font_size * 0.28)
 
-    for line, box in zip(lines, metrics):
+    for i, line_text in enumerate(visible_lines):
+        if not line_text.strip():
+            continue
+        box = draw.textbbox((0, 0), line_text, font=font)
         text_width = box[2] - box[0]
-        text_height = box[3] - box[1]
+        y = line_positions[i]
         x = (width - text_width) / 2
+
+        # Draw a stable background box for the current line's text
         draw.rounded_rectangle(
-            [x - pad_x, y - pad_y, x + text_width + pad_x, y + text_height + pad_y],
+            [x - pad_x, y - pad_y, x + text_width + pad_x, y + line_height + pad_y],
             radius=10,
             fill=(0, 0, 0, 130),
         )
-        draw.text((x, y), line, font=font, fill=(255, 255, 255, 255), stroke_width=1, stroke_fill=(0, 0, 0, 180))
-        y += text_height + line_gap
+        draw.text((x, y), line_text, font=font, fill=(255, 255, 255, 255), stroke_width=1, stroke_fill=(0, 0, 0, 180))
 
     image.save(out_path)
     return out_path
@@ -98,8 +132,6 @@ def _wrap_text_px(draw: "ImageDraw.ImageDraw", text: str, font: "ImageFont.FreeT
 
 
 # ── Word-by-word subtitle constants ──────────────────────────────────────────
-# Each word is shown for (scene_duration / word_count) * SUBTITLE_SPEED_FACTOR seconds.
-# Values < 1.0 make text appear slightly ahead of the speech, giving a leading feel.
 SUBTITLE_SPEED_FACTOR: float = 0.93
 SUBTITLE_WORDS_PER_STEP: int = 1   # words revealed per step (1 = true word-by-word)
 
@@ -131,10 +163,13 @@ def write_word_subtitle_frames(
 
     for step in range(n_steps):
         visible = " ".join(words[: (step + 1) * words_per_step])
-        t_start = step * t_per
-        t_end = min((step + 1) * t_per * speed_factor, scene_duration - 0.04)
+        t_start = step * t_per * speed_factor
+        if step == n_steps - 1:
+            t_end = scene_duration
+        else:
+            t_end = (step + 1) * t_per * speed_factor
         png_path = out_dir / f"{scene_id}-word-{step:04d}.png"
-        write_subtitle_overlay(visible, png_path, size, font_path, h_margin_pct)
+        write_subtitle_overlay(visible, png_path, size, font_path, h_margin_pct, full_text=text)
         frames.append((png_path, t_start, t_end))
 
     return frames

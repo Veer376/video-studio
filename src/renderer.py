@@ -4,7 +4,6 @@ import platform
 from pathlib import Path
 
 import ffmpeg
-from images import validate_image
 from models import Manifest, Scene
 from subtitles import write_srt, write_word_subtitle_frames
 
@@ -61,6 +60,12 @@ def render_video(manifest: Manifest, base_dir: Path, force: bool = False) -> Pat
     if not ffmpeg.video_has_stream(output_path):
         raise RuntimeError(f"Rendered MP4 is not probeable: {output_path}")
     return output_path
+
+
+def validate_image(path: Path) -> None:
+    if not path.exists():
+        raise FileNotFoundError(f"Image not found: {path}")
+    ffmpeg.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", str(path)])
 
 
 def render_scene(
