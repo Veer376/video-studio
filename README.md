@@ -12,7 +12,7 @@ This project functions in two distinct ways:
 
 2. **AI Agent Content Generation & Skills**
    - Configured in the `.agents/skills/` directory.
-   - Equips AI agents with structured workflows (`interview-story-config`, `content-creator`, `story-video-producer`) to interview creators, research stories, and generate production-ready assets.
+   - Equips AI agents with structured workflows (`interview-story-config`, `content-creator`, `video-producer`) to interview creators, research stories, and generate production-ready assets.
    - Generated content sessions are structured and stored dynamically inside the `library/` directory.
 
 ---

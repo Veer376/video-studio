@@ -1,5 +1,5 @@
 ---
-name: story-video-producer
+name: video-producer
 description: Production executor skill. Takes session.json and script.md produced by upstream skills, compiles the story.json manifest, generates scene images using the agent's native image tool, generates narration audio via the configured TTS provider, and renders the final MP4 video. Run after interview-story-config and content-creator have both completed.
 ---
 
@@ -11,12 +11,12 @@ This skill is the **production executor**. It does not ask questions, search the
 
 ## Prerequisites
 
-Confirm these files exist before starting. If either is missing, stop and direct the user to run the appropriate upstream skill first.
+Confirm these files exist. If either is missing, stop and see the appropriate skill to generate them.
 
 | File | Produced By | If Missing |
 |---|---|---|
-| `library/<project_slug>/session.json` | `interview-story-config` | Run that skill first |
-| `library/<project_slug>/script.md` | `content-creator` | Run that skill first |
+| `library/<project_slug>/session.json` | `interview-story-config` | Use `interview-story-config` |
+| `library/<project_slug>/script.md` | `content-creator` | Use `content-creator` |
 
 Read `session.json` fully before starting. Extract `project_slug` from the `session.project_slug` field — all paths in this skill are relative to `library/<project_slug>/`.
 
@@ -81,27 +81,34 @@ library/<project_slug>/story.json
 
 ## Step 2 — Generate Scene Images
 
-For each scene, generate one image using the **agent's native `generate_image` tool**. This is an internal Antigravity capability — there is no external image provider or CLI command for this step.
+For each scene, you will draw on your own built-in image generation capability to produce a single scene image. There is no external script or CLI for this — you are the image generator here.
 
-### Image generation rules
+### Rules
 
 1. **One image per scene.** Do not batch or combine scenes.
-2. **Use the scene's `image_prompt`** from `story.json` as the base prompt.
-3. **Prepend the global visual style** from `session.json: visual.style` to every prompt to ensure consistency across all scenes. Example:
+2. **Build the prompt** by prepending the global visual style from `session.json: visual.style` to the scene's `image_prompt`. Example:
    ```
    "premium cinematic digital painting, warm golden hour lighting — <scene image_prompt>"
    ```
-4. **Aspect ratio** must match `session.json: video.aspect_ratio`. Pass `16:9` or `9:16` to the image tool accordingly.
-5. **Save path**: Save each image to:
+3. **Match the aspect ratio** from `session.json: video.aspect_ratio` (`16:9` or `9:16`).
+4. **Save each image** to:
    ```
-   library/<project_slug>/generated/images/scene-001.png
-   library/<project_slug>/generated/images/scene-002.png
+   library/<project_slug>/images/scene-001.png
+   library/<project_slug>/images/scene-002.png
    ...
    ```
-   Create the `generated/images/` folder if it does not exist.
-6. **Update `story.json`** after saving each image — confirm the `image_path` field for that scene points to the saved file.
+   Create the `images/` folder if it does not exist.
+5. **Update `story.json`** after each save — set `image_path` to the relative path `images/scene-NNN.png`.
 
-Do not proceed to audio generation until all scene images are saved and paths are confirmed in `story.json`.
+### If your image generation capability is unavailable
+
+If your attempt to produce an image fails — whether the system is under heavy load, the service is temporarily down, or you receive any kind of capacity or availability error — **stop immediately**. Do not try again, do not skip the scene silently, and do not proceed to audio.
+
+Tell the user exactly this:
+
+> ⚠️ I was unable to generate scene images right now — the image generation service appears to be experiencing heavy load or is temporarily unavailable.
+
+Do not proceed with any confirmation or further steps.
 
 ---
 
@@ -120,7 +127,7 @@ library/<project_slug>/audio/scene-002.wav
 ...
 ```
 
-The command automatically reads the API key from `~/.config/story-video-maker/.env` via the project's built-in key loader — no manual key passing required.
+API keys are loaded automatically from `~/.config/story-video-maker/.env`.
 
 If audio generation fails for any scene, diagnose the error before retrying. Common causes: missing API key, network timeout, malformed narration text.
 
@@ -166,9 +173,9 @@ After successful render, update `session.json`:
 ## Hard Rules
 
 - **No image generation via CLI or external scripts.** Images are generated exclusively using the agent's native `generate_image` tool.
+- **Warn the user immediately on image failure.** Do not proceed silently; surface the exact warning message defined in Step 2.
 - **Compile `story.json` before any other step.** The CLI commands all depend on a valid manifest.
 - **Scene IDs must be sequential and zero-padded** (`scene-001`, not `scene-1` or `1`).
-- **Image paths in `story.json` must be relative**, not absolute. The CLI resolves them against the project folder.
 - **Never overwrite existing output without user confirmation.** If `final-video.mp4` already exists, ask before re-rendering.
 
 ---
@@ -176,4 +183,4 @@ After successful render, update `session.json`:
 ## Reference Files
 
 For the full `story.json` schema and field definitions, read:
-[story-schema.md](file:///Users/aryaveer/Projects/story-video-maker/.agents/skills/story-video-producer/references/story-schema.md)
+[story-schema.md](file:///Users/aryaveer/Projects/story-video-maker/.agents/skills/video-producer/references/story-schema.md)

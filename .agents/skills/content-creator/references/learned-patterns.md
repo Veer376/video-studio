@@ -11,6 +11,7 @@ This file is maintained by the `content-creator` skill. After each video is appr
 | Date | Video Slug | Template Chosen | Templates Rejected | Rejection Reason |
 |---|---|---|---|---|
 | 2026-07-31 | 2026-07-31_vivekananda-facing-fear | Template 1 — The Varanasi Chase | Template 2, Template 3 | None (user deferred to recommendation) |
+| 2026-08-01 | 2026-08-01_krishna-motivation | Template 1 — मन का कुरुक्षेत्र | Template 2, Template 3 | User chose the psychological and battlefield metaphor hook |
 
 ---
 
@@ -21,6 +22,7 @@ This file is maintained by the `content-creator` skill. After each video is appr
 | Date | Video Slug | Observation |
 |---|---|---|
 | 2026-07-31 | 2026-07-31_vivekananda-facing-fear | Pre-flight settings: motivational tone, student audience, cinematic pacing, Puck Hindi voice, subtitles enabled |
+| 2026-08-01 | 2026-08-01_krishna-motivation | Pre-flight settings: motivational tone, general adults audience, cinematic pacing, Puck Hindi voice, subtitles enabled |
 
 ---
 

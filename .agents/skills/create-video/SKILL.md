@@ -1,5 +1,5 @@
 ---
-name: story-video-studio
+name: create-video
 description: Master entry point for the Story Video Studio. Read this skill first for any video creation task. Defines the full pipeline, maps all available skills in sequence, documents agent capabilities, and provides resume logic for interrupted runs.
 ---
 
@@ -22,19 +22,7 @@ The pipeline is **fully stateful**: every video lives in its own folder inside `
 
 ---
 
-## Agent Capabilities Available
-
-Know what tools you have before starting:
-
-| Tool | What It Does | Used In |
-|---|---|---|
-| `generate_image` | Generates scene images natively (no external provider needed) | Story Video Producer — Step 3 |
-| `search_web` | Searches the web for real stories, sources, emotional hooks | Content Creator — Phase 1 |
-| `run_command` | Executes shell commands: CLI renders, ffprobe checks, git commits | Story Video Producer — Steps 4–6 |
-| `write_to_file` / `view_file` | Reads and writes project files (session.json, script.md, story.json) | All skills |
-| Gemini TTS API | Synthesises narration audio in Hindi/multilingual | Called via `python3 -m cli voice` |
-
-**Image generation note:** Use the agent's native `generate_image` tool exclusively. There is no CLI command or external script for image generation in this project.
+**Image generation note:** Use the agent's native image generation tool or skill exclusively. There is no CLI command or external script for image generation in this project.
 
 ---
 
@@ -46,7 +34,7 @@ Four skills exist in `.agents/skills/`. Each has a single, clear responsibility:
 |---|---|---|---|
 | `interview-story-config` | Pre-flight questionnaire — understands the user's creative intent | User answers | `library/<slug>/session.json` |
 | `content-creator` | Research + story generation — discovers real sources and writes narrative templates | `session.json` | `library/<slug>/research.md`, `library/<slug>/script.md` |
-| `story-video-producer` | Production executor — compiles manifest, generates all assets, renders final video | `session.json`, `script.md` | `story.json`, `images/`, `audio/`, `output/final-video.mp4` |
+| `video-producer` | Production executor — compiles manifest, generates all assets, renders final video | `session.json`, `script.md` | `story.json`, `images/`, `audio/`, `output/final-video.mp4` |
 | `story-studio-engineering` | Developer handbook — guides codebase changes, testing, and new provider integration | Source code | Source code |
 
 Invoke `story-studio-engineering` only when modifying the Python codebase. For all video creation tasks, use the other three skills in order.
@@ -131,11 +119,11 @@ Do not proceed to Step 3 until the user has approved a template and `script.md` 
 
 ---
 
-### Step 3 — Production (Skill: `story-video-producer`)
+### Step 3 — Production (Skill: `video-producer`)
 
 **When:** Both `session.json` and `script.md` exist.
 
-Read and follow `.agents/skills/story-video-producer/SKILL.md`.
+Read and follow `.agents/skills/video-producer/SKILL.md`.
 
 This skill runs four sub-steps in sequence:
 
@@ -179,7 +167,7 @@ Track pipeline progress using `session.session.status`:
 |---|---|
 | `interview_complete` | session.json written, pipeline not started |
 | `script_approved` | script.md written and approved by user |
-| `rendering` | story-video-producer is actively running |
+| `rendering` | video-producer is actively running |
 | `done` | final-video.mp4 exists and is verified |
 
 ---
