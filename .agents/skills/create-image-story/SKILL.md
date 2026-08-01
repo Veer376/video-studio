@@ -35,12 +35,12 @@ The pipeline is **fully stateful**: every video lives in its own folder inside `
 
 ## Skills Map
 
-Six agent-facing skills exist in `.agents/skills/`. Creative skills write source files; `run-pipeline` calls the project-owned production pipeline.
+Six pipeline skills exist in `.agents/skills/`. Creative skills write source files; `run-pipeline` calls the project-owned production pipeline.
 
 | Skill | Role | Reads | Writes |
 |---|---|---|---|
 | `intake` | Onboarding creative brief — gathers user's intent | User answers | `library/<slug>/session.json` |
-| `research` | Content discovery — searches web for facts, shlokas, and stories | `session.json` | `library/<slug>/research.md` |
+| `research` | Content discovery — searches web for facts, shlokas, quotes and stories | `session.json` | `library/<slug>/research.md` |
 | `compose` | Script generation — writes the story in spoken prose rhythm | `research.md` | `library/<slug>/script.md` |
 | `split-script` | Scene splitting — divides the narration into scenes at natural boundaries, writes the lean `scenes.json` skeleton (text + word_range only) | `script.md` | `library/<slug>/scenes.json` (skeleton) |
 | `design-visuals` | Visual concept design — builds character visual identity sheets from the story, fills `image_prompt` for every scene with consistent, cinematically-aware descriptions | `scenes.json` (skeleton), `script.md` | updates `scenes.json` (fills `image_prompt`) |

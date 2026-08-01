@@ -18,8 +18,7 @@ Activate this skill when:
 
 > [!NOTE]
 > Use the `/grill-me` or `interview-me` skill, if available in your system.
-Do **not** re-run this if a `session.json` already exists and `status` is not `intake_complete` — resume from where the pipeline left off instead.
-
+If the user just used `discovery`, use the selected idea from conversation as the answer.
 ---
 
 ## Intake Workflow
