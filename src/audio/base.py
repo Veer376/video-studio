@@ -57,6 +57,30 @@ def _load_env_keys() -> None:
 _load_env_keys()
 
 
+def load_gemini_api_keys() -> list[str]:
+    """Load and deduplicate all Gemini API keys sequentially from the environment.
+    
+    Checks GEMINI_API_KEY_1 first, falling back to GEMINI_API_KEY if GEMINI_API_KEY_1
+    is not set. Then checks GEMINI_API_KEY_2, GEMINI_API_KEY_3, etc. sequentially,
+    stopping at the first missing index.
+    """
+    keys = []
+    k1 = os.environ.get("GEMINI_API_KEY_1") or os.environ.get("GEMINI_API_KEY")
+    if k1:
+        keys.append(k1)
+        
+    idx = 2
+    while True:
+        k_n = os.environ.get(f"GEMINI_API_KEY_{idx}")
+        if not k_n:
+            break
+        if k_n not in keys:
+            keys.append(k_n)
+        idx += 1
+        
+    return keys
+
+
 # ── Path helpers ──────────────────────────────────────────────────────────────
 
 def _raw_audio_path(scene_id: str, response_format: str | None = "wav") -> str:

@@ -1,6 +1,5 @@
-# Workspace Rules — Story Video Maker
+# Workspace Rules (Codebase Maintenance Only)
 
-## 1. Implementation Approval & Planning
-* **No Unapproved Code Changes**: You MUST NOT make modifications, additions, or deletions to any source code files (under `src/` or `tests/`) without first presenting a detailed implementation plan and obtaining the user's explicit approval.
-* **Respect User Planning Boundaries**: When the user asks to document an approach in the tasks tracker (e.g., adding to `todo.md`), do not begin coding. Always stop, document, and ask for next steps.
-* **Incremental Changes**: Always write code incrementally and check in with the user step-by-step rather than proposing massive refactors all at once.
+* **Code Changes**: Do not modify `src/` or `tests/` without prior plan approval.
+* **Planning**: Do not start coding when asked only to document approaches (e.g., in `todo.md`).
+* **Commits**: Ask user to verify changes, then git commit with a descriptive message.
