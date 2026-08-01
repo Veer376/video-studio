@@ -16,7 +16,7 @@ from pathlib import Path
 
 
 def load_env():
-    env_path = Path.home() / ".config/story-video-maker/.env"
+    env_path = Path.home() / ".config/projects/.env"
     if env_path.exists():
         for line in env_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -146,7 +146,7 @@ def main():
     load_env()
     api_key = os.environ.get("GROQ_API_KEY", "").strip()
     if not api_key:
-        print("ERROR: GROQ_API_KEY not found in environment or ~/.config/story-video-maker/.env", file=sys.stderr)
+        print("ERROR: GROQ_API_KEY not found in environment or ~/.config/projects/.env", file=sys.stderr)
         sys.exit(1)
 
     project_dir = Path(args.project_dir)

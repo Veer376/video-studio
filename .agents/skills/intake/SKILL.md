@@ -101,6 +101,11 @@ Follow these steps in exact order:
   },
   "visual": {
     "style": "premium cinematic digital painting, vivid colors, mystical lighting, ancient India"
+  },
+  "pipeline": {
+    "name": "image-story",
+    "image_provider": "cloudflare",
+    "retry_policy": "missing_only"
   }
 }
 ```

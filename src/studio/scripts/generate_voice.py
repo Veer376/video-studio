@@ -18,7 +18,7 @@ from pathlib import Path
 
 
 def load_env():
-    env_path = Path.home() / ".config/story-video-maker/.env"
+    env_path = Path.home() / ".config/projects/.env"
     if env_path.exists():
         for line in env_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -145,7 +145,7 @@ def main():
     load_env()
     api_keys = load_api_keys()
     if not api_keys:
-        print("ERROR: No Gemini API keys found. Set GEMINI_API_KEY in ~/.config/story-video-maker/.env", file=sys.stderr)
+        print("ERROR: No Gemini API keys found. Set GEMINI_API_KEY in ~/.config/projects/.env", file=sys.stderr)
         sys.exit(1)
 
     project_dir = Path(args.project_dir)

@@ -11,6 +11,12 @@ from renderer import prepare_dirs, render_video
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] in {"status", "run", "pipeline", "stage", "retry"}:
+        from studio.pipeline_cli import main as pipeline_main
+
+        return pipeline_main(argv)
+
     parser = argparse.ArgumentParser(prog="story-video")
     parser.add_argument("command", choices=["validate", "prepare", "voice-preview", "voice", "pace", "render", "build"])
     parser.add_argument("manifest", type=Path)

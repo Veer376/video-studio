@@ -18,7 +18,7 @@ from pathlib import Path
 
 
 def load_env():
-    env_path = Path.home() / ".config/story-video-maker/.env"
+    env_path = Path.home() / ".config/projects/.env"
     if env_path.exists():
         for line in env_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -128,7 +128,7 @@ def main():
     api_token = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
 
     if not account_id or not api_token:
-        print("ERROR: CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not found in ~/.config/story-video-maker/.env", file=sys.stderr)
+        print("ERROR: CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not found in ~/.config/projects/.env", file=sys.stderr)
         sys.exit(1)
 
     project_dir = Path(args.project_dir)
@@ -209,11 +209,19 @@ def main():
     # Write updated scenes.json manifest
     scenes_path.write_text(json.dumps(scenes_data, indent=2, ensure_ascii=False), encoding="utf-8")
     
-    # Update session status to illustrate_complete if at least some images exist/were generated
-    if any((project_dir / "images" / f"{s['id']}.png").exists() for s in scenes):
+    # Update session status only when every scene has a concrete image on disk.
+    if scenes and all((project_dir / "images" / f"{s['id']}.png").exists() for s in scenes):
         session["session"]["status"] = "illustrate_complete"
         session_path.write_text(json.dumps(session, indent=2, ensure_ascii=False), encoding="utf-8")
         print("✓ session.json status updated to: illustrate_complete")
+    else:
+        missing = [
+            s["id"]
+            for s in scenes
+            if not (project_dir / "images" / f"{s['id']}.png").exists()
+        ]
+        print(f"ERROR: Missing images after generation: {', '.join(missing)}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

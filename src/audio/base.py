@@ -1,7 +1,7 @@
 """Shared utilities for all audio providers.
 
 Exports:
-    _load_env_keys          — load API keys from ~/.config/story-video-maker/.env
+    _load_env_keys          — load API keys from ~/.config/projects/.env
     _raw_audio_path         — compute the relative path for a scene's raw audio file
     _atempo_chain           — build an ffmpeg atempo filter chain for safe tempo adjustment
     _ssl_context            — create an SSL context with CA detection
@@ -29,12 +29,12 @@ def _load_env_keys() -> None:
     """Load API keys from the namespaced XDG config file and the project-local .env.
 
     Priority order (first match wins, already-set env vars are never overwritten):
-      1. ~/.config/story-video-maker/.env  — project-scoped, outside the repo, never committed.
+      1. ~/.config/projects/.env  — shared project credentials, outside the repo, never committed.
       2. <project_root>/.env               — optional local override (gitignored).
     """
     project_root = Path(__file__).resolve().parent.parent.parent.parent
     candidates = [
-        Path.home() / ".config" / "story-video-maker" / ".env",
+        Path.home() / ".config" / "projects" / ".env",
         project_root / ".env",
     ]
     for env_path in candidates:

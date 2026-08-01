@@ -1,23 +1,81 @@
 # Story Video Maker
 
-A dual-purpose workspace combining a robust rendering engine with agentic skills for automated story video creation.
+A Story Video Maker workspace with two clear layers:
 
-## 📖 Dual Nature of the Project
+1. **Project-owned pipeline code**
+   - Located in `src/`.
+   - The older deterministic manifest renderer is preserved.
+   - The new `src/studio/` package owns the resumable `library/<slug>` production pipeline.
 
-This project functions in two distinct ways:
+2. **Agent-facing creative skills**
+   - Located in `.agents/skills/`.
+   - Creative skills produce `session.json`, `research.md`, `script.md`, and `scenes.json`.
+   - The single production skill, `run-pipeline`, calls the project CLI instead of carrying executable pipeline code.
 
-1. **Deterministic Render Engine (CLI)**
-   - Located in the `src/` directory.
-   - A Python CLI (`cli:main`) that parses video manifests (`story.json`), fetches and paces TTS audio narration, validates assets, and compiles scenes (images + audio) into structured MP4 videos via `ffmpeg`.
+## Pipeline CLI
 
-2. **AI Agent Content Generation & Skills**
-   - Configured in the `.agents/skills/` directory.
-   - Equips AI agents with structured workflows (`interview-story-config`, `content-creator`, `video-producer`) to interview creators, research stories, and generate production-ready assets.
-   - Generated content sessions are structured and stored dynamically inside the `library/` directory.
+Inspect a project:
+
+```bash
+story-video status library/<project_slug>
+```
+
+Run or resume the default image-story pipeline:
+
+```bash
+story-video run library/<project_slug>
+```
+
+Run one stage:
+
+```bash
+story-video stage voice library/<project_slug>
+story-video stage illustrate library/<project_slug>
+story-video stage render library/<project_slug>
+```
+
+Default stage behavior is missing-only. For example:
+
+```bash
+story-video stage illustrate library/<project_slug>
+```
+
+generates only missing scene images. To regenerate all scene images:
+
+```bash
+story-video stage illustrate library/<project_slug> --force
+```
+
+## New Studio Layout
+
+```text
+src/studio/
+├── core/                 # session, paths, state, validation helpers
+├── scripts/              # reusable production capabilities
+└── pipeline_scripts/     # ordered flows that compose scripts
+```
+
+## Naming Contract
+
+```text
+Story Video Maker          product/repository name
+create-image-story         master Codex skill
+run-pipeline               production-only Codex skill
+story-video                CLI executable
+image-story                current image-based production pipeline
+```
+
+Current pipeline:
+
+```text
+image-story = voice -> illustrate -> render
+```
+
+Cloudflare is the only image backend for now. Provider abstraction can be added later without changing the pipeline contract.
 
 ---
 
-## 🛠️ Key Patterns & Robustness
+## Key Patterns & Robustness
 
 The codebase is built to be resilient, particularly in resource generation and API interaction. Taking `src/audio/gemini.py` as a reference, the following architectural patterns are used:
 

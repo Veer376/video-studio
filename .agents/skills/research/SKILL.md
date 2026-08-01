@@ -33,7 +33,7 @@ The composer needs more than facts. They need:
 
 ## Available CLI Tools
 
-You have four custom Tavily CLI tools located in `.agents/skills/research/scripts/`. They automatically handle API authentication from your home configuration (`~/.config/story-video-maker/.env`) and return results in structured JSON format. 
+You have four custom Tavily CLI tools located in `.agents/skills/research/scripts/`. They automatically handle API authentication from your home configuration (`~/.config/projects/.env`) and return results in structured JSON format. 
 
 Use the `run_command` tool to execute them:
 
