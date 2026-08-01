@@ -15,6 +15,13 @@ from models import Manifest
 from .base import _raw_audio_path, _ssl_context, load_gemini_api_keys
 
 
+class GeminiKeyError(RuntimeError):
+    """Exception raised when a Gemini API key fails verification/authorization (HTTP 400/403)."""
+    def __init__(self, message: str, masked_key: str) -> None:
+        super().__init__(message)
+        self.masked_key = masked_key
+
+
 def generate_gemini_audio(manifest: Manifest, base_dir: Path, force: bool = False) -> None:
     api_keys = load_gemini_api_keys()
     if not api_keys:
@@ -26,26 +33,43 @@ def generate_gemini_audio(manifest: Manifest, base_dir: Path, force: bool = Fals
     voice = manifest.voice.voice or "Puck"
     response_format = manifest.voice.response_format or "wav"
 
-    for idx, scene in enumerate(manifest.scenes):
+    active_keys = list(api_keys)
+    key_idx = 0
+
+    for scene in manifest.scenes:
         scene.audio_path = _raw_audio_path(scene.id, response_format)
         out_path = base_dir / scene.audio_path
         if out_path.exists() and not force:
             continue
         out_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Use round-robin key rotation across scenes
-        api_key = api_keys[idx % len(api_keys)]
-        
-        _call_gemini_tts(
-            api_key=api_key,
-            model=model,
-            voice=voice,
-            text=scene.narration,
-            out_path=out_path,
-            scene_id=scene.id,
-            base_dir=base_dir,
-        )
-        ffmpeg.probe_duration(out_path)
+        while True:
+            if not active_keys:
+                raise RuntimeError("All Gemini API keys failed or were exhausted.")
+            
+            # Use round-robin key rotation across scenes
+            api_key = active_keys[key_idx % len(active_keys)]
+            
+            try:
+                _call_gemini_tts(
+                    api_key=api_key,
+                    model=model,
+                    voice=voice,
+                    text=scene.narration,
+                    out_path=out_path,
+                    scene_id=scene.id,
+                    base_dir=base_dir,
+                )
+                ffmpeg.probe_duration(out_path)
+                # Successful call, advance key index for next scene
+                key_idx += 1
+                break
+            except GeminiKeyError as exc:
+                import sys
+                print(f"Warning: Gemini API key failed validation (masked: {exc.masked_key}). Removing from pool and retrying...", file=sys.stderr)
+                if api_key in active_keys:
+                    active_keys.remove(api_key)
+                continue
 
 
 def generate_gemini_preview(
@@ -61,9 +85,6 @@ def generate_gemini_preview(
             "No Gemini API keys found. Set GEMINI_API_KEY or GEMINI_API_KEY_1 in your environment."
         )
     
-    # Use the first available key for preview
-    api_key = api_keys[0]
-
     model = manifest.voice.model or "gemini-3.1-flash-tts-preview"
     voice = manifest.voice.voice or "Puck"
     preview_text = text or "नमस्ते, आज मैं आपकी क्या मदद कर सकता हूँ?"
@@ -71,15 +92,31 @@ def generate_gemini_preview(
     if destination.exists() and not force:
         return destination
     destination.parent.mkdir(parents=True, exist_ok=True)
-    _call_gemini_tts(
-        api_key=api_key,
-        model=model,
-        voice=voice,
-        text=preview_text,
-        out_path=destination,
-        scene_id=None,
-        base_dir=base_dir,
-    )
+
+    active_keys = list(api_keys)
+    while True:
+        if not active_keys:
+            raise RuntimeError("All Gemini API keys failed or were exhausted during preview generation.")
+        
+        api_key = active_keys[0]
+        try:
+            _call_gemini_tts(
+                api_key=api_key,
+                model=model,
+                voice=voice,
+                text=preview_text,
+                out_path=destination,
+                scene_id=None,
+                base_dir=base_dir,
+            )
+            break
+        except GeminiKeyError as exc:
+            import sys
+            print(f"Warning: Gemini API key failed validation during preview (masked: {exc.masked_key}). Trying next key...", file=sys.stderr)
+            if api_key in active_keys:
+                active_keys.remove(api_key)
+            continue
+
     ffmpeg.probe_duration(destination)
     return destination
 
@@ -235,6 +272,13 @@ def _call_gemini_tts(
                 api_key=api_key,
                 attempt=attempt,
             )
+            
+            if status_code in (400, 403):
+                masked = "N/A"
+                if api_key:
+                    masked = f"{api_key[:4]}...{api_key[-4:]}" if len(api_key) > 8 else "..."
+                raise GeminiKeyError(f"Gemini API key validation failed with HTTP {status_code}: {detail}", masked_key=masked) from exc
+                
             raise RuntimeError(f"Gemini TTS request failed with HTTP {status_code}: {detail}") from exc
 
         except urllib.error.URLError as exc:
