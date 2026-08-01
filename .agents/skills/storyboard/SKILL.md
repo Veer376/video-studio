@@ -98,7 +98,7 @@ Design the full sequence of images as a directed film — not a collection of in
 4. **Vary subject scale:** Alternate between individual characters in close focus and wide scenes showing the larger context.
 5. **Flow test:** After writing all prompts, read them in sequence. Does the visual journey feel like a film? Does each image logically follow from the previous?
 6. **Character & Prop Consistency (Visual Sheets):** For any project, establish a strict visual identity sheet for all key recurring characters, weapons, and vehicles. Inject these exact descriptions into every scene prompt where they appear to ensure character continuity:
-   - *Example (Mahabharata theme):*
+   - *Exampl :*
      - **Arjuna:** `Arjuna (a handsome young Indian warrior prince, curly black hair tied in a bun, wearing traditional bronze armor and a red sash)`
      - **Lord Krishna:** `Lord Krishna (a serene divine young man with dark blue skin, a peacock feather in his golden crown, wearing a brilliant yellow silk dhoti and a gentle smile)`
      - **Bow Gandiva:** `the ancient golden bow Gandiva, decorated with glowing Sanskrit engravings`
