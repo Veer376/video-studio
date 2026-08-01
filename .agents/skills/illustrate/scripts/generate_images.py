@@ -28,7 +28,8 @@ def load_env():
 
 
 def generate_single_image(account_id: str, api_token: str, prompt: str, width: int, height: int, out_path: Path) -> None:
-    model = "@cf/black-forest-labs/flux-1-schnell"
+    # model = "@cf/black-forest-labs/flux-1-schnell"
+    model = "@cf/black-forest-labs/flux-2-klein-4b"
     url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{model}"
 
     payload = {

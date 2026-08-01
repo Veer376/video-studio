@@ -1,13 +1,6 @@
-import os
 import sys
 import json
 import argparse
-
-# Add current folder to sys.path for direct imports
-script_dir = os.path.dirname(os.path.abspath(__file__))
-if script_dir not in sys.path:
-    sys.path.insert(0, script_dir)
-
 from tavily_common import get_client
 
 def main():

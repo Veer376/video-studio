@@ -68,10 +68,7 @@ def call_gemini_tts(api_key: str, model: str, voice: str, text: str, out_path: P
         }
     }
 
-    try:
-        ctx = ssl.create_default_context()
-    except Exception:
-        ctx = ssl._create_unverified_context()
+    ctx = ssl._create_unverified_context()
 
     req = urllib.request.Request(
         url,
@@ -82,13 +79,8 @@ def call_gemini_tts(api_key: str, model: str, voice: str, text: str, out_path: P
 
     for attempt in range(1, 6):
         try:
-            try:
-                with urllib.request.urlopen(req, timeout=120, context=ctx) as resp:
-                    res_data = json.loads(resp.read().decode("utf-8"))
-            except ssl.SSLCertVerificationError:
-                unverified = ssl._create_unverified_context()
-                with urllib.request.urlopen(req, timeout=120, context=unverified) as resp:
-                    res_data = json.loads(resp.read().decode("utf-8"))
+            with urllib.request.urlopen(req, timeout=120, context=ctx) as resp:
+                res_data = json.loads(resp.read().decode("utf-8"))
 
             parts = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
             if not parts:
