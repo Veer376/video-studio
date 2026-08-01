@@ -1,7 +1,14 @@
+import os
 import sys
 import json
 import argparse
 import asyncio
+
+# Add current folder to sys.path for direct imports
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
+
 from tavily_common import get_async_client
 
 async def run_research(query, model):
