@@ -27,14 +27,15 @@ The pipeline is **fully stateful**: every video lives in its own folder inside `
 
 ## Skills Map
 
-Seven verb-first skills exist in `.agents/skills/`. Each has a single, clear responsibility:
+Eight verb-first skills exist in `.agents/skills/`. Each has a single, clear responsibility:
 
 | Skill | Role | Reads | Writes |
 |---|---|---|---|
 | `intake` | Onboarding creative brief — gathers user's intent | User answers | `library/<slug>/session.json` |
 | `research` | Content discovery — searches web for facts, shlokas, and stories | `session.json` | `library/<slug>/research.md` |
 | `compose` | Script generation — writes the story in spoken prose rhythm | `research.md` | `library/<slug>/script.md` |
-| `storyboard` | Scene creation — splits text into scenes, writes visual prompts | `script.md` | `library/<slug>/scenes.json` |
+| `split-script` | Scene splitting — divides the narration into scenes at natural boundaries, writes the lean `scenes.json` skeleton (text + word_range only) | `script.md` | `library/<slug>/scenes.json` (skeleton) |
+| `design-visuals` | Visual concept design — builds character visual identity sheets from the story, fills `image_prompt` for every scene with consistent, cinematically-aware descriptions | `scenes.json` (skeleton), `script.md` | updates `scenes.json` (fills `image_prompt`) |
 | `voice` | Audio synthesis — generates continuous narration and extracts Groq timings | `script.md`, `scenes.json` | `audio/narration.wav`, `audio/timestamps.json`, updates `scenes.json` |
 | `illustrate` | Image generation — batch requests images at matched aspect ratio | `scenes.json` | `images/`, updates `scenes.json` |
 | `render` | Video rendering — bakes subtitles, zooms, crossfades, and muxes | `scenes.json`, `audio/` | `output/final-video.mp4` |
@@ -79,14 +80,16 @@ Does library/<slug>/session.json exist?
           Yes → Does library/<slug>/script.md exist?
                   No  → START at Skill: compose
                   Yes → Does library/<slug>/scenes.json exist?
-                          No  → START at Skill: storyboard
-                          Yes → Does library/<slug>/audio/narration.wav exist?
-                                  No  → START at Skill: voice
-                                  Yes → Do all images in library/<slug>/images/ exist?
-                                          No  → START at Skill: illustrate
-                                          Yes → Does library/<slug>/output/final-video.mp4 exist?
-                                                  No  → START at Skill: render
-                                                  Yes → DONE — confirm with user
+                          No  → START at Skill: split-script
+                          Yes → Are all image_prompt fields in scenes.json null?
+                                  Yes → START at Skill: design-visuals
+                                  No  → Does library/<slug>/audio/narration.wav exist?
+                                          No  → START at Skill: voice
+                                          Yes → Do all images in library/<slug>/images/ exist?
+                                                  No  → START at Skill: illustrate
+                                                  Yes → Does library/<slug>/output/final-video.mp4 exist?
+                                                          No  → START at Skill: render
+                                                          Yes → DONE — confirm with user
 ```
 
 ---
