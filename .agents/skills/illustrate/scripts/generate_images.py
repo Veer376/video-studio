@@ -27,22 +27,44 @@ def load_env():
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
-def generate_single_image(account_id: str, api_token: str, prompt: str, width: int, height: int, out_path: Path) -> None:
-    model = "@cf/black-forest-labs/flux-1-schnell"
+def generate_single_image(account_id: str, api_token: str, model: str, prompt: str, width: int, height: int, out_path: Path) -> None:
     url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{model}"
 
-    payload = {
-        "prompt": prompt,
-        "width": width,
-        "height": height
-    }
+    # Determine if the model requires multipart/form-data (like flux-2-klein-4b)
+    is_multipart = "klein" in model
+
+    if is_multipart:
+        fields = {
+            "prompt": prompt,
+            "width": width,
+            "height": height
+        }
+        boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+        body = []
+        for key, value in fields.items():
+            body.append(f"--{boundary}".encode("utf-8"))
+            body.append(f'Content-Disposition: form-data; name="{key}"'.encode("utf-8"))
+            body.append(b"")
+            body.append(str(value).encode("utf-8"))
+        body.append(f"--{boundary}--".encode("utf-8"))
+        body.append(b"")
+        data_bytes = b"\r\n".join(body)
+        content_type = f"multipart/form-data; boundary={boundary}"
+    else:
+        payload = {
+            "prompt": prompt,
+            "width": width,
+            "height": height
+        }
+        data_bytes = json.dumps(payload).encode("utf-8")
+        content_type = "application/json"
 
     req = urllib.request.Request(
         url,
-        data=json.dumps(payload).encode("utf-8"),
+        data=data_bytes,
         headers={
             "Authorization": f"Bearer {api_token}",
-            "Content-Type": "application/json",
+            "Content-Type": content_type,
             "User-Agent": "story-video-maker/0.1"
         },
         method="POST"
@@ -97,6 +119,7 @@ def main():
     parser = argparse.ArgumentParser(description="Batch generate scene images using Cloudflare Workers AI")
     parser.add_argument("--project-dir", required=True, help="Path to the project directory")
     parser.add_argument("--force", action="store_true", help="Re-generate even if image already exists")
+    parser.add_argument("--model", default="@cf/black-forest-labs/flux-2-klein-4b", help="Cloudflare AI model to use")
     parser.add_argument("--concurrency", type=int, default=2, help="Number of parallel generation threads")
     args = parser.parse_args()
 
@@ -163,6 +186,7 @@ def main():
                 generate_single_image(
                     account_id=account_id,
                     api_token=api_token,
+                    model=args.model,
                     prompt=prompt,
                     width=width,
                     height=height,
