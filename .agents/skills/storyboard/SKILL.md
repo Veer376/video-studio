@@ -97,6 +97,14 @@ Design the full sequence of images as a directed film — not a collection of in
 3. **Maintain spatial logic:** If a scene is on the battlefield, the next should still feel grounded in that world unless the narration explicitly moves elsewhere.
 4. **Vary subject scale:** Alternate between individual characters in close focus and wide scenes showing the larger context.
 5. **Flow test:** After writing all prompts, read them in sequence. Does the visual journey feel like a film? Does each image logically follow from the previous?
+6. **Character & Prop Consistency (Visual Sheets):** For any project, establish a strict visual identity sheet for all key recurring characters, weapons, and vehicles. Inject these exact descriptions into every scene prompt where they appear to ensure character continuity:
+   - *Example (Mahabharata theme):*
+     - **Arjuna:** `Arjuna (a handsome young Indian warrior prince, curly black hair tied in a bun, wearing traditional bronze armor and a red sash)`
+     - **Lord Krishna:** `Lord Krishna (a serene divine young man with dark blue skin, a peacock feather in his golden crown, wearing a brilliant yellow silk dhoti and a gentle smile)`
+     - **Bow Gandiva:** `the ancient golden bow Gandiva, decorated with glowing Sanskrit engravings`
+   - *Example (Modern corporate theme):*
+     - **Protagonist:** `Rohan (a young Indian businessman, wearing a sharp dark gray suit, glasses, and a silver wristwatch, neat short hair)`
+7. **Visual Context Anchoring (No Isolated Objects):** Never prompt for a floating object or hand in a void. Always anchor it to the character's clothing, weapons, or the environment (e.g. show the bow on Arjuna's shoulder, or show hands wearing a silver wristwatch holding a pen at a wooden office desk).
 
 ---
 
