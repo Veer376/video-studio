@@ -284,11 +284,16 @@ def main():
     scene_clips: list[Path] = []
     durations: list[float] = []
 
-    for scene in scenes:
+    for idx, scene in enumerate(scenes):
         scene_id = scene["id"]
         start_t = float(scene.get("start_time") or 0.0)
         end_t = float(scene.get("end_time") or 0.0)
         duration = max(0.5, end_t - start_t)
+
+        # Pad clip duration with CROSSFADE_DURATION (except for the last scene)
+        # so the crossfade overlap doesn't shrink the active scene duration.
+        is_last = (idx == len(scenes) - 1)
+        clip_duration = duration if is_last else (duration + CROSSFADE_DURATION)
 
         image_path = project_dir / scene["image_path"]
         clip_path = scenes_dir / f"{scene_id}.mp4"
@@ -305,13 +310,13 @@ def main():
             sys.exit(1)
 
         if clip_path.exists() and not args.force:
-            print(f"  ✓ Cached: {scene_id}.mp4 ({duration:.2f}s)")
+            print(f"  ✓ Cached: {scene_id}.mp4 ({clip_duration:.2f}s)")
         else:
-            print(f"  Rendering {scene_id}.mp4 ({duration:.2f}s) with {len(subtitle_frames)} subtitle frames...")
-            render_scene_clip(image_path, duration, clip_path, width, height, fps, subtitle_frames, args.no_motion)
+            print(f"  Rendering {scene_id}.mp4 ({clip_duration:.2f}s) with {len(subtitle_frames)} subtitle frames...")
+            render_scene_clip(image_path, clip_duration, clip_path, width, height, fps, subtitle_frames, args.no_motion)
 
         scene_clips.append(clip_path)
-        durations.append(duration)
+        durations.append(clip_duration)
 
     # ── Sub-stage B: Concatenate with crossfade ───────────────────────────────
     print(f"→ Concatenating {len(scene_clips)} clips with {CROSSFADE_DURATION}s crossfade...")

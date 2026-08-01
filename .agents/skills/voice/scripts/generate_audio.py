@@ -32,8 +32,9 @@ def load_api_keys() -> list[str]:
     # Collect all GEMINI_API_KEY variants
     for k, v in os.environ.items():
         if k == "GEMINI_API_KEY" or k.startswith("GEMINI_API_KEY_"):
-            if v.strip():
-                keys.append(v.strip())
+            val = v.strip().strip('"').strip("'")
+            if val and val not in keys:
+                keys.append(val)
     return keys
 
 
@@ -121,10 +122,24 @@ def call_gemini_tts(api_key: str, model: str, voice: str, text: str, out_path: P
                 raise RuntimeError(f"Gemini TTS network error: {exc.reason}") from exc
 
 
+def concatenate_wav_files(input_paths: list[Path], output_path: Path) -> None:
+    if not input_paths:
+        return
+    with wave.open(str(input_paths[0]), "rb") as wav_in:
+        params = wav_in.getparams()
+    with wave.open(str(output_path), "wb") as wav_out:
+        wav_out.setparams(params)
+        for path in input_paths:
+            with wave.open(str(path), "rb") as wav_in:
+                wav_out.writeframes(wav_in.readframes(wav_in.getnframes()))
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate full narration audio using Gemini TTS")
     parser.add_argument("--project-dir", required=True, help="Path to the project directory (e.g. library/2026-08-01_krishna-motivation)")
     parser.add_argument("--force", action="store_true", help="Re-generate even if narration.wav already exists")
+    parser.add_argument("--voice", help="Override the voice configuration (e.g. Puck, Aoede, Schedar, Charon, Kore, Fenrir)")
+    parser.add_argument("--no-split", action="store_true", help="Do not split by paragraphs, generate full text at once in one request")
     args = parser.parse_args()
 
     load_env()
@@ -150,26 +165,86 @@ def main():
 
     session = json.loads(session_path.read_text(encoding="utf-8"))
     model = session.get("voice", {}).get("model", "gemini-3.1-flash-tts-preview")
-    voice = session.get("voice", {}).get("voice", "Puck")
+    voice = args.voice or session.get("voice", {}).get("voice", "Puck")
 
     narration = extract_narration(script_path)
-    word_count = len(narration.split())
+    
+    # Split by paragraph
+    paragraphs = [p.strip() for p in narration.split("\n\n") if p.strip()]
 
-    print(f"→ Generating audio for {word_count} words")
-    print(f"  Model: {model} | Voice: {voice}")
-
-    for key in api_keys:
+    # If --no-split is specified, or only 1 paragraph, generate all at once (fallback)
+    if args.no_split or len(paragraphs) <= 1:
+        word_count = len(narration.split())
+        print(f"→ Generating full audio in a single request for {word_count} words")
+        print(f"  Model: {model} | Voice: {voice}")
+        for key in api_keys:
+            try:
+                call_gemini_tts(api_key=key, model=model, voice=voice, text=narration, out_path=out_path)
+                return
+            except RuntimeError as e:
+                if "400" in str(e) or "403" in str(e):
+                    print(f"  Key failed ({str(e)[:60]}...) — trying next key", file=sys.stderr)
+                    continue
+                raise
+        print("ERROR: All Gemini API keys exhausted.", file=sys.stderr)
+        sys.exit(1)
+    else:
+        # Generate paragraph-by-paragraph (default behavior now)
+        print(f"→ Generating audio paragraph-by-paragraph and concatenating ({len(paragraphs)} paragraphs)")
+        print(f"  Model: {model} | Voice: {voice} | Unique Keys Available: {len(api_keys)}")
+        
+        temp_dir = project_dir / "audio" / "temp"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        
+        temp_files = []
+        for i, paragraph_text in enumerate(paragraphs):
+            p_id = f"paragraph-{i+1:03d}"
+            p_wav = temp_dir / f"{p_id}.wav"
+            temp_files.append(p_wav)
+            
+            # Select key using round-robin rotation across the list of unique keys
+            key_index = i % len(api_keys)
+            key = api_keys[key_index]
+            
+            print(f"  Generating audio for {p_id} ({len(paragraph_text.split())} words) using Key {key_index + 1}/{len(api_keys)}...")
+            
+            success = False
+            try:
+                call_gemini_tts(api_key=key, model=model, voice=voice, text=paragraph_text, out_path=p_wav)
+                success = True
+            except RuntimeError as e:
+                print(f"    Warning: Key {key_index + 1} failed: {e}. Trying fallback keys...")
+                # Fallback to other keys if the primary key fails
+                for alt_key in api_keys:
+                    if alt_key == key:
+                        continue
+                    try:
+                        call_gemini_tts(api_key=alt_key, model=model, voice=voice, text=paragraph_text, out_path=p_wav)
+                        success = True
+                        break
+                    except Exception:
+                        continue
+            if not success:
+                print(f"ERROR: Failed to generate audio for {p_id}", file=sys.stderr)
+                sys.exit(1)
+                
+        # Concatenate temp files into out_path
+        print(f"→ Concatenating {len(temp_files)} paragraph audio clips into {out_path}...")
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        concatenate_wav_files(temp_files, out_path)
+        
+        # Clean up temp files
+        for f in temp_files:
+            try:
+                f.unlink()
+            except Exception:
+                pass
         try:
-            call_gemini_tts(api_key=key, model=model, voice=voice, text=narration, out_path=out_path)
-            return
-        except RuntimeError as e:
-            if "400" in str(e) or "403" in str(e):
-                print(f"  Key failed ({str(e)[:60]}...) — trying next key", file=sys.stderr)
-                continue
-            raise
-
-    print("ERROR: All Gemini API keys exhausted.", file=sys.stderr)
-    sys.exit(1)
+            temp_dir.rmdir()
+        except Exception:
+            pass
+            
+        print(f"✓ Concatenated audio written to: {out_path}")
 
 
 if __name__ == "__main__":
