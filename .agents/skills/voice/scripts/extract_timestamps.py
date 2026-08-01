@@ -83,10 +83,7 @@ def extract_timestamps(api_key: str, audio_path: Path, language: str) -> dict:
     body = header + file_header + audio_data + footer
     content_type = f"multipart/form-data; boundary={boundary}"
 
-    try:
-        ctx = ssl.create_default_context()
-    except Exception:
-        ctx = ssl._create_unverified_context()
+    ctx = ssl._create_unverified_context()
 
     req = urllib.request.Request(
         "https://api.groq.com/openai/v1/audio/transcriptions",
@@ -113,15 +110,24 @@ def extract_timestamps(api_key: str, audio_path: Path, language: str) -> dict:
     except urllib.error.URLError as exc:
         raise RuntimeError(f"Groq Whisper network error: {exc.reason}") from exc
 
-    # Groq verbose_json returns words inside segments[].words
     all_words = []
-    for segment in raw.get("segments", []):
-        for w in segment.get("words", []):
+    root_words = raw.get("words")
+    if root_words:
+        for w in root_words:
             all_words.append({
                 "word": w["word"].strip(),
-                "start": float(w["start"]),  # Always store as float
-                "end": float(w["end"]),       # Always store as float
+                "start": float(w["start"]),
+                "end": float(w["end"]),
             })
+    else:
+        segments = raw.get("segments") or []
+        for segment in segments:
+            for w in segment.get("words", []):
+                all_words.append({
+                    "word": w["word"].strip(),
+                    "start": float(w["start"]),
+                    "end": float(w["end"]),
+                })
 
     return {
         "duration": float(raw.get("duration", 0.0)),
