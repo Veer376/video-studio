@@ -103,26 +103,35 @@ def render_scene_clip(
     height: int,
     fps: int,
     subtitle_frames: list[tuple[Path, float, float]],
+    no_motion: bool = False,
 ) -> None:
     """
-    Render a single scene image as a silent MP4 clip with Ken Burns slow zoom,
+    Render a single scene image as a silent MP4 clip, optionally applying Ken Burns slow zoom,
     and burn in word-by-word subtitle overlays using FFmpeg's overlay filter.
     """
-    frames = max(1, round(duration * fps))
-    step = KEN_BURNS_ZOOM / max(1, frames - 1)
+    if no_motion:
+        # Static scaling and cropping with no motion (prevents trembling/shaking completely)
+        vf = (
+            f"scale={width}:{height}:force_original_aspect_ratio=increase,"
+            f"crop={width}:{height}"
+        )
+    else:
+        # Zoompan motion (Ken Burns zoom-in)
+        frames = max(1, round(duration * fps))
+        step = KEN_BURNS_ZOOM / max(1, frames - 1)
 
-    overscan_w = width + 160
-    overscan_h = height + 160
+        overscan_w = width + 160
+        overscan_h = height + 160
 
-    zoom_expr = f"1.0+on*{step:.8f}"
-    x_expr = "(iw-iw/zoom)/2"
-    y_expr = "(ih-ih/zoom)/2"
+        zoom_expr = f"1.0+on*{step:.8f}"
+        x_expr = "(iw-iw/zoom)/2"
+        y_expr = "(ih-ih/zoom)/2"
 
-    vf = (
-        f"scale={overscan_w}:{overscan_h}:force_original_aspect_ratio=increase,"
-        f"crop={width}:{height},"
-        f"zoompan=z='{zoom_expr}':x='{x_expr}':y='{y_expr}':d={frames}:s={width}x{height}:fps={fps}"
-    )
+        vf = (
+            f"scale={overscan_w}:{overscan_h}:force_original_aspect_ratio=increase,"
+            f"crop={width}:{height},"
+            f"zoompan=z='{zoom_expr}':x='{x_expr}':y='{y_expr}':d={frames}:s={width}x{height}:fps={fps}"
+        )
 
     args = ["-loop", "1", "-i", str(image_path)]
 
@@ -224,6 +233,7 @@ def main():
     parser.add_argument("--project-dir", required=True, help="Path to the project directory")
     parser.add_argument("--force", action="store_true", help="Re-render even if clips already exist")
     parser.add_argument("--skip-subtitles", action="store_true", help="Skip subtitle overlay step")
+    parser.add_argument("--no-motion", action="store_true", help="Disable Ken Burns zoom motion (removes all shaking/trembling)")
     args = parser.parse_args()
 
     if shutil.which("ffmpeg") is None:
@@ -297,7 +307,7 @@ def main():
             print(f"  ✓ Cached: {scene_id}.mp4 ({duration:.2f}s)")
         else:
             print(f"  Rendering {scene_id}.mp4 ({duration:.2f}s) with {len(subtitle_frames)} subtitle frames...")
-            render_scene_clip(image_path, duration, clip_path, width, height, fps, subtitle_frames)
+            render_scene_clip(image_path, duration, clip_path, width, height, fps, subtitle_frames, args.no_motion)
 
         scene_clips.append(clip_path)
         durations.append(duration)
