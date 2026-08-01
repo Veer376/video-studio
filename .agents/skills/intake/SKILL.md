@@ -33,11 +33,7 @@ Conduct the intake as a natural, friendly conversation. Acknowledge each answer 
 
 ### Group 2 — The Format
 > **Q4.** How long should the video be? *(e.g., 30 seconds, 1 minute, 2 minutes, 4 minutes)*
-> **Q5.** Do you want fast cuts or a cinematic slow pace?
-> - **Fast**: 1 image every ~5 seconds (punchy, dynamic)
-> - **Standard**: 1 image every ~10 seconds (balanced)
-> - **Cinematic**: 1 image every ~12 seconds (slow, immersive)
-> **Q6.** Horizontal (16:9, for YouTube) or Vertical (9:16, for Reels/Shorts)?
+> **Q5.** Horizontal (16:9, for YouTube) or Vertical (9:16, for Reels/Shorts)?
 
 ### Group 3 — Language & Voice
 > **Q7.** What language? *(Hindi / English / Hinglish)*
@@ -52,17 +48,11 @@ Conduct the intake as a natural, friendly conversation. Acknowledge each answer 
 
 ## Derived Values
 
-After the intake, derive these values automatically — do **not** ask the user:
+After the intake, derive this value automatically — do **not** ask the user:
 
 ```
-target_scene_count = round(target_duration_seconds / seconds_per_scene)
 project_slug       = YYYY-MM-DD_<kebab-title-from-topic>
 ```
-
-The `seconds_per_scene` mapping:
-- Fast → 5
-- Standard → 10
-- Cinematic → 12
 
 ---
 
@@ -98,8 +88,6 @@ Follow these steps in exact order:
   },
   "video": {
     "target_duration_seconds": 240,
-    "target_scene_count": 20,
-    "seconds_per_scene": 12,
     "aspect_ratio": "16:9",
     "resolution": "1920x1080",
     "fps": 30,
@@ -112,8 +100,7 @@ Follow these steps in exact order:
     "language": "hi-IN"
   },
   "visual": {
-    "style": "premium cinematic digital painting, vivid colors, mystical lighting, ancient India",
-    "pacing": "cinematic"
+    "style": "premium cinematic digital painting, vivid colors, mystical lighting, ancient India"
   }
 }
 ```
@@ -125,7 +112,6 @@ Follow these steps in exact order:
 ## Hard Rules
 
 - Default voice if skipped: `Aoede` (gemini_tts).
-- Default pacing if skipped: `cinematic` (12s per scene).
 - Default aspect ratio if skipped: `16:9`.
 - Default language if skipped: `hi-IN`.
 - Never generate story content, images, or audio during this skill. This skill only asks questions and writes `session.json`.
