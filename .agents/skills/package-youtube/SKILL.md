@@ -130,13 +130,17 @@ Mix:
 
 Create 3 distinct thumbnail PNG files for every YouTube packaging run.
 
+Each thumbnail must communicate one bold idea at a glance. Use high contrast, readable text, a clear emotional face/figure, a strong mystery cue, or a single striking visual conflict. Do not split attention across multiple competing hooks.
+
+Reserve the bottom-right safe zone for YouTube's duration badge: keep the bottom-right 20% of width and 15% of height free of text, faces, key objects, logos, and high-contrast details. It can contain low-detail background only.
+
 Each generated thumbnail should have a clear visual direction:
 
 ```text
 Thumbnail <N>: <short name>
 Base image: <scene image path or "generate new">
 Overlay text: <2-4 words, Hindi preferred>
-Composition: <clear visual layout>
+Composition: <clear visual layout, with bottom-right safe zone left empty>
 Emotion: <viewer feeling to trigger>
 Why it can work: <one concise reason>
 ```
@@ -147,10 +151,11 @@ Record the final thumbnail variant notes in `youtube/thumbnails/thumbnails.md` a
 
 ## Thumbnail Image Generation
 
-1. Prefer the system `image-generation` skill or any available built-in image generation tool.
+1. Prefer the system `imagegen` skill or any available built-in image generation tool.
 2. Use existing scene images as references when useful.
-3. Save final project-bound thumbnails under `library/<project_slug>/youtube/thumbnails/`.
-4. If no image generation capability is available, ask whether to use the project's internal image generation capability.
+3. Include the bottom-right safe-zone instruction in every thumbnail prompt.
+4. Save final project-bound thumbnails under `library/<project_slug>/youtube/thumbnails/`.
+5. If no image generation capability is available, ask whether to use the project's internal image generation capability.
 
 Do not leave thumbnail assets only in an external generated-images folder. Copy or move final selected images into the project folder.
 

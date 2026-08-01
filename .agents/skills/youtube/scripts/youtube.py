@@ -22,6 +22,7 @@ from urllib.parse import parse_qs, urlparse
 UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
 MANAGE_SCOPE = "https://www.googleapis.com/auth/youtube"
 THUMBNAIL_MAX_BYTES = 2 * 1024 * 1024
+SUPPORTED_THUMBNAIL_SUFFIXES = {".png", ".jpg", ".jpeg"}
 
 
 def utc_now() -> str:
@@ -127,18 +128,17 @@ def normalize_project_dir(raw: str) -> Path:
     return p
 
 
-def select_thumbnail(thumbnails_dir: Path) -> tuple[Path | None, str | None]:
-    candidates: list[Path] = []
-    for name in ("thumbnail-01.png", "thumbnail-01.jpg", "thumbnail-01.jpeg"):
-        candidates.append(thumbnails_dir / name)
-    if thumbnails_dir.exists():
-        candidates.extend(
-            sorted(
-                p
-                for p in thumbnails_dir.iterdir()
-                if p.suffix.lower() in {".png", ".jpg", ".jpeg"}
-            )
-        )
+def resolve_thumbnail_path(project_dir: Path, value: str | None) -> tuple[Path | None, str | None]:
+    thumbnails_dir = project_paths(project_dir)["thumbnails"]
+    if value:
+        raw = Path(value).expanduser()
+        candidates = [raw] if raw.is_absolute() else [thumbnails_dir / raw, project_dir / raw, raw]
+    else:
+        candidates = [
+            thumbnails_dir / "thumbnail-01.png",
+            thumbnails_dir / "thumbnail-01.jpg",
+            thumbnails_dir / "thumbnail-01.jpeg",
+        ]
 
     seen: set[Path] = set()
     for path in candidates:
@@ -147,14 +147,115 @@ def select_thumbnail(thumbnails_dir: Path) -> tuple[Path | None, str | None]:
         seen.add(path)
         if not path.exists() or not path.is_file():
             continue
-        if path.suffix.lower() not in {".png", ".jpg", ".jpeg"}:
-            continue
-        size = path.stat().st_size
-        if size > THUMBNAIL_MAX_BYTES:
-            return None, f"thumbnail too large for YouTube API (max 2 MB): {path}"
+        if path.suffix.lower() not in SUPPORTED_THUMBNAIL_SUFFIXES:
+            return None, f"unsupported thumbnail extension: {path}"
         return path, None
 
-    return None, "no thumbnail image found"
+    if value:
+        return None, f"selected thumbnail not found: {value}"
+    return None, "default thumbnail-01 image not found"
+
+
+def load_pillow():
+    try:
+        from PIL import Image
+    except ModuleNotFoundError:
+        die("missing Pillow. Install with: python3 -m pip install --user pillow")
+    return Image
+
+
+def compressed_thumbnail_path(source: Path, quality: int, scale_percent: int) -> Path:
+    stem = f"{source.stem}-youtube-q{quality}"
+    if scale_percent != 100:
+        stem += f"-s{scale_percent}"
+    return source.with_name(f"{stem}.jpg")
+
+
+def compress_thumbnail(
+    source: Path,
+    *,
+    quality: int,
+    scale_percent: int,
+    max_bytes: int = THUMBNAIL_MAX_BYTES,
+    output: Path | None = None,
+) -> tuple[Path, dict[str, Any]]:
+    if source.suffix.lower() not in SUPPORTED_THUMBNAIL_SUFFIXES:
+        die(f"unsupported thumbnail extension: {source}")
+    if not 1 <= quality <= 100:
+        die("--quality must be between 1 and 100")
+    if not 10 <= scale_percent <= 100:
+        die("--scale-percent must be between 10 and 100")
+
+    Image = load_pillow()
+    out = output or compressed_thumbnail_path(source, quality, scale_percent)
+    image = Image.open(source).convert("RGB")
+    original_size = image.size
+    if scale_percent != 100:
+        resized = (
+            max(1, int(original_size[0] * scale_percent / 100)),
+            max(1, int(original_size[1] * scale_percent / 100)),
+        )
+        image = image.resize(resized, Image.Resampling.LANCZOS)
+
+    attempts: list[dict[str, Any]] = []
+    current_quality = quality
+    while current_quality >= 40:
+        image.save(out, "JPEG", quality=current_quality, optimize=True, progressive=True)
+        size = out.stat().st_size
+        attempts.append({"quality": current_quality, "size_bytes": size})
+        if size <= max_bytes:
+            return out, {
+                "source": str(source),
+                "output": str(out),
+                "original_size": original_size,
+                "final_size": image.size,
+                "quality": current_quality,
+                "scale_percent": scale_percent,
+                "size_bytes": size,
+                "max_bytes": max_bytes,
+                "attempts": attempts,
+            }
+        current_quality -= 5
+
+    return out, {
+        "source": str(source),
+        "output": str(out),
+        "original_size": original_size,
+        "final_size": image.size,
+        "quality": current_quality + 5,
+        "scale_percent": scale_percent,
+        "size_bytes": out.stat().st_size if out.exists() else None,
+        "max_bytes": max_bytes,
+        "attempts": attempts,
+        "warning": "compressed thumbnail is still over the max byte limit",
+    }
+
+
+def select_thumbnail(
+    project_dir: Path,
+    *,
+    selected: str | None = None,
+    quality: int = 88,
+    scale_percent: int = 100,
+    max_bytes: int = THUMBNAIL_MAX_BYTES,
+) -> tuple[Path | None, str | None, dict[str, Any] | None]:
+    path, warning = resolve_thumbnail_path(project_dir, selected)
+    if path is None:
+        return None, warning, None
+
+    size = path.stat().st_size
+    if size <= max_bytes:
+        return path, None, None
+
+    compressed, info = compress_thumbnail(
+        path,
+        quality=quality,
+        scale_percent=scale_percent,
+        max_bytes=max_bytes,
+    )
+    if compressed.stat().st_size <= max_bytes:
+        return compressed, f"compressed oversized thumbnail: {path}", info
+    return None, f"thumbnail remains over YouTube API max size after compression: {compressed}", info
 
 
 def token_path(scope_profile: str) -> Path:
@@ -302,7 +403,12 @@ def command_upload(args: argparse.Namespace) -> None:
 
     metadata = read_json(paths["metadata"])
     body = metadata_body(metadata, args.visibility)
-    thumbnail, thumbnail_warning = select_thumbnail(paths["thumbnails"])
+    thumbnail, thumbnail_warning, thumbnail_compression = select_thumbnail(
+        project_dir,
+        selected=args.thumbnail,
+        quality=args.thumbnail_quality,
+        scale_percent=args.thumbnail_scale_percent,
+    )
 
     youtube = youtube_client("upload")
     *_, HttpError, MediaFileUpload = load_google_libs()
@@ -356,6 +462,7 @@ def command_upload(args: argparse.Namespace) -> None:
         "thumbnail_path": str(thumbnail) if thumbnail else None,
         "thumbnail_sha256": sha256_file(thumbnail) if thumbnail else None,
         "thumbnail_warning": thumbnail_warning,
+        "thumbnail_compression": thumbnail_compression,
         "thumbnail_error": thumbnail_error,
         "uploaded_at": utc_now(),
         "last_checked_at": None,
@@ -503,6 +610,35 @@ def command_fetch(args: argparse.Namespace) -> None:
     print_video_row(item)
 
 
+def command_compress_thumbnail(args: argparse.Namespace) -> None:
+    project_dir = normalize_project_dir(args.project_dir)
+    source, warning = resolve_thumbnail_path(project_dir, args.thumbnail)
+    if source is None:
+        die(warning or "thumbnail not found")
+
+    output = Path(args.output).expanduser() if args.output else None
+    if output and not output.is_absolute():
+        output = project_paths(project_dir)["thumbnails"] / output
+
+    out, info = compress_thumbnail(
+        source,
+        quality=args.quality,
+        scale_percent=args.scale_percent,
+        max_bytes=args.max_bytes,
+        output=output,
+    )
+    print(f"source {source}")
+    print(f"output {out}")
+    print(f"size_bytes {out.stat().st_size}")
+    print(f"max_bytes {args.max_bytes}")
+    print(f"quality {info.get('quality')}")
+    print(f"scale_percent {info.get('scale_percent')}")
+    if out.stat().st_size > args.max_bytes:
+        print("status over_limit")
+    else:
+        print("status ok")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Upload, check, list, or fetch YouTube videos.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -510,6 +646,9 @@ def build_parser() -> argparse.ArgumentParser:
     upload = sub.add_parser("upload", help="Upload the project video once and write upload.json.")
     upload.add_argument("project_dir", help="Path like library/<project_slug>")
     upload.add_argument("--visibility", choices=["private", "unlisted", "public"], default="private")
+    upload.add_argument("--thumbnail", help="Thumbnail filename under youtube/thumbnails/ or explicit path.")
+    upload.add_argument("--thumbnail-quality", type=int, default=88, help="JPEG quality percentage for auto-compression.")
+    upload.add_argument("--thumbnail-scale-percent", type=int, default=100, help="Resize percentage for auto-compression.")
     upload.add_argument("--force", action="store_true", help="Force a new upload even if upload.json exists.")
     upload.set_defaults(func=command_upload)
 
@@ -529,6 +668,15 @@ def build_parser() -> argparse.ArgumentParser:
     fetch.add_argument("--force", action="store_true", help="Allow replacing a different video_id in upload.json.")
     fetch.add_argument("--json", action="store_true", help="Print raw JSON and write nothing unless --project is used.")
     fetch.set_defaults(func=command_fetch)
+
+    compress = sub.add_parser("compress-thumbnail", help="Compress a project thumbnail for YouTube upload.")
+    compress.add_argument("project_dir", help="Path like library/<project_slug>")
+    compress.add_argument("--thumbnail", required=True, help="Thumbnail filename under youtube/thumbnails/ or explicit path.")
+    compress.add_argument("--quality", type=int, default=88, help="Starting JPEG quality percentage.")
+    compress.add_argument("--scale-percent", type=int, default=100, help="Resize percentage; default preserves dimensions.")
+    compress.add_argument("--max-bytes", type=int, default=THUMBNAIL_MAX_BYTES)
+    compress.add_argument("--output", help="Optional output filename/path. Defaults to a sibling -youtube JPEG.")
+    compress.set_defaults(func=command_compress_thumbnail)
 
     return parser
 
