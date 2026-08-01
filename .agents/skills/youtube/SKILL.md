@@ -1,19 +1,21 @@
 ---
-name: upload-youtube
-description: Standalone YouTube upload skill for Story Video Maker. Use when the user asks to upload an existing library/<project_slug> video to YouTube using metadata and thumbnails from library/<project_slug>/youtube/. Bundles its own upload script, writes upload state only to upload.json, and is not part of the main image-story pipeline.
+name: youtube
+description: Standalone YouTube skill for Story Video Maker. Use when the user asks to upload a library/<project_slug> video, check upload status, list channel uploads, or fetch/attach a YouTube video to a project. Bundles its own youtube.py script and is not part of the main image-story pipeline.
 ---
 
-# Upload YouTube Skill
+# YouTube Skill
 
-This skill uploads a prepared Story Video Maker project to YouTube. It is standalone skill.
+This standalone skill handles YouTube upload and lookup tasks for Story Video Maker projects.
 
 ## Boundary
 
 Use the bundled script only:
 
 ```bash
-python3 .agents/skills/upload-youtube/scripts/upload_youtube.py upload library/<project_slug>
-python3 .agents/skills/upload-youtube/scripts/upload_youtube.py status library/<project_slug>
+python3 .agents/skills/youtube/scripts/youtube.py upload library/<project_slug>
+python3 .agents/skills/youtube/scripts/youtube.py status library/<project_slug>
+python3 .agents/skills/youtube/scripts/youtube.py list
+python3 .agents/skills/youtube/scripts/youtube.py fetch <video_id_or_url>
 ```
 
 ## Inputs
@@ -71,6 +73,10 @@ If `upload.json` exists:
 3. Update `last_checked_at`, `processing_status`, and API response details when available.
 4. Re-upload only when the user explicitly asks for force/reupload.
 
+`list` is read-only and writes nothing.
+
+`fetch` is read-only unless `--project library/<project_slug>` is provided. With `--project`, it writes or updates that project's `youtube/upload.json`, which supports attaching a manually uploaded YouTube video to a project.
+
 ## Thumbnail Selection
 
 Choose the thumbnail in this order:
@@ -105,25 +111,43 @@ Publishing public videos is allowed only when the user explicitly asks for publi
 Upload once:
 
 ```bash
-python3 .agents/skills/upload-youtube/scripts/upload_youtube.py upload library/<project_slug> --visibility private
+python3 .agents/skills/youtube/scripts/youtube.py upload library/<project_slug> --visibility private
 ```
 
 Upload public when explicitly requested:
 
 ```bash
-python3 .agents/skills/upload-youtube/scripts/upload_youtube.py upload library/<project_slug> --visibility public
+python3 .agents/skills/youtube/scripts/youtube.py upload library/<project_slug> --visibility public
 ```
 
 Check status after upload:
 
 ```bash
-python3 .agents/skills/upload-youtube/scripts/upload_youtube.py status library/<project_slug>
+python3 .agents/skills/youtube/scripts/youtube.py status library/<project_slug>
+```
+
+List recent channel uploads:
+
+```bash
+python3 .agents/skills/youtube/scripts/youtube.py list --max-results 10
+```
+
+Fetch one YouTube video:
+
+```bash
+python3 .agents/skills/youtube/scripts/youtube.py fetch <video_id_or_url>
+```
+
+Attach a manually uploaded YouTube video to a project:
+
+```bash
+python3 .agents/skills/youtube/scripts/youtube.py fetch <video_id_or_url> --project library/<project_slug>
 ```
 
 Force a new upload:
 
 ```bash
-python3 .agents/skills/upload-youtube/scripts/upload_youtube.py upload library/<project_slug> --force --visibility private
+python3 .agents/skills/youtube/scripts/youtube.py upload library/<project_slug> --force --visibility private
 ```
 
 ## Hard Rules
@@ -132,4 +156,5 @@ python3 .agents/skills/upload-youtube/scripts/upload_youtube.py upload library/<
 - Do not inspect browser cookies, storage, XHR auth headers, or private Studio endpoints.
 - Do not re-upload if `upload.json` exists unless the user explicitly asks for `--force`.
 - Do not create `upload.md`.
-- Do not modify files outside `library/<project_slug>/youtube/upload.json` during normal operation.
+- Do not create list cache files.
+- Do not modify project files except `library/<project_slug>/youtube/upload.json`.

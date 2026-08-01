@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Upload a Story Video Maker project to YouTube.
 
-This script intentionally lives inside the upload-youtube skill. It does not
+This script intentionally lives inside the youtube skill. It does not
 depend on project src/ code so the upload capability can remain skill-owned.
 """
 
@@ -11,10 +11,12 @@ import argparse
 import hashlib
 import json
 import mimetypes
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 
 UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
@@ -68,6 +70,35 @@ def read_json(path: Path) -> dict[str, Any]:
         die(f"missing required file: {path}")
     except json.JSONDecodeError as exc:
         die(f"invalid JSON in {path}: {exc}")
+
+
+def video_url(video_id: str) -> str:
+    return f"https://youtu.be/{video_id}"
+
+
+def parse_video_id(value: str) -> str:
+    value = value.strip()
+    if re.fullmatch(r"[A-Za-z0-9_-]{11}", value):
+        return value
+
+    parsed = urlparse(value)
+    host = parsed.netloc.lower()
+    path_parts = [p for p in parsed.path.split("/") if p]
+
+    if host.endswith("youtu.be") and path_parts:
+        return path_parts[0]
+    if "youtube.com" in host:
+        query_id = parse_qs(parsed.query).get("v", [None])[0]
+        if query_id:
+            return query_id
+        if len(path_parts) >= 2 and path_parts[0] in {"shorts", "embed", "live"}:
+            return path_parts[1]
+
+    match = re.search(r"(?:v=|youtu\.be/|shorts/|embed/)([A-Za-z0-9_-]{11})", value)
+    if match:
+        return match.group(1)
+
+    die(f"could not parse YouTube video id from: {value}")
 
 
 def write_upload_json(project_dir: Path, payload: dict[str, Any]) -> Path:
@@ -165,6 +196,54 @@ def get_credentials(scope_profile: str):
 def youtube_client(scope_profile: str):
     *_, build, _, _ = load_google_libs()
     return build("youtube", "v3", credentials=get_credentials(scope_profile))
+
+
+def fetch_video_resource(youtube, video_id: str) -> dict[str, Any] | None:
+    response = (
+        youtube.videos()
+        .list(part="snippet,status,processingDetails,statistics,contentDetails", id=video_id)
+        .execute()
+    )
+    items = response.get("items", [])
+    return items[0] if items else None
+
+
+def upload_state_from_video(project_dir: Path, video_id: str, item: dict[str, Any] | None) -> dict[str, Any]:
+    status = item.get("status", {}) if item else {}
+    processing = item.get("processingDetails", {}) if item else {}
+    snippet = item.get("snippet", {}) if item else {}
+    return {
+        "state": "fetched" if item else "not_found",
+        "video_id": video_id,
+        "url": video_url(video_id),
+        "visibility": status.get("privacyStatus"),
+        "upload_status": status.get("uploadStatus"),
+        "processing_status": processing.get("processingStatus", "not_found" if not item else "unknown"),
+        "project": str(project_dir),
+        "video_path": None,
+        "video_sha256": None,
+        "metadata_path": None,
+        "metadata_sha256": None,
+        "thumbnail_path": None,
+        "thumbnail_sha256": None,
+        "thumbnail_warning": None,
+        "thumbnail_error": None,
+        "uploaded_at": snippet.get("publishedAt"),
+        "last_checked_at": utc_now(),
+        "status_response": {"items": [item] if item else []},
+    }
+
+
+def print_video_row(item: dict[str, Any]) -> None:
+    video_id = item.get("id") or item.get("contentDetails", {}).get("videoId")
+    snippet = item.get("snippet", {})
+    status = item.get("status", {})
+    stats = item.get("statistics", {})
+    title = snippet.get("title", "").replace("\n", " ")[:80]
+    published = snippet.get("publishedAt", "")
+    privacy = status.get("privacyStatus", "")
+    views = stats.get("viewCount", "")
+    print(f"{video_id}\t{privacy}\t{views}\t{published}\t{title}")
 
 
 def metadata_body(metadata: dict[str, Any], visibility: str) -> dict[str, Any]:
@@ -266,7 +345,7 @@ def command_upload(args: argparse.Namespace) -> None:
     payload = {
         "state": "uploaded",
         "video_id": video_id,
-        "url": f"https://youtu.be/{video_id}",
+        "url": video_url(video_id),
         "visibility": args.visibility,
         "processing_status": "unknown",
         "project": str(project_dir),
@@ -286,7 +365,7 @@ def command_upload(args: argparse.Namespace) -> None:
     out = write_upload_json(project_dir, payload)
     print("upload_accepted True")
     print(f"video_id {video_id}")
-    print(f"url https://youtu.be/{video_id}")
+    print(f"url {video_url(video_id)}")
     print(f"visibility {args.visibility}")
     print(f"saved {out}")
     if thumbnail_error:
@@ -309,9 +388,7 @@ def command_status(args: argparse.Namespace) -> None:
         die(f"upload.json does not contain video_id: {paths['upload']}")
 
     youtube = youtube_client("manage")
-    response = youtube.videos().list(part="snippet,status,processingDetails", id=video_id).execute()
-    items = response.get("items", [])
-    item = items[0] if items else None
+    item = fetch_video_resource(youtube, video_id)
     status = item.get("status", {}) if item else {}
     processing = item.get("processingDetails", {}) if item else {}
 
@@ -322,7 +399,7 @@ def command_status(args: argparse.Namespace) -> None:
             "visibility": status.get("privacyStatus", payload.get("visibility")),
             "upload_status": status.get("uploadStatus"),
             "processing_status": processing.get("processingStatus", "unknown" if item else "not_found"),
-            "status_response": response,
+            "status_response": {"items": [item] if item else []},
         }
     )
     out = write_upload_json(project_dir, payload)
@@ -335,8 +412,99 @@ def command_status(args: argparse.Namespace) -> None:
     print(f"saved {out}")
 
 
+def command_list(args: argparse.Namespace) -> None:
+    youtube = youtube_client("manage")
+    channel_response = youtube.channels().list(part="contentDetails", mine=True).execute()
+    channels = channel_response.get("items", [])
+    if not channels:
+        die("no authenticated YouTube channel found")
+
+    uploads_playlist_id = (
+        channels[0]
+        .get("contentDetails", {})
+        .get("relatedPlaylists", {})
+        .get("uploads")
+    )
+    if not uploads_playlist_id:
+        die("authenticated channel does not expose an uploads playlist")
+
+    playlist_response = (
+        youtube.playlistItems()
+        .list(
+            part="contentDetails",
+            playlistId=uploads_playlist_id,
+            maxResults=args.max_results,
+        )
+        .execute()
+    )
+    video_ids = [
+        item.get("contentDetails", {}).get("videoId")
+        for item in playlist_response.get("items", [])
+        if item.get("contentDetails", {}).get("videoId")
+    ]
+
+    if not video_ids:
+        print("no uploads found")
+        return
+
+    videos_response = (
+        youtube.videos()
+        .list(
+            part="snippet,status,statistics,contentDetails",
+            id=",".join(video_ids),
+            maxResults=args.max_results,
+        )
+        .execute()
+    )
+    items = videos_response.get("items", [])
+
+    if args.json:
+        print(json.dumps({"items": items}, indent=2, ensure_ascii=False))
+        return
+
+    print("video_id\tprivacy\tviews\tpublished_at\ttitle")
+    for item in items:
+        print_video_row(item)
+
+
+def command_fetch(args: argparse.Namespace) -> None:
+    video_id = parse_video_id(args.video)
+    youtube = youtube_client("manage")
+    item = fetch_video_resource(youtube, video_id)
+
+    if args.project:
+        project_dir = normalize_project_dir(args.project)
+        paths = project_paths(project_dir)
+        existing = read_json(paths["upload"]) if paths["upload"].exists() else None
+        if existing and existing.get("video_id") and existing.get("video_id") != video_id and not args.force:
+            die(
+                f"{paths['upload']} already points to {existing.get('video_id')}; "
+                "use --force to attach a different video"
+            )
+        payload = existing or {}
+        payload.update(upload_state_from_video(project_dir, video_id, item))
+        out = write_upload_json(project_dir, payload)
+        print(f"video_id {video_id}")
+        print(f"url {video_url(video_id)}")
+        print(f"state {payload['state']}")
+        print(f"saved {out}")
+        return
+
+    if args.json:
+        print(json.dumps({"video_id": video_id, "item": item}, indent=2, ensure_ascii=False))
+        return
+
+    if not item:
+        print(f"video_id {video_id}")
+        print("state not_found")
+        return
+
+    print("video_id\tprivacy\tviews\tpublished_at\ttitle")
+    print_video_row(item)
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Upload or check a Story Video Maker YouTube package.")
+    parser = argparse.ArgumentParser(description="Upload, check, list, or fetch YouTube videos.")
     sub = parser.add_subparsers(dest="command", required=True)
 
     upload = sub.add_parser("upload", help="Upload the project video once and write upload.json.")
@@ -349,6 +517,18 @@ def build_parser() -> argparse.ArgumentParser:
     status.add_argument("project_dir", help="Path like library/<project_slug>")
     status.add_argument("--force", action="store_true", help=argparse.SUPPRESS)
     status.set_defaults(func=command_status, visibility=None)
+
+    list_cmd = sub.add_parser("list", help="List recent uploads for the authenticated channel.")
+    list_cmd.add_argument("--max-results", type=int, default=10)
+    list_cmd.add_argument("--json", action="store_true", help="Print raw JSON and write nothing.")
+    list_cmd.set_defaults(func=command_list)
+
+    fetch = sub.add_parser("fetch", help="Fetch one YouTube video by id or URL.")
+    fetch.add_argument("video", help="YouTube video id or URL")
+    fetch.add_argument("--project", help="Optional library/<project_slug> to attach/update upload.json")
+    fetch.add_argument("--force", action="store_true", help="Allow replacing a different video_id in upload.json.")
+    fetch.add_argument("--json", action="store_true", help="Print raw JSON and write nothing unless --project is used.")
+    fetch.set_defaults(func=command_fetch)
 
     return parser
 
