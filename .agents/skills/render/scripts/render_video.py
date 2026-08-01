@@ -137,9 +137,9 @@ def render_scene_clip(
     args = ["-loop", "1", "-i", str(image_path)]
 
     if subtitle_frames:
-        # Extend inputs for each subtitle frame PNG
+        # Extend inputs for each subtitle frame PNG, locking their framerate to the video's fps to avoid flickering
         for png_path, _, _ in subtitle_frames:
-            args.extend(["-loop", "1", "-i", str(png_path)])
+            args.extend(["-loop", "1", "-framerate", str(fps), "-i", str(png_path)])
 
         chains: list[str] = []
         prev = "[kbv]"
