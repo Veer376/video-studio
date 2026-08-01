@@ -49,3 +49,9 @@ This is the central task tracker for the story video maker studio, located in th
 
 ### 3. Lack of Image Generation Automation
 * Add support for the Gemini Imagen API inside the Python engine so that scene visual assets can be generated command-line end-to-end.
+
+### 4. Programmatic Audio-Visual Alignment
+* Split narration scripts into multiple scenes and programmatically calculate transition timestamps from the generated master audio duration (proportional to character lengths and punctuation weights) without using external transcription APIs.
+
+### 5. Hierarchical Scene & Subject Dissection
+* Group narration into major narrative chapters, and subdivide each chapter's script into smaller action beats mapped to camera pans, zooms, and crops on a single base image to maintain character consistency.
