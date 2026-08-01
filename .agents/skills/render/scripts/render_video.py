@@ -116,21 +116,22 @@ def render_scene_clip(
             f"crop={width}:{height}"
         )
     else:
-        # Zoompan motion (Ken Burns zoom-in)
+        # Zoompan motion (Ken Burns zoom-in) rendered at 3x resolution to completely eliminate jitter/shaking
         frames = max(1, round(duration * fps))
         step = KEN_BURNS_ZOOM / max(1, frames - 1)
 
-        overscan_w = width + 160
-        overscan_h = height + 160
+        hires_w = width * 3
+        hires_h = height * 3
 
         zoom_expr = f"1.0+on*{step:.8f}"
         x_expr = "(iw-iw/zoom)/2"
         y_expr = "(ih-ih/zoom)/2"
 
         vf = (
-            f"scale={overscan_w}:{overscan_h}:force_original_aspect_ratio=increase,"
-            f"crop={width}:{height},"
-            f"zoompan=z='{zoom_expr}':x='{x_expr}':y='{y_expr}':d={frames}:s={width}x{height}:fps={fps}"
+            f"scale={hires_w}:{hires_h}:force_original_aspect_ratio=increase,"
+            f"crop={hires_w}:{hires_h},"
+            f"zoompan=z='{zoom_expr}':x='{x_expr}':y='{y_expr}':d={frames}:s={hires_w}x{hires_h}:fps={fps},"
+            f"scale={width}:{height}"
         )
 
     args = ["-loop", "1", "-i", str(image_path)]
