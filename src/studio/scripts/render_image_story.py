@@ -28,7 +28,7 @@ from pathlib import Path
 # Add project src to path for direct script execution.
 project_root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(project_root / "src"))
-from subtitles import write_subtitle_overlay
+from subtitles import subtitle_enable_expr, write_subtitle_overlay
 from renderer import detect_devanagari_font
 
 
@@ -158,7 +158,7 @@ def render_scene_clip(
         for idx, (_, t_start, t_end) in enumerate(subtitle_frames, start=1):
             out_label = f"[ov{idx}]"
             chains.append(
-                f"{prev}[{idx}:v]overlay=0:0:enable='between(t,{t_start:.4f},{t_end:.4f})':format=auto{out_label}"
+                f"{prev}[{idx}:v]overlay=0:0:enable='{subtitle_enable_expr(t_start, t_end)}':format=auto{out_label}"
             )
             prev = out_label
             

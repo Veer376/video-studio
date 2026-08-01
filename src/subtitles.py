@@ -20,6 +20,11 @@ def write_srt(manifest: Manifest, out_path: Path) -> Path:
     return out_path
 
 
+def subtitle_enable_expr(t_start: float, t_end: float) -> str:
+    """Build a non-overlapping FFmpeg enable expression for subtitle overlays."""
+    return f"gte(t,{t_start:.4f})*lt(t,{t_end:.4f})"
+
+
 def write_subtitle_overlay(
     text: str,
     out_path: Path,

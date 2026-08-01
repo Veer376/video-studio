@@ -5,7 +5,7 @@ from pathlib import Path
 
 import ffmpeg
 from models import Manifest, Scene
-from subtitles import write_srt, write_word_subtitle_frames
+from subtitles import subtitle_enable_expr, write_srt, write_word_subtitle_frames
 
 
 def prepare_dirs(base_dir: Path) -> None:
@@ -116,7 +116,7 @@ def render_scene(
         for idx, (_png, t_start, t_end) in enumerate(frames, start=1):
             out_label = f"[ov{idx}]"
             chains.append(
-                f"{prev}[{idx}:v]overlay=0:0:enable='between(t,{t_start:.4f},{t_end:.4f})':format=auto{out_label}"
+                f"{prev}[{idx}:v]overlay=0:0:enable='{subtitle_enable_expr(t_start, t_end)}':format=auto{out_label}"
             )
             prev = out_label
         full_filter = kb_vf + ";" + ";".join(chains) + f";{prev}format=yuv420p[vout]"
