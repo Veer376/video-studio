@@ -155,6 +155,8 @@ def main():
         width, height = 768, 768
 
     visual_style = scenes_data.get("visual_style", "premium cinematic digital painting, vivid colors")
+    if isinstance(visual_style, dict):
+        visual_style = visual_style.get("style", "premium cinematic digital painting, vivid colors")
 
     print(f"→ Generating scene images (Resolution: {width}x{height})")
     print(f"  Global Style: {visual_style}")

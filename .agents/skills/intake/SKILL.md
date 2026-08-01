@@ -17,15 +17,14 @@ Activate this skill when:
 - The user says "let's start fresh" or "new video".
 
 > [!NOTE]
-> Check if the `/grill-me` slash command is available, and suggest it to the user as the recommended interactive format to gather these onboarding inputs.
-
+> Use the `/grill-me` or `interview-me` skill, if available in your system.
 Do **not** re-run this if a `session.json` already exists and `status` is not `intake_complete` — resume from where the pipeline left off instead.
 
 ---
 
 ## Intake Workflow
 
-Conduct the intake as a natural, friendly conversation. Ask one or two questions at a time. Acknowledge each answer before moving to the next group.
+Conduct the intake as a natural, friendly conversation. Acknowledge each answer before moving to the next group.
 
 ### Group 1 — The Idea
 > **Q1.** What is this video about? Give me the core idea — it can be a theme, a story concept, a life lesson, a character, or even just a feeling.
@@ -45,8 +44,6 @@ Conduct the intake as a natural, friendly conversation. Ask one or two questions
 > **Q8.** Which voice style?
 > - `Puck` — expressive, male (Gemini TTS, recommended)
 > - `Aoede` — warm, female (Gemini TTS)
-> - `priya` — natural female Hindi (Sarvam TTS)
-> - `gokul` — natural male Hindi (Sarvam TTS)
 
 ### Group 4 — Visual Style (Optional)
 > **Q9.** Any specific visual style? *(e.g., ancient India, modern urban, nature documentary, abstract watercolour)* — or press Enter to use the cinematic digital painting default.
