@@ -1,11 +1,9 @@
 """
-Stage 2 of render pipeline: Render scene clips with Ken Burns motion, concatenate with
-crossfade transitions, and burn in ASS subtitles.
+Stage 2 of render pipeline: Render scene clips with Ken Burns motion, burn in word-by-word
+Pillow-rendered subtitle overlays, and concatenate them with crossfade transitions.
 
-Sub-stages:
-  A. Each image → temp/scenes/scene-NNN.mp4  (Ken Burns zoompan, silent)
-  B. All scene clips → temp/concat-video.mp4  (xfade crossfade transitions)
-  C. Burn ASS subtitles → temp/video-no-audio.mp4
+This implementation uses transparent PNGs rendered via Pillow and overlays them onto the clips
+using FFmpeg's overlay filter, bypassing the need for FFmpeg's libass library.
 
 Usage:
     python3 render_video.py --project-dir library/2026-08-01_krishna-motivation
@@ -16,6 +14,12 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+# Add project src to path for imports
+project_root = Path(__file__).resolve().parents[4]
+sys.path.append(str(project_root / "src"))
+from subtitles import write_subtitle_overlay
+from renderer import detect_devanagari_font
 
 
 CROSSFADE_DURATION = 0.4   # seconds of crossfade between scenes
@@ -35,19 +39,60 @@ def ffmpeg(*args: str) -> None:
         raise FFmpegError(f"ffmpeg failed:\n{tail}")
 
 
-def detect_devanagari_fontsdir() -> str | None:
-    """Return the directory containing a Devanagari-compatible font for libass fontsdir."""
-    candidates = [
-        "/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc",
-        "/System/Library/Fonts/Supplemental/ITFDevanagari.ttc",
-        "/System/Library/Fonts/Supplemental/DevanagariMT.ttc",
-        "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
+def generate_scene_subtitle_frames(
+    scene: dict,
+    words: list[dict],
+    out_dir: Path,
+    size: tuple[int, int],
+    font_path: Path | None,
+) -> list[tuple[Path, float, float]]:
+    """
+    Generate transparent PNG overlays for each word in the scene using Pillow.
+    Timings are calculated relative to the scene's start time (0.0s).
+    """
+    start_t = scene["start_time"]
+    end_t = scene["end_time"]
+    scene_id = scene["id"]
+
+    # Filter words belonging to this scene's time window
+    scene_words = [
+        w for w in words
+        if w["start"] >= (start_t - 0.15) and w["start"] < end_t
     ]
-    for path_str in candidates:
-        p = Path(path_str)
-        if p.exists():
-            return str(p.parent)
-    return None
+    if not scene_words:
+        return []
+
+    # Build the full text for this scene to lock the layout wrapping structure
+    full_text = " ".join(w["word"] for w in scene_words)
+
+    frames = []
+    cumulative = []
+
+    for i, word in enumerate(scene_words):
+        cumulative.append(word["word"].strip())
+        visible_text = " ".join(cumulative)
+
+        # Calculate overlay start/end times relative to the scene's start (0.0s)
+        t_start = max(0.0, word["start"] - start_t)
+        if i < len(scene_words) - 1:
+            t_end = max(0.0, scene_words[i + 1]["start"] - start_t)
+        else:
+            t_end = end_t - start_t
+
+        if t_end <= t_start + 0.001:
+            continue
+
+        png_path = out_dir / f"{scene_id}-word-{i:04d}.png"
+        write_subtitle_overlay(
+            text=visible_text,
+            out_path=png_path,
+            size=size,
+            font_path=font_path,
+            full_text=full_text,
+        )
+        frames.append((png_path, t_start, t_end))
+
+    return frames
 
 
 def render_scene_clip(
@@ -57,16 +102,15 @@ def render_scene_clip(
     width: int,
     height: int,
     fps: int,
+    subtitle_frames: list[tuple[Path, float, float]],
 ) -> None:
     """
-    Render a single scene image as a silent MP4 clip with Ken Burns slow zoom.
-    The image is scaled slightly larger, then zoompan slowly zooms in over the clip duration.
+    Render a single scene image as a silent MP4 clip with Ken Burns slow zoom,
+    and burn in word-by-word subtitle overlays using FFmpeg's overlay filter.
     """
     frames = max(1, round(duration * fps))
-    # Zoom step: go from 1.0 to 1.0+KEN_BURNS_ZOOM linearly over all frames
     step = KEN_BURNS_ZOOM / max(1, frames - 1)
 
-    # Scale slightly larger than target to provide headroom for zoom + pan
     overscan_w = width + 160
     overscan_h = height + 160
 
@@ -77,30 +121,56 @@ def render_scene_clip(
     vf = (
         f"scale={overscan_w}:{overscan_h}:force_original_aspect_ratio=increase,"
         f"crop={width}:{height},"
-        f"zoompan=z='{zoom_expr}':x='{x_expr}':y='{y_expr}':d={frames}:s={width}x{height}:fps={fps},"
-        f"format=yuv420p"
+        f"zoompan=z='{zoom_expr}':x='{x_expr}':y='{y_expr}':d={frames}:s={width}x{height}:fps={fps}"
     )
 
-    ffmpeg(
-        "-loop", "1",
-        "-i", str(image_path),
-        "-t", f"{duration:.4f}",
-        "-vf", vf,
-        "-an",
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
-        "-movflags", "+faststart",
-        str(out_path),
-    )
+    args = ["-loop", "1", "-i", str(image_path)]
+
+    if subtitle_frames:
+        # Extend inputs for each subtitle frame PNG
+        for png_path, _, _ in subtitle_frames:
+            args.extend(["-loop", "1", "-i", str(png_path)])
+
+        chains: list[str] = []
+        prev = "[kbv]"
+        kb_vf = f"{vf}[kbv]"
+        
+        for idx, (_, t_start, t_end) in enumerate(subtitle_frames, start=1):
+            out_label = f"[ov{idx}]"
+            chains.append(
+                f"{prev}[{idx}:v]overlay=0:0:enable='between(t,{t_start:.4f},{t_end:.4f})':format=auto{out_label}"
+            )
+            prev = out_label
+            
+        full_filter = kb_vf + ";" + ";".join(chains) + f";{prev}format=yuv420p[vout]"
+        
+        args.extend([
+            "-t", f"{duration:.4f}",
+            "-filter_complex", full_filter,
+            "-map", "[vout]",
+            "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+            "-movflags", "+faststart",
+            str(out_path)
+        ])
+    else:
+        # Standard video only (no subtitles)
+        vf_format = f"{vf},format=yuv420p"
+        args.extend([
+            "-t", f"{duration:.4f}",
+            "-vf", vf_format,
+            "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+            "-movflags", "+faststart",
+            str(out_path)
+        ])
+
+    ffmpeg(*args)
 
 
 def concat_with_xfade(scene_clips: list[Path], durations: list[float], out_path: Path) -> None:
     """
     Concatenate scene clips using FFmpeg xfade transition (crossfade) between each pair.
-    The offset for each xfade is the cumulative duration of all previous clips minus
-    accumulated transition overlap.
     """
     if len(scene_clips) == 1:
-        # No crossfade needed for single scene
         ffmpeg("-i", str(scene_clips[0]), "-c", "copy", str(out_path))
         return
 
@@ -109,14 +179,10 @@ def concat_with_xfade(scene_clips: list[Path], durations: list[float], out_path:
     for clip in scene_clips:
         args += ["-i", str(clip)]
 
-    # Build xfade filter chain
     chains: list[str] = []
     cumulative_offset = 0.0
 
     for i in range(len(scene_clips) - 1):
-        in_label = f"[v{i}]" if i > 0 else f"[{0}:v]"
-        # First iteration: inputs are [0:v][1:v]
-        # Subsequent: accumulated label + next input
         if i == 0:
             prev = "[0:v]"
         else:
@@ -129,7 +195,7 @@ def concat_with_xfade(scene_clips: list[Path], durations: list[float], out_path:
         chains.append(
             f"{prev}[{i + 1}:v]xfade=transition=fade:duration={td:.3f}:offset={offset:.3f}{out_label}"
         )
-        cumulative_offset -= td  # account for overlap
+        cumulative_offset -= td
 
     final_label = f"[vx{len(scene_clips) - 1}]"
     filter_complex = ";".join(chains)
@@ -153,52 +219,23 @@ def concat_with_xfade(scene_clips: list[Path], durations: list[float], out_path:
         raise FFmpegError(f"xfade concat failed:\n{tail}")
 
 
-def burn_subtitles(video_path: Path, ass_path: Path, out_path: Path, fontsdir: str | None) -> None:
-    """
-    Burn ASS subtitles into the video using FFmpeg's ass filter.
-    Falls back to writing video without subtitles if the ass filter fails.
-    """
-    # Build the ass filter — specify fontsdir if we know where the Devanagari font lives
-    if fontsdir:
-        ass_filter = f"ass={str(ass_path).replace(':', '\\:').replace('\\', '/')}:fontsdir={fontsdir}"
-    else:
-        ass_filter = f"ass={str(ass_path).replace(':', '\\:').replace('\\', '/')}"
-
-    try:
-        ffmpeg(
-            "-i", str(video_path),
-            "-vf", ass_filter,
-            "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
-            "-pix_fmt", "yuv420p",
-            "-movflags", "+faststart",
-            str(out_path),
-        )
-        print("✓ ASS subtitles burned into video")
-    except FFmpegError as e:
-        print(f"  ⚠ Subtitle burning failed ({str(e)[:120]}). Copying video without subtitles.", file=sys.stderr)
-        # Fallback: copy video without subtitles
-        subprocess.run(
-            ["ffmpeg", "-y", "-i", str(video_path), "-c", "copy", str(out_path)],
-            capture_output=True, check=True,
-        )
-
-
 def main():
     parser = argparse.ArgumentParser(description="Render scene clips with Ken Burns + crossfades + subtitles")
     parser.add_argument("--project-dir", required=True, help="Path to the project directory")
     parser.add_argument("--force", action="store_true", help="Re-render even if clips already exist")
-    parser.add_argument("--skip-subtitles", action="store_true", help="Skip subtitle burning step")
+    parser.add_argument("--skip-subtitles", action="store_true", help="Skip subtitle overlay step")
     args = parser.parse_args()
 
     if shutil.which("ffmpeg") is None:
-        print("ERROR: ffmpeg not found in PATH. Install ffmpeg first.", file=sys.stderr)
+        print("ERROR: ffmpeg not found in PATH.", file=sys.stderr)
         sys.exit(1)
 
     project_dir = Path(args.project_dir)
     scenes_path = project_dir / "scenes.json"
     session_path = project_dir / "session.json"
-    ass_path = project_dir / "subtitles" / "story.ass"
+    timestamps_path = project_dir / "audio" / "timestamps.json"
     scenes_dir = project_dir / "temp" / "scenes"
+    sub_dir = project_dir / "temp" / "subtitles"
     concat_path = project_dir / "temp" / "concat-video.mp4"
     out_path = project_dir / "temp" / "video-no-audio.mp4"
 
@@ -219,10 +256,17 @@ def main():
     else:
         width, height = 1024, 576
 
+    words = []
+    if not args.skip_subtitles and timestamps_path.exists():
+        words = json.loads(timestamps_path.read_text(encoding="utf-8")).get("words", [])
+
     scenes = scenes_data.get("scenes", [])
     scenes_dir.mkdir(parents=True, exist_ok=True)
+    sub_dir.mkdir(parents=True, exist_ok=True)
     (project_dir / "temp").mkdir(parents=True, exist_ok=True)
     (project_dir / "output").mkdir(parents=True, exist_ok=True)
+
+    font_path = detect_devanagari_font(project_dir)
 
     # ── Sub-stage A: Render each scene clip ──────────────────────────────────
     print(f"→ Rendering {len(scenes)} scene clips at {width}x{height} @ {fps}fps")
@@ -233,10 +277,17 @@ def main():
         scene_id = scene["id"]
         start_t = float(scene.get("start_time") or 0.0)
         end_t = float(scene.get("end_time") or 0.0)
-        duration = max(0.5, end_t - start_t)   # enforce minimum 0.5s
+        duration = max(0.5, end_t - start_t)
 
         image_path = project_dir / scene["image_path"]
         clip_path = scenes_dir / f"{scene_id}.mp4"
+
+        # Generate subtitle overlay frames
+        subtitle_frames = []
+        if words:
+            subtitle_frames = generate_scene_subtitle_frames(
+                scene, words, sub_dir, (width, height), font_path
+            )
 
         if not image_path.exists():
             print(f"ERROR: Image not found: {image_path}", file=sys.stderr)
@@ -245,29 +296,16 @@ def main():
         if clip_path.exists() and not args.force:
             print(f"  ✓ Cached: {scene_id}.mp4 ({duration:.2f}s)")
         else:
-            print(f"  Rendering {scene_id}.mp4 ({duration:.2f}s)...")
-            render_scene_clip(image_path, duration, clip_path, width, height, fps)
+            print(f"  Rendering {scene_id}.mp4 ({duration:.2f}s) with {len(subtitle_frames)} subtitle frames...")
+            render_scene_clip(image_path, duration, clip_path, width, height, fps, subtitle_frames)
 
         scene_clips.append(clip_path)
         durations.append(duration)
 
     # ── Sub-stage B: Concatenate with crossfade ───────────────────────────────
     print(f"→ Concatenating {len(scene_clips)} clips with {CROSSFADE_DURATION}s crossfade...")
-    concat_with_xfade(scene_clips, durations, concat_path)
-    print(f"  ✓ Concatenated video: {concat_path}")
-
-    # ── Sub-stage C: Burn subtitles ───────────────────────────────────────────
-    if args.skip_subtitles or not ass_path.exists():
-        print("  Skipping subtitle burning (no .ass file found or --skip-subtitles set)")
-        subprocess.run(
-            ["ffmpeg", "-y", "-i", str(concat_path), "-c", "copy", str(out_path)],
-            capture_output=True, check=True,
-        )
-    else:
-        print(f"→ Burning subtitles from {ass_path.name}...")
-        fontsdir = detect_devanagari_fontsdir()
-        burn_subtitles(concat_path, ass_path, out_path, fontsdir)
-
+    concat_with_xfade(scene_clips, durations, out_path)
+    print(f"  ✓ Concatenated video: {out_path}")
     print(f"✓ Video (no audio) ready: {out_path}")
 
 
