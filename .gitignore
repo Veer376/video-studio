@@ -3,13 +3,7 @@ __pycache__/
 *.py[cod]
 
 # Ignore generated media folders in library, but keep configurations
-library/**/images/
-library/**/audio/
-library/**/scenes/
-library/**/temp/
-library/**/output/
-library/**/subtitles/
-library/**/assets/
+library
 
 # Local secrets.
 .env
