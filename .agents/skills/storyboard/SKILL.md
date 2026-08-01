@@ -21,7 +21,7 @@ Activate this skill when:
 ## Step 1 — Read All Inputs
 
 Read the following files before doing anything:
-1. `library/<project_slug>/session.json` → extract `video.target_scene_count`, `video.seconds_per_scene`, `visual.style`
+1. `library/<project_slug>/session.json` → extract `visual.style`
 2. `library/<project_slug>/script.md` → extract the full narration text (strip the title, template name, date, description header — take only the flowing prose body)
 
 Count the total words in the narration body. This is `total_words`.
@@ -30,12 +30,17 @@ Count the total words in the narration body. This is `total_words`.
 
 ## Step 2 — Split the Script Intelligently
 
-**Goal:** Divide the narration into `target_scene_count` chunks at semantically meaningful boundaries.
+**Goal:** Divide the narration into chunks at semantically meaningful boundaries, aiming for 1 image (scene) every 8–10 seconds of spoken narration. (In spoken Hindi, this corresponds to roughly 1 scene per 18–22 words, standardizing on a target of 20 words per scene).
 
 **Algorithm:**
-```
-target_words_per_scene = total_words / target_scene_count
-```
+1. Calculate the dynamic scene count:
+   ```
+   target_scene_count = max(2, round(total_words / 20))
+   ```
+2. Compute the target words per scene:
+   ```
+   target_words_per_scene = total_words / target_scene_count
+   ```
 
 Walk the text word by word, tracking a running word count:
 1. When the running count reaches `target_words_per_scene`, look ahead to find the **nearest sentence-ending boundary** (full stop `।`, `.`, `!`, `?`, or an ellipsis `...`) within a 15-word lookahead window.
@@ -166,4 +171,4 @@ Update `session.json`:
 - **Think like a director:** every prompt decision should consider what precedes and follows it.
 - **Do not generate images.** This skill only writes `scenes.json`. The `illustrate` skill handles image generation.
 - **`word_range` must be contiguous and cover the entire script** with no gaps or overlaps.
-- **Scene count must exactly match `session.json` `video.target_scene_count`.**
+- **Scene count is dynamically determined based on script length** (aiming for 1 scene per 8–10 seconds, or ~20 words per scene), with a minimum of 2 scenes.
