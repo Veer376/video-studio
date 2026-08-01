@@ -8,11 +8,21 @@ using FFmpeg's overlay filter, bypassing the need for FFmpeg's libass library.
 Usage:
     python3 render_video.py --project-dir library/2026-08-01_krishna-motivation
 """
+import os
+import sys
+
+# On macOS, ensure Homebrew's library path is in DYLD_LIBRARY_PATH so Pillow can load libraqm for Devanagari text shaping
+if sys.platform == "darwin" and "/opt/homebrew/lib" not in os.environ.get("DYLD_LIBRARY_PATH", ""):
+    os.environ["DYLD_LIBRARY_PATH"] = "/opt/homebrew/lib" + (":" + os.environ["DYLD_LIBRARY_PATH"] if "DYLD_LIBRARY_PATH" in os.environ else "")
+    try:
+         os.execv(sys.executable, [sys.executable] + sys.argv)
+    except Exception as e:
+         sys.stderr.write(f"Warning: Failed to set DYLD_LIBRARY_PATH and re-exec: {e}\n")
+
 import argparse
 import json
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 # Add project src to path for imports
