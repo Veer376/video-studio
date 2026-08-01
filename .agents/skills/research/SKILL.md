@@ -31,91 +31,53 @@ The composer needs more than facts. They need:
 
 ---
 
-## Available Tools
+## Available CLI Tools
 
-You have four Tavily tools available via Python scripts in this project. Use them deliberately — each has a specific role:
+You have four custom Tavily CLI tools located in `.agents/skills/research/scripts/`. They automatically handle API authentication from your home configuration (`~/.config/story-video-maker/.env`) and return results in structured JSON format. 
+
+Use the `run_command` tool to execute them:
 
 ### Tool 1 — `/search` (Primary Discovery)
-**Use for:** Broad discovery. Finding relevant stories, articles, and sources on the topic.
+Perform web searches with adjustable depth, classification topic, and results count.
 
-```python
-import os, json
-from tavily import TavilyClient
+```bash
+# Basic usage
+python3 .agents/skills/research/scripts/tavily_search.py --query "Krishna Arjuna Bhagavad Gita karma lesson"
 
-client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
-
-results = client.search(
-    query="your query here",
-    search_depth="advanced",    # deep content retrieval (costs 2 credits)
-    topic="general",            # or "news" for recent events
-    max_results=7,
-    include_raw_content=False   # set True only if you need full page text
-)
-
-for r in results["results"]:
-    print(r["title"], r["url"])
-    print(r["content"])
+# Advanced search with news focus and raw HTML retrieval
+python3 .agents/skills/research/scripts/tavily_search.py --query "motivational karma paradox" --search-depth advanced --topic news --max-results 3 --include-raw-content
 ```
-
-**Best for this skill:** "Krishna Arjuna Bhagavad Gita real lesson", "motivation karma paradox story", "historical Indian motivational story"
 
 ---
 
 ### Tool 2 — `/extract` (Deep Page Reading)
-**Use for:** Once you find a promising URL from search, extract its full clean content.
+Retrieve clean, reader-mode content for specific URLs.
 
-```python
-results = client.extract(urls=["https://example.com/some-article"])
-page_text = results["results"][0]["raw_content"]
+```bash
+python3 .agents/skills/research/scripts/tavily_extract.py --urls "https://www.wisdomlib.org/hinduism/book/mahabharata,https://example.com/article"
 ```
-
-**Best for this skill:** Extracting full text from a specific Bhagavad Gita commentary, a spiritual biography, or an article that had a strong search snippet.
 
 ---
 
 ### Tool 3 — `/crawl` + `/map` (Site Exploration)
-**Use for:** When you have a rich source site (e.g., a spiritual archive or a storytelling platform) and want to discover what's available before extracting.
+Map a site's structure or recursively crawl multiple pages to gather content.
 
-```python
-# Discover URLs on a site
-site_map = client.map(url="https://www.wisdomlib.org/hinduism")
-all_urls = site_map["urls"]  # list of URLs
+```bash
+# Discover URLs on a site (map mode)
+python3 .agents/skills/research/scripts/tavily_crawl.py --url "https://www.ramakrishnavivekananda.info" --mode map
 
-# Then crawl one section
-pages = client.crawl(
-    url="https://www.wisdomlib.org/hinduism/book/mahabharata",
-    max_depth=1,
-    max_pages=5
-)
+# Crawl and extract from up to 5 pages
+python3 .agents/skills/research/scripts/tavily_crawl.py --url "https://www.wisdomlib.org/hinduism/book/shrimad-bhagavad-gita" --mode crawl --max-depth 1 --max-pages 5
 ```
-
-**Best for this skill:** Spiritual archives, scripture sites, cultural history sites
 
 ---
 
 ### Tool 4 — `/research` (Deep Synthesis)
-**Use for:** When you want Tavily to do multi-step research on a topic and return a synthesized report. This is asynchronous — it takes 30–120 seconds.
+Execute an end-to-end multi-step research task and output a compiled report. (This is async; the script automatically polls for status).
 
-```python
-import asyncio
-from tavily import AsyncTavilyClient
-
-async def deep_research(query):
-    client = AsyncTavilyClient(api_key=os.environ["TAVILY_API_KEY"])
-    task = await client.research(input=query, model="mini")
-    request_id = task["request_id"]
-
-    while True:
-        result = await client.get_research(request_id)
-        if result["status"] == "completed":
-            return result["content"], result["sources"]
-        await asyncio.sleep(5)
+```bash
+python3 .agents/skills/research/scripts/tavily_research.py --query "scientific basis of action preceding motivation neuroscience"
 ```
-
-**Best for this skill:** "Bhagavad Gita Karma Yoga lessons explained", "Why Arjuna's doubt is relatable modern life"
-
-> [!NOTE]
-> You also have the agent's built-in `search_web` tool available for quick lookups without writing Python. Use it for fast, exploratory queries. Use the Tavily tools for deeper, structured research where you need multiple results, full page extraction, or synthesized reports.
 
 ---
 
@@ -129,15 +91,15 @@ Parse `library/<project_slug>/session.json`. Extract:
 - `brief.audience` — who is watching
 
 ### Step 2 — Plan Your Searches
-Before running any search, plan 4–6 targeted queries that cover different angles:
+Before running any command, plan 4–6 targeted queries that cover different angles:
 1. **Spiritual/Philosophical:** The sacred texts, parables, or philosophical concepts at the heart of the topic
 2. **Real story:** A real person, real event, or real historical incident that illustrates the theme
 3. **Emotional paradox:** The counterintuitive truth that makes the theme surprising
 4. **Deep detail:** Specific sensory or cultural details that add texture (place names, rituals, objects)
 5. **Quotes:** Exact spoken words — shlokas, proverbs, famous dialogue — that carry emotional weight
 
-### Step 3 — Run the Searches
-Execute your planned searches using the tools above. For each result:
+### Step 3 — Run the Scripts
+Execute your planned queries using the custom CLI scripts. For each result:
 - Extract the most specific, named, grounded detail
 - Note exact quotes with their source
 - Flag anything that is surprising or counterintuitive
