@@ -17,7 +17,7 @@ Discovery answers:
 
 - What story should we create?
 - Why is this story worth making?
-- What is the title, core promise, and emotional angle?
+- What is the title, source basis, expected runtime, core promise, and emotional angle?
 
 Intake answers:
 
@@ -46,8 +46,21 @@ If another research skill or external research tool is attached, you may use it 
 
 1. Ask only the minimum questions needed to understand the desired direction. Prefer generating options over long interviews.
 2. Research lightly if useful: find story-worthy angles, real incidents, spiritual/philosophical hooks, or surprising contrasts.
-3. Present 3 strong idea candidates.
+3. Present 3 strong idea candidates as compact idea cards.
 4. After the user picks one, return a short handoff brief in chat for `intake`.
+
+Each idea card must include:
+
+```text
+Title: <working title>
+Description:
+<line 1: concrete story premise>
+<line 2: emotional or philosophical hook>
+Source: <source URL/title if found through research, or "Internal reasoning" if inferred>
+Expected runtime: <rough timestamp/runtime range, e.g. 00:00-00:45 or 45-60s>
+```
+
+If the source is from the internet, include the strongest source URL or source title. If it is an invented or internally reasoned angle, say that clearly instead of implying a real source.
 
 ## Output
 
@@ -59,6 +72,11 @@ Return the selected idea in this shape:
 Selected idea:
 Title: <working title>
 Topic: <one-sentence story idea>
+Description:
+<line 1: concrete story premise>
+<line 2: emotional or philosophical hook>
+Source: <source URL/title if researched, or Internal reasoning>
+Expected runtime: <rough timestamp/runtime range>
 Core promise: <what the viewer should feel or understand>
 Best angle: <the strongest emotional or narrative angle>
 Why it can work: <one concise reason>

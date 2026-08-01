@@ -40,8 +40,10 @@ Vary your sentence lengths intentionally. Build pressure with descriptive lists,
 Great storytelling transitions from telling a story to directly addressing the listener at key turning points. Move from the third person (*वे/उन्होंने*) to the second person (*आप/तुम*):
 - *Example:* "अर्जुन रथ पर गिर पड़े। लेकिन सोचिए... क्या आपकी कहानी में भी ऐसा ही मोड़ नहीं आता? जब आपके सामने आपका कुरुक्षेत्र खड़ा होता है?"
 
-### 4. Shloka & Quote Embedding
-Never drop a quote or a Sanskrit shloka without preparation. Use a three-step pattern:
+### 4. Shloka, Quote & Attributed Wisdom Embedding
+Use quoted wisdom only when it feels earned by the story. For short scripts, prefer 0-2 quotes maximum. A quote should never appear as decoration; it should deepen the conflict, reveal the turn, or land the final wisdom.
+
+Never drop a quote, Sanskrit shloka, lecture line, or attributed saying without preparation. Use a three-step pattern:
 1. **The Warm-Up:** Set the stage, building curiosity.
 2. **The Delivery:** Write the quote or shloka on its own line.
 3. **The Unpack:** Translate it immediately in warm, simple Hindustani.

@@ -23,7 +23,8 @@ The composer needs more than facts. They need:
 - **Real incidents** — things that actually happened, with names, places, dates
 - **Surprising truths** — things that make the audience stop and think (*"ऐसा हुआ था क्या?"*)
 - **Textured details** — specific sensory and emotional details that bring a scene alive
-- **Quotes and shlokas** — exact spoken words that carry weight in narration
+- **Attributed wisdom** — exact quotes, shlokas, letters, lecture lines, or sayings that carry weight in narration
+- **Emotional beats** — human conflict, pauses, silence moments, and emotional turns the composer can later shape into narration
 - **Plausible fictional bridges** — things not documented but emotionally true, clearly flagged as creative addition
 
 > [!IMPORTANT]
@@ -96,7 +97,8 @@ Before running any command, plan 4–6 targeted queries that cover different ang
 2. **Real story:** A real person, real event, or real historical incident that illustrates the theme
 3. **Emotional paradox:** The counterintuitive truth that makes the theme surprising
 4. **Deep detail:** Specific sensory or cultural details that add texture (place names, rituals, objects)
-5. **Quotes:** Exact spoken words — shlokas, proverbs, famous dialogue — that carry emotional weight
+5. **Attributed wisdom:** Exact spoken words — shlokas, proverbs, letters, lectures, or famous dialogue — that carry emotional weight
+6. **Emotional beats:** Moments of fear, shame, grief, relief, silence, hesitation, or inner conflict that could become the emotional spine of the script
 
 ### Step 3 — Run the Scripts
 Execute your planned queries using the custom CLI scripts. For each result:
@@ -137,9 +139,19 @@ Source: <session.json project_slug>
      The Panchajanya was Krishna's conch — its sound was said to terrify
      even the bravest warriors." -->
 
-## Powerful Quotes
-<!-- Exact spoken words worth narrating directly.
-     Include the speaker, context, and source. -->
+## Quotable Lines & Attributed Wisdom
+<!-- Exact lines worth narrating directly.
+     Include the speaker, context, source URL/book/lecture if available,
+     and why this quote belongs in the story.
+     Prefer quotes that deepen the conflict, reveal the turn, or land the final wisdom. -->
+
+## Emotional Beats, Human Conflict & Silence Moments
+<!-- Raw emotional material for the composer.
+     Capture where the story should breathe, pause, hurt, or turn.
+     Prefer concrete beats:
+     - "A silent moment before Arjuna speaks, because the battlefield is full of relatives."
+     - "The shame is not cowardice; it is the fear of doing the right thing at unbearable cost."
+     Do not write final narration or voice directions here. -->
 
 ## Creative Bridges (Plausible Fiction)
 <!-- Things that are emotionally true but not documented.
