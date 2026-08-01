@@ -1,0 +1,103 @@
+"""
+Stage 3 of render pipeline: Mux the rendered video with the narration audio into
+the final MP4 output file.
+
+Usage:
+    python3 render_final.py --project-dir library/2026-08-01_krishna-motivation
+"""
+import argparse
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+class FFmpegError(RuntimeError):
+    pass
+
+
+def run_ffmpeg(*args: str) -> None:
+    cmd = ["ffmpeg", "-y"] + list(args)
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        tail = (result.stderr or result.stdout)[-4000:]
+        raise FFmpegError(f"ffmpeg failed:\n{tail}")
+
+
+def get_duration(path: Path) -> float:
+    """Get media duration in seconds using ffprobe."""
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "json", str(path)],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        return 0.0
+    data = json.loads(result.stdout)
+    return float(data.get("format", {}).get("duration", 0.0))
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Mux video and narration audio into final MP4")
+    parser.add_argument("--project-dir", required=True, help="Path to the project directory")
+    parser.add_argument("--force", action="store_true", help="Re-render even if final video exists")
+    args = parser.parse_args()
+
+    if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
+        print("ERROR: ffmpeg/ffprobe not found in PATH. Install ffmpeg first.", file=sys.stderr)
+        sys.exit(1)
+
+    project_dir = Path(args.project_dir)
+    video_path = project_dir / "temp" / "video-no-audio.mp4"
+    audio_path = project_dir / "audio" / "narration.wav"
+    session_path = project_dir / "session.json"
+    out_path = project_dir / "output" / "final-video.mp4"
+
+    for p in [video_path, audio_path, session_path]:
+        if not p.exists():
+            print(f"ERROR: Required file not found: {p}", file=sys.stderr)
+            sys.exit(1)
+
+    if out_path.exists() and not args.force:
+        print(f"✓ final-video.mp4 already exists. Use --force to re-render.")
+        sys.exit(0)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    video_dur = get_duration(video_path)
+    audio_dur = get_duration(audio_path)
+    print(f"→ Muxing video ({video_dur:.2f}s) + audio ({audio_dur:.2f}s)")
+
+    # Mux: keep the shorter stream to avoid silent tail
+    # Video stream: copy without re-encoding (subtitles already burned in)
+    # Audio stream: encode to AAC 192k for broad compatibility
+    run_ffmpeg(
+        "-i", str(video_path),
+        "-i", str(audio_path),
+        "-map", "0:v:0",     # video from video_path
+        "-map", "1:a:0",     # audio from narration.wav
+        "-c:v", "copy",      # no re-encode — subtitles are already burned
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-shortest",         # trim to shorter stream (audio or video)
+        "-movflags", "+faststart",
+        str(out_path),
+    )
+
+    final_dur = get_duration(out_path)
+    size_mb = out_path.stat().st_size / (1024 * 1024)
+
+    # Update session.json status
+    if session_path.exists():
+        session = json.loads(session_path.read_text(encoding="utf-8"))
+        session["session"]["status"] = "render_complete"
+        session_path.write_text(json.dumps(session, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    print(f"✓ Final video written: {out_path}")
+    print(f"  Duration: {final_dur:.2f}s | Size: {size_mb:.1f} MB")
+    print(f"  Status updated: render_complete")
+
+
+if __name__ == "__main__":
+    main()
