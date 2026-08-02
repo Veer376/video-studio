@@ -1,53 +1,98 @@
 ---
 name: discovery
-description: Optional idea-discovery skill for Story Video Maker. Use when the user wants help finding, researching, comparing, or selecting an image-story idea before intake. Does not write project files; returns a concise handoff brief that intake can use.
+description: Optional idea-discovery skill for Story Video Maker. Use when the user wants help finding, researching, comparing, or selecting a story idea before intake. Supports quick idea cards in chat and deeper source-agnostic idea research using web search, crawl/extract tools, public video-platform signals, user-provided material, or other available sources; may write only .agents/skills/discovery/research.md as a scratchpad/handoff, never project files.
 ---
 
 # Discovery Skill
 
-This is a standalone optional helper for image-story projects. Its job is to discover and choose **what story to make**. It does not configure production, write files, write the final script, split scenes, design visuals, or run the pipeline.
+Discover **what story to make**. Stay independent from any specific YouTube channel, project slug, or production pipeline.
 
-Use this skill when the user asks for ideas, angles, story discovery, topic exploration, or help deciding what story to create.
+Use this skill when the user asks for ideas, angles, story discovery, topic exploration, or help deciding what story to create. If the user already has a clear story idea, skip this skill and use `intake`.
 
-If the user already has a clear story idea, skip this skill and use `intake`.
-
-## Boundaries
+## Boundary
 
 Discovery answers:
 
-- What story should we create?
-- Why is this story worth making?
-- What is the title, source basis, expected runtime, core promise, and emotional angle?
+- What story ideas are worth creating?
+- What source basis, demand signal, emotional hook, and originality angle supports each idea?
+- Which idea should move forward into `intake`?
 
-Intake answers:
+Discovery does not:
 
-- Duration, format, language, voice, visual style, and pipeline config.
+- create or edit `session.json`
+- write project `library/<slug>` files
+- write the final narration
+- split scenes, design visuals, package YouTube metadata, publish, or analyze performance
+- depend on any specific channel, platform, or source provider
 
-Research answers:
+The `research` skill still owns selected-project research at `library/<project_slug>/research.md`. Discovery's `research.md` is only a pre-project scratchpad for idea hunting.
 
-- Source-backed material for the selected brief and writes `research.md`.
+## Scratchpad
 
-## Tools
+For quick discovery, answer in chat only.
 
-This skill bundles the same Tavily CLI tools as `research`:
+For deep discovery, overwrite this single file:
 
-```bash
-python3 .agents/skills/discovery/scripts/tavily_search.py --query "<query>"
-python3 .agents/skills/discovery/scripts/tavily_extract.py --urls "<url1,url2>"
-python3 .agents/skills/discovery/scripts/tavily_crawl.py --url "<url>" --mode map
-python3 .agents/skills/discovery/scripts/tavily_research.py --query "<query>"
+```text
+.agents/skills/discovery/research.md
 ```
 
-They load `TAVILY_API_KEY` from `~/.config/projects/.env`.
+Use one file only. Do not create per-run folders, date folders, channel folders, or files under `references/`.
 
-If another research skill or external research tool is attached, you may use it for idea discovery. Keep this skill's output contract unchanged.
+Use this structure:
+
+```markdown
+# Discovery Research
+
+## User Direction
+## Search Plan
+## Source Notes
+## Demand Signals
+## Story Candidates
+## Rejected Ideas
+## Final Shortlist
+## Handoff For Intake
+```
+
+Treat `research.md` as working memory for the agent, not as final audience-facing content.
+
+## Source Tools
+
+Use whichever source tools are available and useful. Do not make the skill dependent on a single source type.
+
+For Tavily-backed web search, extraction, site mapping, crawling, or async deep research, use the `tavily` skill and its shared CLI:
+
+```bash
+python3 .agents/skills/tavily/scripts/tavily.py search --query "<query>"
+python3 .agents/skills/tavily/scripts/tavily.py extract --urls "<url1,url2>"
+python3 .agents/skills/tavily/scripts/tavily.py map --url "<site-url>"
+python3 .agents/skills/tavily/scripts/tavily.py crawl --url "<site-url>" --max-depth 1 --max-pages 5
+python3 .agents/skills/tavily/scripts/tavily.py research --query "<research brief>"
+```
+
+Optional sources when available:
+
+- generic web search
+- page extraction or crawl tools
+- public video-platform search, metadata, comments, or transcripts when available
+- user-provided links, PDFs, notes, books, or pasted material
+- internal reasoning, clearly labeled
 
 ## Workflow
 
-1. Ask only the minimum questions needed to understand the desired direction. Prefer generating options over long interviews.
-2. Research lightly if useful: find story-worthy angles, real incidents, spiritual/philosophical hooks, or surprising contrasts.
-3. Present 3 strong idea candidates as compact idea cards.
-4. After the user picks one, return a short handoff brief in chat for `intake`.
+1. Ask only the minimum questions needed to understand the direction.
+2. Choose quick or deep mode based on user intent and ambiguity.
+3. For deep mode, write or refresh `.agents/skills/discovery/research.md`.
+4. Plan 4-6 search lanes across different source types or angles.
+5. Collect source notes and demand signals.
+6. Cluster ideas by promise, audience, emotional conflict, and originality.
+7. Reject weak, generic, copied, or overdone ideas.
+8. Present the strongest idea candidates in chat.
+9. After the user picks one, return a concise handoff for `intake`.
+
+Prefer source-backed ideas, but do not imply a source exists when the idea comes from internal reasoning.
+
+## Idea Card Format
 
 Each idea card must include:
 
@@ -56,15 +101,14 @@ Title: <working title>
 Description:
 <line 1: concrete story premise>
 <line 2: emotional or philosophical hook>
-Source: <source URL/title if found through research, or "Internal reasoning" if inferred>
-Expected runtime: <rough timestamp/runtime range, e.g. 00:00-00:45 or 45-60s>
+Source: <source URL/title if found, or Internal reasoning>
+Demand signal: <search/comment/trend/source signal, or Unknown>
+Expected runtime: <rough runtime range, e.g. 45-60s or 3-5m>
+Original angle: <how this avoids copying/generic treatment>
+Risk: <generic/overdone/weak source/unclear audience/etc.>
 ```
 
-If the source is from the internet, include the strongest source URL or source title. If it is an invented or internally reasoned angle, say that clearly instead of implying a real source.
-
-## Output
-
-Do not create or edit files.
+## Handoff Format
 
 Return the selected idea in this shape:
 
@@ -76,18 +120,22 @@ Description:
 <line 1: concrete story premise>
 <line 2: emotional or philosophical hook>
 Source: <source URL/title if researched, or Internal reasoning>
-Expected runtime: <rough timestamp/runtime range>
+Demand signal: <why this may work>
+Expected runtime: <rough runtime range>
 Core promise: <what the viewer should feel or understand>
 Best angle: <the strongest emotional or narrative angle>
-Why it can work: <one concise reason>
+Originality note: <how to make it ours>
+Next research needed: <what the research skill should verify after intake>
 ```
-
-The next skill, `intake`, can use this conversational context to write normal `session.json`.
 
 ## Hard Rules
 
-- Do not write `research.md`; the `research` skill owns that.
+- Do not write project files.
 - Do not create or edit `session.json`.
-- Do not add `idea`, `idea_selected`, or discovery-specific fields to project config.
+- Do not write `library/<project_slug>/research.md`; the `research` skill owns that.
+- Do not write to `references/`; keep stable skill knowledge separate from runtime scratch.
+- Do not create multiple discovery run files unless the user explicitly asks.
+- Do not copy another creator's script or idea verbatim. Use sources to derive original story angles.
+- Clearly label internal reasoning, weak evidence, and creative speculation.
 - Do not ask production-config questions unless needed to shape idea options.
 - Do not generate final narration prose.

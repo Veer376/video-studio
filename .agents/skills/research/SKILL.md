@@ -32,52 +32,52 @@ The composer needs more than facts. They need:
 
 ---
 
-## Available CLI Tools
+## Available Source Tools
 
-You have four custom Tavily CLI tools located in `.agents/skills/research/scripts/`. They automatically handle API authentication from your home configuration (`~/.config/projects/.env`) and return results in structured JSON format. 
+For Tavily-backed source work, use the `tavily` skill. It owns the provider commands and loads API authentication from `~/.config/projects/.env`.
 
 Use the `run_command` tool to execute them:
 
-### Tool 1 — `/search` (Primary Discovery)
+### Tool 1 — `search` (Primary Discovery)
 Perform web searches with adjustable depth, classification topic, and results count.
 
 ```bash
 # Basic usage
-python3 .agents/skills/research/scripts/tavily_search.py --query "Krishna Arjuna Bhagavad Gita karma lesson"
+python3 .agents/skills/tavily/scripts/tavily.py search --query "Krishna Arjuna Bhagavad Gita karma lesson"
 
 # Advanced search with news focus and raw HTML retrieval
-python3 .agents/skills/research/scripts/tavily_search.py --query "motivational karma paradox" --search-depth advanced --topic news --max-results 3 --include-raw-content
+python3 .agents/skills/tavily/scripts/tavily.py search --query "motivational karma paradox" --search-depth advanced --topic news --max-results 3 --include-raw-content
 ```
 
 ---
 
-### Tool 2 — `/extract` (Deep Page Reading)
+### Tool 2 — `extract` (Deep Page Reading)
 Retrieve clean, reader-mode content for specific URLs.
 
 ```bash
-python3 .agents/skills/research/scripts/tavily_extract.py --urls "https://www.wisdomlib.org/hinduism/book/mahabharata,https://example.com/article"
+python3 .agents/skills/tavily/scripts/tavily.py extract --urls "https://www.wisdomlib.org/hinduism/book/mahabharata,https://example.com/article"
 ```
 
 ---
 
-### Tool 3 — `/crawl` + `/map` (Site Exploration)
+### Tool 3 — `crawl` + `map` (Site Exploration)
 Map a site's structure or recursively crawl multiple pages to gather content.
 
 ```bash
 # Discover URLs on a site (map mode)
-python3 .agents/skills/research/scripts/tavily_crawl.py --url "https://www.ramakrishnavivekananda.info" --mode map
+python3 .agents/skills/tavily/scripts/tavily.py map --url "https://www.ramakrishnavivekananda.info"
 
 # Crawl and extract from up to 5 pages
-python3 .agents/skills/research/scripts/tavily_crawl.py --url "https://www.wisdomlib.org/hinduism/book/shrimad-bhagavad-gita" --mode crawl --max-depth 1 --max-pages 5
+python3 .agents/skills/tavily/scripts/tavily.py crawl --url "https://www.wisdomlib.org/hinduism/book/shrimad-bhagavad-gita" --max-depth 1 --max-pages 5
 ```
 
 ---
 
-### Tool 4 — `/research` (Deep Synthesis)
+### Tool 4 — `research` (Deep Synthesis)
 Execute an end-to-end multi-step research task and output a compiled report. (This is async; the script automatically polls for status).
 
 ```bash
-python3 .agents/skills/research/scripts/tavily_research.py --query "scientific basis of action preceding motivation neuroscience"
+python3 .agents/skills/tavily/scripts/tavily.py research --query "scientific basis of action preceding motivation neuroscience"
 ```
 
 ---
