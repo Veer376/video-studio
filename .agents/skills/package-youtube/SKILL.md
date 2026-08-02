@@ -59,11 +59,8 @@ youtube/
 └── thumbnails/
     ├── thumbnail-01.png
     ├── thumbnail-02.png
-    ├── thumbnail-03.png
-    └── thumbnails.md
+    └── thumbnail-03.png
 ```
-
-Use `thumbnails/thumbnails.md` only to explain the generated thumbnail variants, including source image, overlay text, composition, and why each variant may work. Do not create per-thumbnail Markdown files.
 
 ## Content Strategy
 
@@ -178,8 +175,6 @@ Why it can work: <one concise reason>
 
 Prefer using an existing strong scene image from `images/` as the base. Generate a new thumbnail background only when existing scene images cannot carry the hook.
 
-Record the final thumbnail variant notes in `youtube/thumbnails/thumbnails.md` after generating images. Keep these notes concise and tied to the actual PNG files created.
-
 ## Thumbnail Image Generation
 
 1. Prefer the system `imagegen` skill or any available built-in image generation tool.
@@ -241,4 +236,4 @@ Do not leave thumbnail assets only in an external generated-images folder. Copy 
 - Run market grounding with the `youtube` skill before generating final titles or thumbnails.
 - Keep packaging grounded in the actual script and research.
 - Do not fabricate sources, quotes, or achievements.
-- Always generate 3 thumbnail PNGs and `youtube/thumbnails/thumbnails.md`.
+- Always generate 3 thumbnail PNGs.
