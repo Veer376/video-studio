@@ -14,6 +14,8 @@ Use the bundled script only:
 ```bash
 python3 .agents/skills/youtube/scripts/youtube.py upload library/<project_slug>
 python3 .agents/skills/youtube/scripts/youtube.py status library/<project_slug>
+python3 .agents/skills/youtube/scripts/youtube.py auth
+python3 .agents/skills/youtube/scripts/youtube.py whoami
 python3 .agents/skills/youtube/scripts/youtube.py list
 python3 .agents/skills/youtube/scripts/youtube.py fetch <video_id_or_url>
 python3 .agents/skills/youtube/scripts/youtube.py compress-thumbnail library/<project_slug>
@@ -117,6 +119,18 @@ Default visibility is `private` unless the user explicitly requests:
 Publishing public videos is allowed only when the user explicitly asks for public upload.
 
 ## Commands
+
+Confirm the currently selected channel:
+
+```bash
+python3 .agents/skills/youtube/scripts/youtube.py whoami
+```
+
+Reconfigure OAuth for a new channel:
+
+```bash
+python3 .agents/skills/youtube/scripts/youtube.py auth --reset --scope both
+```
 
 Upload once:
 

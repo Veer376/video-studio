@@ -8,3 +8,4 @@ library
 # Local secrets.
 .env
 .env.*
+branding

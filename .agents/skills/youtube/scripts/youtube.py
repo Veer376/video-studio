@@ -270,6 +270,25 @@ def token_path(scope_profile: str) -> Path:
     die(f"unknown scope profile: {scope_profile}")
 
 
+def token_candidates(scope_profile: str) -> list[Path]:
+    config_dir = Path.home() / ".config" / "projects"
+    if scope_profile == "upload":
+        return [config_dir / "youtube_token.json", config_dir / "youtube_token_upload.json"]
+    if scope_profile == "manage":
+        return [config_dir / "youtube_token_manage.json"]
+    die(f"unknown scope profile: {scope_profile}")
+
+
+def reset_tokens(scope_profiles: list[str]) -> list[Path]:
+    removed: list[Path] = []
+    for scope_profile in scope_profiles:
+        for token in token_candidates(scope_profile):
+            if token.exists():
+                token.unlink()
+                removed.append(token)
+    return removed
+
+
 def get_credentials(scope_profile: str):
     Request, Credentials, InstalledAppFlow, *_ = load_google_libs()
     config_dir = Path.home() / ".config" / "projects"
@@ -297,6 +316,18 @@ def get_credentials(scope_profile: str):
 def youtube_client(scope_profile: str):
     *_, build, _, _ = load_google_libs()
     return build("youtube", "v3", credentials=get_credentials(scope_profile))
+
+
+def authenticated_channel(youtube) -> dict[str, Any]:
+    response = (
+        youtube.channels()
+        .list(part="id,snippet,contentDetails,status", mine=True)
+        .execute()
+    )
+    channels = response.get("items", [])
+    if not channels:
+        die("no authenticated YouTube channel found")
+    return channels[0]
 
 
 def fetch_video_resource(youtube, video_id: str) -> dict[str, Any] | None:
@@ -345,6 +376,44 @@ def print_video_row(item: dict[str, Any]) -> None:
     privacy = status.get("privacyStatus", "")
     views = stats.get("viewCount", "")
     print(f"{video_id}\t{privacy}\t{views}\t{published}\t{title}")
+
+
+def print_channel(channel: dict[str, Any]) -> None:
+    snippet = channel.get("snippet", {})
+    status = channel.get("status", {})
+    print(f"channel_id {channel.get('id')}")
+    print(f"title {snippet.get('title')}")
+    if snippet.get("customUrl"):
+        print(f"custom_url {snippet.get('customUrl')}")
+    if status.get("privacyStatus"):
+        print(f"privacy {status.get('privacyStatus')}")
+
+
+def command_auth(args: argparse.Namespace) -> None:
+    scope_profiles = ["upload", "manage"] if args.scope == "both" else [args.scope]
+    if args.reset:
+        removed = reset_tokens(scope_profiles)
+        if removed:
+            for token in removed:
+                print(f"removed {token}")
+        else:
+            print("removed none")
+
+    for scope_profile in scope_profiles:
+        get_credentials(scope_profile)
+        print(f"authenticated {scope_profile}")
+
+    youtube = youtube_client("manage" if "manage" in scope_profiles else "upload")
+    print_channel(authenticated_channel(youtube))
+
+
+def command_whoami(args: argparse.Namespace) -> None:
+    youtube = youtube_client(args.scope)
+    channel = authenticated_channel(youtube)
+    if args.json:
+        print(json.dumps({"channel": channel}, indent=2, ensure_ascii=False))
+        return
+    print_channel(channel)
 
 
 def metadata_body(metadata: dict[str, Any], visibility: str) -> dict[str, Any]:
@@ -521,13 +590,8 @@ def command_status(args: argparse.Namespace) -> None:
 
 def command_list(args: argparse.Namespace) -> None:
     youtube = youtube_client("manage")
-    channel_response = youtube.channels().list(part="contentDetails", mine=True).execute()
-    channels = channel_response.get("items", [])
-    if not channels:
-        die("no authenticated YouTube channel found")
-
     uploads_playlist_id = (
-        channels[0]
+        authenticated_channel(youtube)
         .get("contentDetails", {})
         .get("relatedPlaylists", {})
         .get("uploads")
@@ -642,6 +706,16 @@ def command_compress_thumbnail(args: argparse.Namespace) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Upload, check, list, or fetch YouTube videos.")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    auth = sub.add_parser("auth", help="Authenticate or re-authenticate the YouTube channel.")
+    auth.add_argument("--scope", choices=["upload", "manage", "both"], default="both")
+    auth.add_argument("--reset", action="store_true", help="Delete stored token(s) before OAuth.")
+    auth.set_defaults(func=command_auth)
+
+    whoami = sub.add_parser("whoami", help="Show the currently authenticated YouTube channel.")
+    whoami.add_argument("--scope", choices=["upload", "manage"], default="manage")
+    whoami.add_argument("--json", action="store_true", help="Print raw channel JSON.")
+    whoami.set_defaults(func=command_whoami)
 
     upload = sub.add_parser("upload", help="Upload the project video once and write upload.json.")
     upload.add_argument("project_dir", help="Path like library/<project_slug>")

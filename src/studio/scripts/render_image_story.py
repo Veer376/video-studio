@@ -126,12 +126,13 @@ def render_scene_clip(
             f"crop={width}:{height}"
         )
     else:
-        # Zoompan motion (Ken Burns zoom-in) rendered at 3x resolution to completely eliminate jitter/shaking
+        # Render Ken Burns motion above final resolution to reduce pixel-step jitter.
+        # 2x is the default speed/quality tradeoff for 1080p production renders.
         frames = max(1, round(duration * fps))
         step = KEN_BURNS_ZOOM / max(1, frames - 1)
 
-        hires_w = width * 3
-        hires_h = height * 3
+        hires_w = width * 2
+        hires_h = height * 2
 
         zoom_expr = f"1.0+on*{step:.8f}"
         x_expr = "(iw-iw/zoom)/2"
@@ -268,9 +269,13 @@ def main():
     scenes_data = json.loads(scenes_path.read_text(encoding="utf-8"))
     session = json.loads(session_path.read_text(encoding="utf-8"))
 
-    aspect_ratio = session.get("video", {}).get("aspect_ratio", "16:9")
+    video_config = session.get("video", {})
+    aspect_ratio = video_config.get("aspect_ratio", "16:9")
     fps = int(session.get("video", {}).get("fps", 30))
-    if aspect_ratio == "9:16":
+    resolution = str(video_config.get("resolution") or "").lower()
+    if "x" in resolution:
+        width, height = [int(part) for part in resolution.split("x", 1)]
+    elif aspect_ratio == "9:16":
         width, height = 576, 1024
     elif aspect_ratio == "1:1":
         width, height = 768, 768
