@@ -16,6 +16,9 @@ import urllib.request
 import wave
 from pathlib import Path
 
+DEFAULT_GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview"
+DEFAULT_GEMINI_TTS_VOICE = "Puck"
+
 
 def load_env():
     env_path = Path.home() / ".config/projects/.env"
@@ -163,9 +166,8 @@ def main():
         print(f"✓ narration.wav already exists. Use --force to regenerate.")
         sys.exit(0)
 
-    session = json.loads(session_path.read_text(encoding="utf-8"))
-    model = session.get("voice", {}).get("model", "gemini-3.1-flash-tts-preview")
-    voice = args.voice or session.get("voice", {}).get("voice", "Puck")
+    model = DEFAULT_GEMINI_TTS_MODEL
+    voice = args.voice or DEFAULT_GEMINI_TTS_VOICE
 
     narration = extract_narration(script_path)
     

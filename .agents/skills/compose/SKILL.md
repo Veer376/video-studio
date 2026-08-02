@@ -18,9 +18,17 @@ Activate this skill when:
 
 ---
 
+## Inputs
+
+Read `library/<project_slug>/session.json` before writing.
+
+Treat `target_duration_seconds` as a rough script-length target, not a strict constraint.
+
+---
+
 ## Narrative Writing Rules (The Hindi Voice Guide)
 
-When writing narration in Hindi (`hi-IN`), you must write for the **ear**, not the eye. Avoid literal translations from English. Follow these rules to make the script sound natural, powerful, and native:
+When writing narration in Hindi (`voice.language: hi-IN`), you must write for the **ear**, not the eye. Avoid literal translations from English. Follow these rules to make the script sound natural, powerful, and native:
 
 ### 1. Register Calibration (Dynamic Vocabulary)
 Do not use uniform vocabulary throughout. Shift the registers based on the scene's emotional tone:
@@ -73,12 +81,7 @@ Generate 3 distinct titles matching these hook strategies:
 2. **Emotional Conflict:** Focuses on the core human struggle.
 3. **Direct Challenge:** Speaks directly to the viewer's current situation.
 
-#### 2. YouTube/Reels Description:
-Write a 2-paragraph description:
-- *Paragraph 1 (The Hook):* Creates tension and asks a compelling question.
-- *Paragraph 2 (The Promise):* Tells the viewer what life-changing wisdom this video reveals.
-
-#### 3. Template Blueprints:
+#### 2. Template Blueprints:
 Generate 3 distinct templates using the following structure:
 ```
 TEMPLATE <N> — <Name>
@@ -109,8 +112,6 @@ Write the script as **one continuous, flowing narrative in pure prose**.
 
 ```markdown
 # Script: <Approved Title>
-Template Used: <Approved Template Name>
-Generated: <Date>
 Description: <Approved Description>
 
 ---
@@ -123,5 +124,6 @@ Description: <Approved Description>
 ## Hard Rules
 
 - **Wait for Blueprint Approval:** Never write the full script before the user picks a title and blueprint.
+- **Keep the separator:** Always include the `---` line before the narration body; production voice generation treats everything after the first `---` as spoken narration.
 - **Pure Prose in script.md:** Do not include scene splits, image prompts, or metadata brackets in `script.md`. It must contain only read-aloud text.
 - **Update status:** Once the script is written, update `session.json` status to `"compose_complete"`.

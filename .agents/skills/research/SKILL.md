@@ -87,9 +87,9 @@ python3 .agents/skills/tavily/scripts/tavily.py research --query "scientific bas
 ### Step 1 — Read the Brief
 Parse `library/<project_slug>/session.json`. Extract:
 - `brief.topic` — what the story is about
-- `brief.theme` — the core keyword
 - `brief.tone` — the emotional register
 - `brief.audience` — who is watching
+- `brief.target_duration_seconds` — rough scope for how much material is useful
 
 ### Step 2 — Plan Your Searches
 Before running any command, plan 4–6 targeted queries that cover different angles:

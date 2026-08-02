@@ -161,7 +161,7 @@ def main():
         print(f"✓ timestamps.json already exists. Use --force to re-extract.")
         sys.exit(0)
 
-    # Get language from session.json
+    # Get language from voice config; default to Hindi for the current pipeline.
     language = "hi"
     if session_path.exists():
         session = json.loads(session_path.read_text(encoding="utf-8"))

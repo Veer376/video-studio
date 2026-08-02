@@ -16,6 +16,9 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+IMAGE_WIDTH = 1920
+IMAGE_HEIGHT = 1080
+
 
 def load_env():
     env_path = Path.home() / ".config/projects/.env"
@@ -145,14 +148,7 @@ def main():
     session = json.loads(session_path.read_text(encoding="utf-8"))
     scenes_data = json.loads(scenes_path.read_text(encoding="utf-8"))
 
-    # Map aspect ratio to width/height
-    aspect_ratio = session.get("video", {}).get("aspect_ratio", "16:9")
-    if aspect_ratio == "16:9":
-        width, height = 1024, 576
-    elif aspect_ratio == "9:16":
-        width, height = 576, 1024
-    else:
-        width, height = 768, 768
+    width, height = IMAGE_WIDTH, IMAGE_HEIGHT
 
     visual_style = scenes_data.get("visual_style", "premium cinematic digital painting, vivid colors")
     if isinstance(visual_style, dict):

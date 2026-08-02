@@ -13,6 +13,9 @@ import json
 import sys
 from pathlib import Path
 
+RENDER_WIDTH = 1920
+RENDER_HEIGHT = 1080
+
 
 def format_ass_time(seconds: float) -> str:
     """Convert seconds to ASS time format H:MM:SS.cs (centiseconds)."""
@@ -144,19 +147,7 @@ def main():
 
     ts_data = json.loads(timestamps_path.read_text(encoding="utf-8"))
     scenes_data = json.loads(scenes_path.read_text(encoding="utf-8"))
-    session = json.loads(session_path.read_text(encoding="utf-8"))
-
-    video_config = session.get("video", {})
-    aspect_ratio = video_config.get("aspect_ratio", "16:9")
-    resolution = str(video_config.get("resolution") or "").lower()
-    if "x" in resolution:
-        width, height = [int(part) for part in resolution.split("x", 1)]
-    elif aspect_ratio == "9:16":
-        width, height = 576, 1024
-    elif aspect_ratio == "1:1":
-        width, height = 768, 768
-    else:
-        width, height = 1024, 576
+    width, height = RENDER_WIDTH, RENDER_HEIGHT
 
     words = ts_data.get("words", [])
     scenes = scenes_data.get("scenes", [])

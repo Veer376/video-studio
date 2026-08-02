@@ -1,6 +1,6 @@
 ---
 name: intake
-description: Pre-flight brief gathering skill. Run this at the start of any video project. Gathers intent, tone, language, voice, aspect ratio, and pacing to create session.json.
+description: Pre-flight brief gathering skill. Run this at the start of any video project. Gathers the core idea, tone, audience, voice language, target duration, and visual style to create a lean session.json.
 ---
 
 # Intake Skill
@@ -30,18 +30,12 @@ Conduct the intake as a natural, friendly conversation. Acknowledge each answer 
 > **Q2.** What tone should it have? *(warm storytelling / motivational / devotional / educational / poetic — or describe it in your own words)*
 > **Q3.** Who is the audience? *(general adults / children / spiritual seekers / students — or describe)*
 
-### Group 2 — The Format
+### Group 2 — Language & Length
 > **Q4.** How long should the video be? *(e.g., 30 seconds, 1 minute, 2 minutes, 4 minutes)*
-> **Q5.** Horizontal (16:9, for YouTube) or Vertical (9:16, for Reels/Shorts)?
+> **Q5.** What language? *(Hindi / English / Hinglish)*
 
-### Group 3 — Language & Voice
-> **Q7.** What language? *(Hindi / English / Hinglish)*
-> **Q8.** Which voice style?
-> - `Puck` — expressive, male (Gemini TTS, recommended)
-> - `Aoede` — warm, female (Gemini TTS)
-
-### Group 4 — Visual Style (Optional)
-> **Q9.** Any specific visual style? *(e.g., ancient India, modern urban, nature documentary, abstract watercolour)* — or press Enter to use the cinematic digital painting default.
+### Group 3 — Visual Style (Optional)
+> **Q6.** Any specific visual style? *(e.g., ancient India, modern urban, nature documentary, abstract watercolour)* — or press Enter to use the cinematic digital painting default.
 
 ---
 
@@ -80,31 +74,15 @@ Follow these steps in exact order:
   },
   "brief": {
     "topic": "Motivational story of Lord Krishna offering life wisdom",
-    "theme": "motivation",
     "tone": "motivational",
-    "language": "hi-IN",
-    "audience": "general adults"
-  },
-  "video": {
-    "target_duration_seconds": 240,
-    "aspect_ratio": "16:9",
-    "resolution": "1920x1080",
-    "fps": 30,
-    "subtitles_enabled": true
+    "audience": "general adults",
+    "target_duration_seconds": 240
   },
   "voice": {
-    "provider": "gemini_tts",
-    "model": "gemini-3.1-flash-tts-preview",
-    "voice": "Puck",
     "language": "hi-IN"
   },
   "visual": {
     "style": "premium cinematic digital painting, vivid colors, mystical lighting, ancient India"
-  },
-  "pipeline": {
-    "name": "image-story",
-    "image_provider": "cloudflare",
-    "retry_policy": "missing_only"
   }
 }
 ```
@@ -115,7 +93,8 @@ Follow these steps in exact order:
 
 ## Hard Rules
 
-- Default voice if skipped: `Aoede` (gemini_tts).
-- Default aspect ratio if skipped: `16:9`.
 - Default language if skipped: `hi-IN`.
+- Default target duration if skipped: `60`.
+- The current production pipeline is fixed to `image-story`, 1080p 16:9 images/video, 30fps, Cloudflare images, Gemini TTS, and subtitles enabled. Do not write those defaults into `session.json`.
+- Keep `voice` lean for now: only write `voice.language`.
 - Never generate story content, images, or audio during this skill. This skill only asks questions and writes `session.json`.
