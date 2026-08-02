@@ -1,198 +1,101 @@
 ---
 name: youtube
-description: Standalone YouTube skill for Story Video Maker. Use when the user asks to upload a library/<project_slug> video, check upload status, list channel uploads, or fetch/attach a YouTube video to a project. Bundles its own youtube.py script and is not part of the main image-story pipeline.
+description: General YouTube API skill for authentication, channel confirmation, public search, video fetch, channel lookup, playlist lookup, comments, caption-track lookup, and generic local video upload. Use when Codex needs YouTube platform/data access or to upload any local video file. For Story Video Maker library/<project_slug> publishing, use publish-youtube instead.
 ---
 
 # YouTube Skill
 
-This standalone skill handles YouTube upload and lookup tasks for Story Video Maker projects.
+Use the bundled CLI as the YouTube platform/API layer:
+
+```bash
+python3 .agents/skills/youtube/scripts/youtube.py <command>
+```
 
 ## Boundary
 
-Use the bundled script only:
+This skill owns generic YouTube API capability:
+
+- `auth`, `whoami`
+- `search`, `fetch`, `channel`, `playlist`, `comments`, `transcript`
+- `upload-file` for any local video path
+
+It does not own Story Video Maker project publishing semantics. For `library/<project_slug>` publishing, use `publish-youtube`.
+
+## Core Commands
+
+Authenticate or switch channel:
 
 ```bash
-python3 .agents/skills/youtube/scripts/youtube.py upload library/<project_slug>
-python3 .agents/skills/youtube/scripts/youtube.py status library/<project_slug>
-python3 .agents/skills/youtube/scripts/youtube.py auth
-python3 .agents/skills/youtube/scripts/youtube.py whoami
-python3 .agents/skills/youtube/scripts/youtube.py list
-python3 .agents/skills/youtube/scripts/youtube.py fetch <video_id_or_url>
-python3 .agents/skills/youtube/scripts/youtube.py compress-thumbnail library/<project_slug>
-```
-
-## Inputs
-
-Read:
-
-```text
-library/<project_slug>/output/final-video.mp4
-library/<project_slug>/youtube/metadata.json
-library/<project_slug>/youtube/thumbnails/*.png
-library/<project_slug>/youtube/thumbnails/*.jpg
-library/<project_slug>/youtube/thumbnails/*.jpeg
-```
-
-`metadata.json` comes from `package-youtube` and should contain:
-
-```json
-{
-  "recommended_title": "",
-  "alternate_titles": [],
-  "description": ""
-}
-```
-
-Hashtags should already be inside `description`. Do not invent separate comma tags unless `metadata.json` explicitly contains `tags`.
-
-## Output
-
-Write and update only:
-
-```text
-library/<project_slug>/youtube/upload.json
-```
-
-Do not create `upload.md`.
-
-## State Rules
-
-`upload.json` is the source of truth.
-
-If `upload.json` does not exist:
-
-1. Read the final MP4.
-2. Read `metadata.json`.
-3. Resolve the thumbnail: `thumbnail-01` by default, or the user-selected thumbnail.
-4. Upload the video through the official YouTube Data API.
-5. Set `thumbnail-01` by default, or the user-selected thumbnail when provided.
-6. Write `upload.json`.
-7. Stop after YouTube accepts the upload and returns `video_id`.
-
-If `upload.json` exists:
-
-1. Do not re-upload.
-2. Run status mode.
-3. Update `last_checked_at`, `processing_status`, and API response details when available.
-4. Re-upload only when the user explicitly asks for force/reupload.
-
-`list` is read-only and writes nothing.
-
-`fetch` is read-only unless `--project library/<project_slug>` is provided. With `--project`, it writes or updates that project's `youtube/upload.json`, which supports attaching a manually uploaded YouTube video to a project.
-
-## Thumbnail Selection
-
-Use `thumbnail-01` by default if the user does not request another thumbnail.
-
-Default selection order:
-
-1. `thumbnail-01.png`
-2. `thumbnail-01.jpg`
-3. `thumbnail-01.jpeg`
-
-If the user asks for a specific thumbnail, pass:
-
-```bash
---thumbnail thumbnail-02.png
-```
-
-The value may be a filename under `youtube/thumbnails/` or a path.
-
-Validate:
-
-- file exists
-- extension is `.png`, `.jpg`, or `.jpeg`
-- file size is at most 2 MB
-
-If the selected thumbnail is over 2 MB, compress it before upload and use the compressed sibling file. Preserve dimensions by default; use scale only when explicitly requested.
-
-## Visibility
-
-Default visibility is `private` unless the user explicitly requests:
-
-```text
---visibility public
---visibility unlisted
---visibility private
-```
-
-Publishing public videos is allowed only when the user explicitly asks for public upload.
-
-## Commands
-
-Confirm the currently selected channel:
-
-```bash
+python3 .agents/skills/youtube/scripts/youtube.py auth --reset --scope all
 python3 .agents/skills/youtube/scripts/youtube.py whoami
 ```
 
-Reconfigure OAuth for a new channel:
+Search YouTube:
 
 ```bash
-python3 .agents/skills/youtube/scripts/youtube.py auth --reset --scope both
+python3 .agents/skills/youtube/scripts/youtube.py search "vivekananda hindi motivation" --max-results 10
 ```
 
-Upload once:
+Fetch one video:
 
 ```bash
-python3 .agents/skills/youtube/scripts/youtube.py upload library/<project_slug> --visibility private
+python3 .agents/skills/youtube/scripts/youtube.py fetch https://youtu.be/<video_id>
 ```
 
-Upload with a custom thumbnail:
+Inspect a channel:
 
 ```bash
-python3 .agents/skills/youtube/scripts/youtube.py upload library/<project_slug> --thumbnail thumbnail-02.png
+python3 .agents/skills/youtube/scripts/youtube.py channel @kathamindhindi
 ```
 
-Upload public when explicitly requested:
+List playlist videos:
 
 ```bash
-python3 .agents/skills/youtube/scripts/youtube.py upload library/<project_slug> --visibility public
+python3 .agents/skills/youtube/scripts/youtube.py playlist <playlist_id> --max-results 20
 ```
 
-Check status after upload:
+Fetch comments:
 
 ```bash
-python3 .agents/skills/youtube/scripts/youtube.py status library/<project_slug>
+python3 .agents/skills/youtube/scripts/youtube.py comments <video_id_or_url> --max-results 20
 ```
 
-List recent channel uploads:
+Fetch transcript text:
 
 ```bash
-python3 .agents/skills/youtube/scripts/youtube.py list --max-results 10
+python3 .agents/skills/youtube/scripts/youtube.py transcript <video_id_or_url> --language hi
 ```
 
-Fetch one YouTube video:
+`transcript` first attempts official YouTube Data API caption-track lookup. If the official API blocks the request or has no usable transcript text, it falls back to `youtube-transcript-api` for public player transcripts unless `--no-fallback` is passed. Label fallback output as `source public_player_fallback`.
+
+Upload any local video:
 
 ```bash
-python3 .agents/skills/youtube/scripts/youtube.py fetch <video_id_or_url>
+python3 .agents/skills/youtube/scripts/youtube.py upload-file /path/to/video.mp4 \
+  --title "Title" \
+  --description "Description" \
+  --thumbnail /path/to/thumbnail.png \
+  --visibility private
 ```
 
-Attach a manually uploaded YouTube video to a project:
+Use `--visibility public` only when the user explicitly requests a public upload.
 
-```bash
-python3 .agents/skills/youtube/scripts/youtube.py fetch <video_id_or_url> --project library/<project_slug>
-```
+## Data Use Semantics
 
-Compress a thumbnail manually:
+For discovery or creator research, use `search`, `fetch`, `channel`, `playlist`, and `comments` to identify demand signals:
 
-```bash
-python3 .agents/skills/youtube/scripts/youtube.py compress-thumbnail library/<project_slug> --thumbnail thumbnail-02.png --quality 88
-```
+- recurring topics
+- hook/title patterns
+- viewer pain points
+- format gaps
+- emotional angles
 
-Use `--scale-percent` only when quality compression is not enough or the user explicitly asks to resize.
-
-Force a new upload:
-
-```bash
-python3 .agents/skills/youtube/scripts/youtube.py upload library/<project_slug> --force --visibility private
-```
+Do not copy another creator's idea verbatim. Use YouTube data to derive original angles for the current project.
 
 ## Hard Rules
 
-- Use only official YouTube Data API calls.
+- Use official YouTube APIs for auth, search, metadata, comments, channels, playlists, and uploads.
+- For transcript text, allow the `youtube-transcript-api` public player fallback and label it clearly.
 - Do not inspect browser cookies, storage, XHR auth headers, or private Studio endpoints.
-- Do not re-upload if `upload.json` exists unless the user explicitly asks for `--force`.
-- Do not create `upload.md`.
-- Do not create list cache files.
-- Do not modify project files except `library/<project_slug>/youtube/upload.json` and derived compressed thumbnails under `library/<project_slug>/youtube/thumbnails/`.
+- Keep generic API commands read-only unless the command is explicitly an upload/update command.
+- Do not read or write Story Video Maker `library/<project_slug>` paths from this skill.
