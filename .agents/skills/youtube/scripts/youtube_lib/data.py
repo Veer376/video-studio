@@ -9,12 +9,41 @@ from .transcript import command_transcript
 
 
 VIDEO_PARTS = "snippet,status,processingDetails,statistics,contentDetails"
+PUBLIC_VIDEO_PARTS = "snippet,status,statistics,contentDetails"
+PRIVATE_VIDEO_PARTS = "snippet,status,processingDetails,statistics,contentDetails"
 
 
-def fetch_video_resource(youtube, video_id: str) -> dict[str, Any] | None:
-    response = youtube.videos().list(part=VIDEO_PARTS, id=video_id).execute()
+def permission_error(exc: Exception) -> bool:
+    text = str(exc).lower()
+    status = getattr(getattr(exc, "resp", None), "status", None)
+    return status == 403 or "insufficient permission" in text or "forbidden" in text
+
+
+def fetch_video_resource(
+    youtube,
+    video_id: str,
+    *,
+    include_processing: bool = False,
+    fallback_to_public: bool = True,
+) -> dict[str, Any] | None:
+    parts = PRIVATE_VIDEO_PARTS if include_processing else PUBLIC_VIDEO_PARTS
+    try:
+        response = youtube.videos().list(part=parts, id=video_id).execute()
+    except Exception as exc:
+        if not include_processing or not fallback_to_public or not permission_error(exc):
+            raise
+        response = youtube.videos().list(part=PUBLIC_VIDEO_PARTS, id=video_id).execute()
+        response["_fetch_warning"] = (
+            "processingDetails unavailable for this video; retried with public video parts"
+        )
+
     items = response.get("items", [])
-    return items[0] if items else None
+    if not items:
+        return None
+    item = items[0]
+    if response.get("_fetch_warning"):
+        item["_fetch_warning"] = response["_fetch_warning"]
+    return item
 
 
 def print_video_row(item: dict[str, Any]) -> None:
@@ -61,7 +90,7 @@ def command_search(args, youtube) -> None:
 
 def command_fetch(args, youtube) -> None:
     video_id = parse_video_id(args.video)
-    item = fetch_video_resource(youtube, video_id)
+    item = fetch_video_resource(youtube, video_id, include_processing=args.processing_details)
     if args.json:
         print(json.dumps({"video_id": video_id, "item": item}, indent=2, ensure_ascii=False))
         return
@@ -71,6 +100,8 @@ def command_fetch(args, youtube) -> None:
         return
     print("video_id\tprivacy\tviews\tpublished_at\ttitle")
     print_video_row(item)
+    if item.get("_fetch_warning"):
+        print(f"warning {item['_fetch_warning']}")
 
 
 def command_list(args, youtube) -> None:
@@ -151,4 +182,3 @@ def command_comments(args, youtube) -> None:
         top = item.get("snippet", {}).get("topLevelComment", {}).get("snippet", {})
         text = top.get("textDisplay", "").replace("\n", " ")[:180]
         print(f"{top.get('publishedAt', '')}\t{top.get('likeCount', '')}\t{top.get('authorDisplayName', '')}\t{text}")
-

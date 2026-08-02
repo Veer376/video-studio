@@ -42,6 +42,14 @@ Fetch one video:
 python3 .agents/skills/youtube/scripts/youtube.py fetch https://youtu.be/<video_id>
 ```
 
+Fetch owner-only processing status when appropriate:
+
+```bash
+python3 .agents/skills/youtube/scripts/youtube.py fetch <video_id_or_url> --processing-details
+```
+
+Default `fetch` uses public-safe parts only. `--processing-details` requests owner-only `processingDetails`; if YouTube blocks it for a public/competitor video, retry with public-safe parts and print a warning.
+
 Inspect a channel:
 
 ```bash

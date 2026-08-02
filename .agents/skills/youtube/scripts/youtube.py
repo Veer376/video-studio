@@ -129,6 +129,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     fetch = sub.add_parser("fetch", help="Fetch one YouTube video by id or URL.")
     fetch.add_argument("video")
+    fetch.add_argument("--processing-details", action="store_true", help="Request owner-only processingDetails and fall back to public parts if blocked.")
     fetch.add_argument("--json", action="store_true")
     fetch.set_defaults(func=command_fetch_router)
 

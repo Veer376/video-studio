@@ -190,7 +190,7 @@ def command_status(args: argparse.Namespace) -> None:
     if not video_id:
         die(f"upload.json does not contain video_id: {paths['upload']}")
 
-    item = fetch_video_resource(youtube_client("manage"), video_id)
+    item = fetch_video_resource(youtube_client("manage"), video_id, include_processing=True)
     status = item.get("status", {}) if item else {}
     processing = item.get("processingDetails", {}) if item else {}
     payload.update(
