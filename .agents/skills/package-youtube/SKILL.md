@@ -162,7 +162,7 @@ Each generated thumbnail should have a clear visual direction:
 ```text
 Thumbnail <N>: <short name>
 Visual source: generate new
-In-image text: <2-6 word hook text, Hindi or Hinglish>
+In-image text: <2-5 word hook text, Hindi or Hinglish>
 Composition: <clear visual layout, with bottom-right safe zone left empty>
 Emotion: <viewer feeling to trigger>
 Why it can work: <one concise reason>
