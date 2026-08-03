@@ -17,8 +17,8 @@ import wave
 from pathlib import Path
 
 DEFAULT_GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview"
-DEFAULT_GEMINI_TTS_VOICE = "Puck"
-
+# DEFAULT_GEMINI_TTS_VOICE = "Puck"
+DEFAULT_GEMINI_TTS_VOICE = "Aoede"
 
 def load_env():
     env_path = Path.home() / ".config/projects/.env"
