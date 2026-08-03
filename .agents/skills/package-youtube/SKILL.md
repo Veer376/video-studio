@@ -9,18 +9,13 @@ This skill packages a completed or near-completed Story Video Maker project for 
 
 ## Boundaries
 
-This skill may create:
+This skill creates:
 
 - YouTube titles
 - YouTube description with hashtags
 - thumbnail image files
 - thumbnail notes in `thumbnails/thumbnails.md`
 - market-grounded title and thumbnail strategy in `metadata.json`
-
-This skill must not:
-
-- modify `session.json`, `script.md`, `scenes.json`
-- run `run-pipeline` 
 
 ## Inputs
 
@@ -72,32 +67,30 @@ Avoid generic motivational packaging. Prefer a sharp human tension from the actu
 
 ## Required Market Grounding
 
-Before generating final titles or thumbnails, run a market grounding pass with the `youtube` skill. This is required for every packaging run.
+Before generating final titles or thumbnails, run a market grounding pass with the `youtube` skill. This is required for every packaging run, but it should serve the creative packaging decision rather than dominate the task.
 
-Use the project topic, script conflict, central person/theme, and likely viewer intent to create 3-5 YouTube search queries. Then use:
+Use the project topic, script conflict, central person/theme, and likely viewer intent to create YouTube search queries. Use the `youtube` skill's `search` and `fetch` commands to verify comparable videos before citing them.
 
-```bash
-python3 .agents/skills/youtube/scripts/youtube.py search "<query>" --max-results 10
-python3 .agents/skills/youtube/scripts/youtube.py fetch <video_id_or_url>
-```
+Use the `youtube` skill's comments or transcript commands only when they can reveal viewer pain, curiosity, or language patterns.
 
-Use comments or transcripts only when they can reveal viewer pain, curiosity, or language patterns:
-
-```bash
-python3 .agents/skills/youtube/scripts/youtube.py comments <video_id_or_url> --max-results 20
-python3 .agents/skills/youtube/scripts/youtube.py transcript <video_id_or_url> --language hi
-```
-
-Evaluate comparable videos by:
+Summarize only the useful patterns from comparable videos:
 
 - relevance to this story
-- views per day, not raw views alone
 - title hook pattern
 - thumbnail promise, emotion, curiosity, or pain
 - title-thumbnail pairing
 - what the example leaves unanswered
 
 Do not copy title wording, thumbnail composition, scripts, or creator-specific branding. Use market examples to infer patterns, then create original packaging grounded in this project's actual story.
+
+Market example quality gate:
+
+- Only use comparable videos with meaningful proof of audience demand as references.
+- As a hard default, a video must have at least 100,000 views before it can be included in `market_grounding.examples` or used to infer title/thumbnail strategy.
+- Low-view videos are search results, not market references. Do not use videos with a few hundred or a few thousand views as examples, inspiration, or evidence.
+- If the first searches do not find relevant 100k+ examples, broaden the search.
+- Prefer the highest-view relevant examples, not merely the first relevant examples found.
+- If no relevant 100k+ examples can be found after a serious search, stop and tell the user the market grounding did not produce strong enough examples. Do not quietly degrade to weak references.
 
 If YouTube API access fails, stop and tell the user the market grounding step could not run. **Do not silently fall back to ungrounded packaging.**
 
@@ -162,28 +155,33 @@ Reserve the bottom-right safe zone for YouTube's duration badge: keep the bottom
 
 Design title and thumbnail as a pair. The thumbnail should not merely repeat the title; it should create the unresolved emotional moment that makes the title more clickable.
 
+If the thumbnail uses text, the text must be hook copy, not a descriptive label. Use the same hook language as the title strategy: conflict, curiosity, reversal, stakes, insult, fear, price, secret, failure, duty, shame, self-respect, or transformation when truthful. Avoid vague fragments that do not make sense alone or give no reason to click.
+
 Each generated thumbnail should have a clear visual direction:
 
 ```text
 Thumbnail <N>: <short name>
-Base image: <scene image path or "generate new">
-Overlay text: <2-4 words, Hindi preferred>
+Visual source: generate new
+In-image text: <2-6 word hook text, Hindi or Hinglish>
 Composition: <clear visual layout, with bottom-right safe zone left empty>
 Emotion: <viewer feeling to trigger>
 Why it can work: <one concise reason>
 ```
 
-Prefer using an existing strong scene image from `images/` as the base. Generate a new thumbnail background only when existing scene images cannot carry the hook.
+Existing `images/scene-*.png` files may be inspected or used as visual references for story continuity, character look, mood, and factual details. Never use them as the thumbnail base unless the user explicitly asks.
 
 ## Thumbnail Image Generation
 
-1. Prefer the system `imagegen` skill or any available built-in image generation tool.
-2. Use existing scene images as references when useful.
-3. Include the bottom-right safe-zone instruction in every thumbnail prompt.
-4. Save final project-bound thumbnails under `library/<project_slug>/youtube/thumbnails/`.
-5. If no image generation capability is available, ask whether to use the project's internal image generation capability.
+1. Generate fresh complete thumbnail images with the system `imagegen` skill or any available built-in image generation tool.
+2. Include exact `In-image text` in the image generation prompt itself, integrated into the thumbnail design.
+3. Use existing scene images only as optional references when useful; do not edit them into thumbnails unless the user explicitly asks.
+4. Include the bottom-right safe-zone instruction in every thumbnail prompt.
+5. Save final project-bound thumbnails under `library/<project_slug>/youtube/thumbnails/`.
+6. If no image generation capability is available, ask whether to use the project's internal image generation capability.
 
 Do not leave thumbnail assets only in an external generated-images folder. Copy or move final selected images into the project folder.
+
+Do not add thumbnail text later using code, PIL, Canvas, or other local overlay methods unless the user explicitly approves that fallback after image generation fails to render usable text.
 
 ## `metadata.json` Shape
 
@@ -202,7 +200,6 @@ Do not leave thumbnail assets only in an external generated-images folder. Copy 
         "channel": "",
         "published_at": "",
         "views": 0,
-        "views_per_day": 0,
         "thumbnail_url": "",
         "relevance": "",
         "observed_hook": "",
@@ -220,8 +217,8 @@ Do not leave thumbnail assets only in an external generated-images folder. Copy 
     {
       "file": "thumbnails/thumbnail-01.png",
       "name": "",
-      "base_image": "",
-      "overlay_text": "",
+      "visual_source": "",
+      "in_image_text": "",
       "composition": "",
       "emotion": "",
       "why_it_can_work": ""
