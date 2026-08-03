@@ -69,6 +69,14 @@ def main():
     audio_dur = get_duration(audio_path)
     print(f"→ Muxing video ({video_dur:.2f}s) + audio ({audio_dur:.2f}s)")
 
+    if video_dur + 0.75 < audio_dur:
+        print(
+            f"ERROR: Video stream is shorter than audio by {audio_dur - video_dur:.2f}s. "
+            "Re-run timestamp alignment/render before muxing.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     # Mux: keep the shorter stream to avoid silent tail
     # Video stream: copy without re-encoding (subtitles already burned in)
     # Audio stream: encode to AAC 192k for broad compatibility
