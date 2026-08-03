@@ -91,6 +91,8 @@ Parse `library/<project_slug>/session.json`. Extract:
 - `brief.audience` — who is watching
 - `brief.target_duration_seconds` — rough scope for how much material is useful
 
+If the user says this research follows discovery, or if `.agents/skills/discovery/research.md` exists and is relevant, read it as optional directional context. Use its selected idea, shortlisted angle, demand signals, sources, and "Next research needed" notes to focus the project research. Do not overwrite discovery's scratchpad.
+
 ### Step 2 — Plan Your Searches
 Before running any command, plan 4–6 targeted queries that cover different angles:
 1. **Spiritual/Philosophical:** The sacred texts, parables, or philosophical concepts at the heart of the topic
@@ -99,6 +101,8 @@ Before running any command, plan 4–6 targeted queries that cover different ang
 4. **Deep detail:** Specific sensory or cultural details that add texture (place names, rituals, objects)
 5. **Attributed wisdom:** Exact spoken words — shlokas, proverbs, letters, lectures, or famous dialogue — that carry emotional weight
 6. **Emotional beats:** Moments of fear, shame, grief, relief, silence, hesitation, or inner conflict that could become the emotional spine of the script
+
+When discovery context is available, prefer focused verification and enrichment over broad re-discovery. Do not independently change the chosen idea, hook, or emotional direction unless the user asks to reconsider it.
 
 ### Step 3 — Run the Scripts
 Execute your planned queries using the custom CLI scripts. For each result:
@@ -175,4 +179,5 @@ Source: <session.json project_slug>
 - **Always include source URLs** for factual claims so the composer can verify or deepen them.
 - **Flag all creative additions** in the "Creative Bridges" section — never mix fiction with fact silently.
 - **No story writing in this skill.** Only raw material collection.
+- **Preserve confirmed discovery direction** when research follows discovery; deepen it rather than replacing it.
 - **Update `session.json`** status to `"research_complete"` after writing `research.md`.
