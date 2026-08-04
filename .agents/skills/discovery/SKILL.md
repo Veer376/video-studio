@@ -103,7 +103,7 @@ Description:
 <line 2: emotional or philosophical hook>
 Source: <source URL/title if found, or Internal reasoning>
 Demand signal: <search/comment/trend/source signal, or Unknown>
-Expected runtime: <rough runtime range, e.g. 10-12m (recommended) or 3-5m>
+Expected runtime: <rough runtime range, e.g. 10-12m>
 Original angle: <how this avoids copying/generic treatment>
 Risk: <generic/overdone/weak source/unclear audience/etc.>
 ```

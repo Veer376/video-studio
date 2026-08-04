@@ -148,7 +148,11 @@ def main():
     session = json.loads(session_path.read_text(encoding="utf-8"))
     scenes_data = json.loads(scenes_path.read_text(encoding="utf-8"))
 
-    width, height = IMAGE_WIDTH, IMAGE_HEIGHT
+    aspect_ratio = session.get("visual", {}).get("aspect_ratio", "16:9")
+    if aspect_ratio == "9:16":
+        width, height = 1080, 1920
+    else:
+        width, height = IMAGE_WIDTH, IMAGE_HEIGHT
 
     visual_style = scenes_data.get("visual_style", "premium cinematic digital painting, vivid colors")
     if isinstance(visual_style, dict):

@@ -30,12 +30,13 @@ Conduct the intake as a natural, friendly conversation. Acknowledge each answer 
 > **Q2.** What tone should it have? *(warm storytelling / motivational / devotional / educational / poetic — or describe it in your own words)*
 > **Q3.** Who is the audience? *(general adults / children / spiritual seekers / students — or describe)*
 
-### Group 2 — Language & Length
-> **Q4.** How long should the video be? *(e.g., 10-12 minutes (recommended), 5 minutes, 15 minutes, 20 minutes)*
-> **Q5.** What language? *(Hindi / English / Hinglish)*
+### Group 2 — Format, Language & Length
+> **Q4.** What is the video format or aspect ratio? *(e.g., Long-form 16:9 (recommended) / Short 9:16 (vertical Shorts))*
+> **Q5.** How long should the video be? *(e.g., 10-12 minutes , 60 seconds (Short), >20 minutes)*
+> **Q6.** What language? *(Hindi / English / Hinglish)*
 
 ### Group 3 — Visual Style (Optional)
-> **Q6.** Any specific visual style? *(e.g., ancient India, modern urban, nature documentary, abstract watercolour)* — or press Enter to use the cinematic digital painting default.
+> **Q7.** Any specific visual style? *(e.g., ancient India, modern urban, nature documentary, abstract watercolour)* — or press Enter to use the cinematic digital painting default.
 
 ---
 
@@ -82,7 +83,8 @@ Follow these steps in exact order:
     "language": "hi-IN"
   },
   "visual": {
-    "style": "premium cinematic digital painting, vivid colors, mystical lighting, ancient India"
+    "style": "premium cinematic digital painting, vivid colors, mystical lighting, ancient India",
+    "aspect_ratio": "16:9"
   }
 }
 ```
@@ -94,7 +96,7 @@ Follow these steps in exact order:
 ## Hard Rules
 
 - Default language if skipped: `hi-IN`.
-- Default target duration if skipped: `600` (10 minutes, recommended).
-- The current production pipeline is fixed to `image-story`, 1080p 16:9 images/video, 30fps, Cloudflare images, Gemini TTS, and subtitles enabled. Do not write those defaults into `session.json`.
+- Default aspect ratio if skipped: `16:9`. If vertical or Short is specified, set `visual.aspect_ratio` to `9:16`.
+- The current production pipeline is fixed to `image-story`, 30fps, Cloudflare images, Gemini TTS, and subtitles enabled. Resolution matches the aspect ratio (`1920x1080` for `16:9`, `1080x1920` for `9:16`). Do not write those defaults into `session.json`.
 - Keep `voice` lean for now: only write `voice.language`.
 - Never generate story content, images, or audio during this skill. This skill only asks questions and writes `session.json`.

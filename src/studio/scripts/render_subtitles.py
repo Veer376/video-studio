@@ -147,7 +147,12 @@ def main():
 
     ts_data = json.loads(timestamps_path.read_text(encoding="utf-8"))
     scenes_data = json.loads(scenes_path.read_text(encoding="utf-8"))
-    width, height = RENDER_WIDTH, RENDER_HEIGHT
+    session = json.loads(session_path.read_text(encoding="utf-8"))
+    aspect_ratio = session.get("visual", {}).get("aspect_ratio", "16:9")
+    if aspect_ratio == "9:16":
+        width, height = 1080, 1920
+    else:
+        width, height = RENDER_WIDTH, RENDER_HEIGHT
 
     words = ts_data.get("words", [])
     scenes = scenes_data.get("scenes", [])

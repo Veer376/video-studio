@@ -271,7 +271,12 @@ def main():
     scenes_data = json.loads(scenes_path.read_text(encoding="utf-8"))
     session = json.loads(session_path.read_text(encoding="utf-8"))
 
-    width, height, fps = RENDER_WIDTH, RENDER_HEIGHT, RENDER_FPS
+    aspect_ratio = session.get("visual", {}).get("aspect_ratio", "16:9")
+    if aspect_ratio == "9:16":
+        width, height = 1080, 1920
+    else:
+        width, height = RENDER_WIDTH, RENDER_HEIGHT
+    fps = RENDER_FPS
 
     words = []
     if not args.skip_subtitles and timestamps_path.exists():
