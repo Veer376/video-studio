@@ -12,9 +12,9 @@ Run this skill at the very beginning of every new video project, before writing 
 ## When to Activate
 
 Activate this skill when:
-- The user says they want to create a new story video.
+- The user says they want to create a new story video or a vertical Short.
 - No `session.json` exists in the target project folder.
-- The user says "let's start fresh" or "new video".
+- The user says "let's start fresh", "new video", or "create a short".
 
 > [!NOTE]
 > Use the `/grill-me` or `interview-me` skill, if available in your system.
@@ -24,6 +24,8 @@ If the user just used `discovery`, use the selected idea from conversation as th
 ## Intake Workflow
 
 Conduct the intake as a natural, friendly conversation. Acknowledge each answer before moving to the next group.
+
+**Short Video Optimization**: If the user starts the conversation by requesting a "Short" or "vertical video", automatically set `visual.aspect_ratio` to `"9:16"`, default `brief.target_duration_seconds` to `50` seconds, and skip asking **Q4** and **Q5** to maintain a clean flow.
 
 ### Group 1 — The Idea
 > **Q1.** What is this video about? Give me the core idea — it can be a theme, a story concept, a life lesson, a character, or even just a feeling.
@@ -97,6 +99,7 @@ Follow these steps in exact order:
 
 - Default language if skipped: `hi-IN`.
 - Default aspect ratio if skipped: `16:9`. If vertical or Short is specified, set `visual.aspect_ratio` to `9:16`.
+- **Short Video Constraint**: If `visual.aspect_ratio` is set to `9:16`, `target_duration_seconds` must strictly be 60 seconds or shorter (default to 50 seconds to ensure it stays below YouTube's strict 60-second limit).
 - The current production pipeline is fixed to `image-story`, 30fps, Cloudflare images, Gemini TTS, and subtitles enabled. Resolution matches the aspect ratio (`1920x1080` for `16:9`, `1080x1920` for `9:16`). Do not write those defaults into `session.json`.
 - Keep `voice` lean for now: only write `voice.language`.
 - Never generate story content, images, or audio during this skill. This skill only asks questions and writes `session.json`.
