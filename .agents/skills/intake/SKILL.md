@@ -18,7 +18,7 @@ Activate this skill when:
 
 > [!NOTE]
 > Use the `/grill-me` or `interview-me` skill, if available in your system.
-If the user just used `discovery`, use the selected idea from conversation as the answer.
+If the user has alread discovered the idea, use the selected idea from conversation as the answer.
 ---
 
 ## Intake Workflow
@@ -99,7 +99,6 @@ Follow these steps in exact order:
 
 - Default language if skipped: `hi-IN`.
 - Default aspect ratio if skipped: `16:9`. If vertical or Short is specified, set `visual.aspect_ratio` to `9:16`.
-- **Short Video Constraint**: If `visual.aspect_ratio` is set to `9:16`, `target_duration_seconds` must strictly be 60 seconds or shorter (default to 50 seconds to ensure it stays below YouTube's strict 60-second limit).
 - The current production pipeline is fixed to `image-story`, 30fps, Cloudflare images, Gemini TTS, and subtitles enabled. Resolution matches the aspect ratio (`1920x1080` for `16:9`, `1080x1920` for `9:16`). Do not write those defaults into `session.json`.
 - Keep `voice` lean for now: only write `voice.language`.
 - Never generate story content, images, or audio during this skill. This skill only asks questions and writes `session.json`.
