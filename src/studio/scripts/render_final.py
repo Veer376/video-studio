@@ -63,6 +63,16 @@ def main():
         print(f"✓ final-video.mp4 already exists. Use --force to re-render.")
         sys.exit(0)
 
+    # If final-video.mp4 already exists, generate a versioned output filename (e.g. final-video-001.mp4) for easy comparison
+    if out_path.exists():
+        idx = 1
+        while True:
+            candidate = project_dir / "output" / f"final-video-{idx:03d}.mp4"
+            if not candidate.exists():
+                out_path = candidate
+                break
+            idx += 1
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     video_dur = get_duration(video_path)
