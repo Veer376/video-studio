@@ -31,7 +31,7 @@ Conduct the intake as a natural, friendly conversation. Acknowledge each answer 
 > **Q3.** Who is the audience? *(general adults / children / spiritual seekers / students — or describe)*
 
 ### Group 2 — Language & Length
-> **Q4.** How long should the video be? *(e.g., 30 seconds, 1 minute, 2 minutes, 4 minutes)*
+> **Q4.** How long should the video be? *(e.g., 10-12 minutes (recommended), 5 minutes, 15 minutes, 20 minutes)*
 > **Q5.** What language? *(Hindi / English / Hinglish)*
 
 ### Group 3 — Visual Style (Optional)
@@ -76,7 +76,7 @@ Follow these steps in exact order:
     "topic": "Motivational story of Lord Krishna offering life wisdom",
     "tone": "motivational",
     "audience": "general adults",
-    "target_duration_seconds": 240
+    "target_duration_seconds": 600
   },
   "voice": {
     "language": "hi-IN"
@@ -94,7 +94,7 @@ Follow these steps in exact order:
 ## Hard Rules
 
 - Default language if skipped: `hi-IN`.
-- Default target duration if skipped: `60`.
+- Default target duration if skipped: `600` (10 minutes, recommended).
 - The current production pipeline is fixed to `image-story`, 1080p 16:9 images/video, 30fps, Cloudflare images, Gemini TTS, and subtitles enabled. Do not write those defaults into `session.json`.
 - Keep `voice` lean for now: only write `voice.language`.
 - Never generate story content, images, or audio during this skill. This skill only asks questions and writes `session.json`.
