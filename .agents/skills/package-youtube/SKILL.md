@@ -117,7 +117,7 @@ Rules:
 
 Write one final description with:
 
-1. 2-3 line emotional introduction.
+1. 2-3 line emotional introduction. **The first two lines must contain primary keywords.**
 2. Short promise of what the viewer will understand.
 3. Optional quote/source note only if it naturally belongs.
 4. Full cleaned script or narration transcript.
