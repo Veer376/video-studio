@@ -31,6 +31,9 @@ Strip everything that is not the spoken prose itself:
 - Strip stage directions (lines beginning with `[`, e.g. `[medium pause]`, `[excitedly]`)
 - Take only the flowing spoken text
 
+**Tokenizer Definition:**
+A word is any non-whitespace token after removing non-spoken Markdown lines. Punctuation remains attached to its neighbouring token (e.g. `गया।`). All downstream skills must use this same definition.
+
 Count the total words in the cleaned narration body. This is `total_words`.
 
 ---
@@ -41,22 +44,28 @@ Count the total words in the cleaned narration body. This is `total_words`.
 
 > In spoken Hindi, 8–10 seconds corresponds to roughly **18–22 words**. Standardize on a target of **20 words per scene**.
 
-**Algorithm:**
+**Algorithm & Semantic Boundary Scoring:**
 
-1. Calculate the dynamic scene count:
+1. Calculate target scene count:
    ```
    target_scene_count = max(2, round(total_words / 20))
    ```
 
-2. Compute the target words per scene:
+2. Compute target words per scene:
    ```
    target_words_per_scene = total_words / target_scene_count
    ```
 
-3. Walk the text word by word, tracking a running word count:
-   - When the running count reaches `target_words_per_scene`, look ahead to find the **nearest sentence-ending boundary** (`।`, `.`, `!`, `?`, or `...`) within a 15-word lookahead window.
-   - Cut there. **Never cut mid-sentence.**
-   - If no sentence boundary is found within the lookahead, cut at the closest natural pause (`,`).
+3. Walk the text word by word, tracking running word count:
+   - Near `target_words_per_scene`, search **both backward (-8 words) and forward (+10 words)** for candidate sentence boundaries (`।`, `.`, `!`, `?`, or `...`).
+   - If multiple candidate boundaries exist, score candidates using semantic hierarchy:
+     - **Paragraph Break / Subject Change:** Highest priority split point (+8)
+     - **Full Sentence Ending:** High priority (+6)
+     - **Question / Exclamation Ending:** High priority (+5)
+     - **Q&A Cohesion:** Keep question and answer together in the same scene if under 30 words.
+     - **Dangling Connectors:** Avoid splitting immediately before connector words (`लेकिन`, `क्योंकि`, `और तभी`, `इसलिए`, `मगर`) if the preceding thought is needed for context.
+   - Cut at the highest scoring boundary.
+   - **Hard Rule:** Never cut mid-sentence. Never cut at commas (`,`). If no sentence boundary exists in the search window, allow the scene to extend up to 30 words to reach the next full sentence end.
 
 4. Assign sequential IDs to the resulting chunks: `scene-001`, `scene-002`, etc.
 
@@ -85,13 +94,13 @@ Write the skeleton manifest to `library/<project_slug>/scenes.json`.
 {
   "project_slug": "<from session.json>",
   "visual_style": "<session.json visual.style string>",
-  "total_words": 847,
+  "total_words": 400,
   "scene_count": 20,
   "scenes": [
     {
       "id": "scene-001",
       "text": "<full narration text for this scene>",
-      "word_range": [0, 42],
+      "word_range": [0, 19],
       "image_prompt": null,
       "image_path": null,
       "start_time": null,
@@ -123,7 +132,7 @@ Update `session.json`:
 
 ## Hard Rules
 
-- **Do not split mid-sentence.** Ever.
+- **Do not split mid-sentence or at commas.** Ever.
 - **Do not write image prompts.** That is the `design-visuals` skill's job.
 - **`word_range` must be contiguous and cover the entire script** with no gaps or overlaps.
 - **Scene count is dynamically determined** based on script length (~20 words per scene), with a minimum of 2 scenes.
