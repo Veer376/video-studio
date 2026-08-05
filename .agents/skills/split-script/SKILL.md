@@ -30,6 +30,7 @@ Strip everything that is not the spoken prose itself:
 - Strip any section headers (`##`, `---`)
 - Strip stage directions (lines beginning with `[`, e.g. `[medium pause]`, `[excitedly]`)
 - Take only the flowing spoken text
+- Lines in `script.md` beginning with `>` are quotes, maxims, or sacred shlokas. **DO NOT STRIP THE `>` MARKER.**
 
 **Tokenizer Definition:**
 A word is any non-whitespace token after removing non-spoken Markdown lines. Punctuation remains attached to its neighbouring token (e.g. `गया।`). All downstream skills must use this same definition.
