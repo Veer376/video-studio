@@ -9,6 +9,8 @@ import json
 import os
 import sys
 import ssl
+import time
+import subprocess
 import urllib.error
 import urllib.request
 import io
@@ -60,7 +62,21 @@ def extract_timestamps(api_key: str, audio_path: Path, language: str) -> dict:
     Returns a dict with keys: duration, language, word_count, words.
     Each word: {"word": str, "start": float, "end": float}
     """
-    audio_data = audio_path.read_bytes()
+    temp_mp3 = None
+    upload_path = audio_path
+    filename = audio_path.name
+    mime_type = "audio/wav"
+
+    # Compress large audio files > 5MB to lightweight MP3 to prevent Groq HTTP 500 errors
+    if audio_path.stat().st_size > 5 * 1024 * 1024:
+        temp_mp3 = audio_path.parent / "groq_temp_narration.mp3"
+        print(f"  Compressing large audio ({audio_path.stat().st_size / (1024*1024):.1f} MB) to MP3 for Groq Whisper...")
+        subprocess.run(["ffmpeg", "-y", "-i", str(audio_path), "-b:a", "96k", str(temp_mp3)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        upload_path = temp_mp3
+        filename = "narration.mp3"
+        mime_type = "audio/mp3"
+
+    audio_data = upload_path.read_bytes()
     boundary = "----StoryVideoMakerBoundary7f3b8a2c"
 
     body_lines = []
@@ -75,8 +91,8 @@ def extract_timestamps(api_key: str, audio_path: Path, language: str) -> dict:
     header = "".join(body_lines).encode("utf-8")
     file_header = (
         f"--{boundary}\r\n"
-        f'Content-Disposition: form-data; name="file"; filename="narration.wav"\r\n'
-        f"Content-Type: audio/wav\r\n\r\n"
+        f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+        f"Content-Type: {mime_type}\r\n\r\n"
     ).encode("utf-8")
     footer = f"\r\n--{boundary}--\r\n".encode("utf-8")
 
@@ -96,19 +112,33 @@ def extract_timestamps(api_key: str, audio_path: Path, language: str) -> dict:
         method="POST",
     )
 
-    try:
+    max_attempts = 4
+    for attempt in range(1, max_attempts + 1):
         try:
-            with urllib.request.urlopen(req, timeout=120, context=ctx) as resp:
-                raw = json.loads(resp.read().decode("utf-8"))
-        except ssl.SSLCertVerificationError:
-            unverified = ssl._create_unverified_context()
-            with urllib.request.urlopen(req, timeout=120, context=unverified) as resp:
-                raw = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")[:800]
-        raise RuntimeError(f"Groq Whisper HTTP {exc.code}: {detail}") from exc
-    except urllib.error.URLError as exc:
-        raise RuntimeError(f"Groq Whisper network error: {exc.reason}") from exc
+            try:
+                with urllib.request.urlopen(req, timeout=180, context=ctx) as resp:
+                    raw = json.loads(resp.read().decode("utf-8"))
+                    break
+            except ssl.SSLCertVerificationError:
+                unverified = ssl._create_unverified_context()
+                with urllib.request.urlopen(req, timeout=180, context=unverified) as resp:
+                    raw = json.loads(resp.read().decode("utf-8"))
+                    break
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")[:800]
+            if exc.code in (500, 502, 503, 504) and attempt < max_attempts:
+                wait_time = attempt * 3
+                print(f"  Warning: Groq Whisper HTTP {exc.code} (attempt {attempt}/{max_attempts}). Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            raise RuntimeError(f"Groq Whisper HTTP {exc.code}: {detail}") from exc
+        except urllib.error.URLError as exc:
+            if attempt < max_attempts:
+                wait_time = attempt * 3
+                print(f"  Warning: Groq Whisper network error {exc.reason} (attempt {attempt}/{max_attempts}). Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            raise RuntimeError(f"Groq Whisper network error: {exc.reason}") from exc
 
     all_words = []
     root_words = raw.get("words")
@@ -128,6 +158,12 @@ def extract_timestamps(api_key: str, audio_path: Path, language: str) -> dict:
                     "start": float(w["start"]),
                     "end": float(w["end"]),
                 })
+
+    if temp_mp3 and temp_mp3.exists():
+        try:
+            temp_mp3.unlink()
+        except Exception:
+            pass
 
     return {
         "duration": float(raw.get("duration", 0.0)),

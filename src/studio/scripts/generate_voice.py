@@ -204,6 +204,10 @@ def main():
             p_wav = temp_dir / f"{p_id}.wav"
             temp_files.append(p_wav)
             
+            if p_wav.exists() and p_wav.stat().st_size > 100:
+                print(f"  Skipping {p_id} (already generated)...")
+                continue
+            
             # Select key using round-robin rotation across the list of unique keys
             key_index = i % len(api_keys)
             key = api_keys[key_index]
@@ -211,21 +215,24 @@ def main():
             print(f"  Generating audio for {p_id} ({len(paragraph_text.split())} words) using Key {key_index + 1}/{len(api_keys)}...")
             
             success = False
-            try:
-                call_gemini_tts(api_key=key, model=model, voice=voice, text=paragraph_text, out_path=p_wav)
-                success = True
-            except RuntimeError as e:
-                print(f"    Warning: Key {key_index + 1} failed: {e}. Trying fallback keys...")
-                # Fallback to other keys if the primary key fails
-                for alt_key in api_keys:
-                    if alt_key == key:
-                        continue
-                    try:
-                        call_gemini_tts(api_key=alt_key, model=model, voice=voice, text=paragraph_text, out_path=p_wav)
-                        success = True
+            for attempt in range(3):
+                try:
+                    call_gemini_tts(api_key=key, model=model, voice=voice, text=paragraph_text, out_path=p_wav)
+                    success = True
+                    break
+                except Exception as e:
+                    print(f"    Warning: Key {key_index + 1} attempt {attempt+1} failed: {e}. Trying fallback keys...")
+                    for alt_key in api_keys:
+                        if alt_key == key:
+                            continue
+                        try:
+                            call_gemini_tts(api_key=alt_key, model=model, voice=voice, text=paragraph_text, out_path=p_wav)
+                            success = True
+                            break
+                        except Exception:
+                            continue
+                    if success:
                         break
-                    except Exception:
-                        continue
             if not success:
                 print(f"ERROR: Failed to generate audio for {p_id}", file=sys.stderr)
                 sys.exit(1)
