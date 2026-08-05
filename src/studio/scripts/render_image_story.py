@@ -21,6 +21,7 @@ if sys.platform == "darwin" and "/opt/homebrew/lib" not in os.environ.get("DYLD_
 
 import argparse
 import json
+import math
 import shutil
 import subprocess
 from pathlib import Path
@@ -57,14 +58,30 @@ def generate_scene_subtitle_frames(
     out_dir: Path,
     size: tuple[int, int],
     font_path: Path | None,
+    clip_duration: float = 0.0,
+    prev_scene_ended_with_quote: bool = False,
+    style: str = "soft_halo",
 ) -> list[tuple[Path, float, float]]:
     """
     Generate transparent PNG overlays for each word in the scene using Pillow.
     Timings are calculated relative to the scene's start time (0.0s).
+
+    If scene["text"] contains ">", the words before ">" are rendered as normal
+    bottom subtitles and words from ">" onwards switch to the centered quote layout.
     """
     start_t = scene["start_time"]
     end_t = scene["end_time"]
     scene_id = scene["id"]
+    scene_text = scene.get("text", "")
+
+    # Determine how many words are in the "setup" prefix (before ">")
+    # e.g. "ओशो कहते थे > जल तो दे सकता हूँ" → n_setup = 3
+    has_quote_marker = ">" in scene_text
+    if has_quote_marker:
+        prefix_part = scene_text.split(">", 1)[0].strip()
+        n_setup = len(prefix_part.split()) if prefix_part else 0
+    else:
+        n_setup = 0
 
     # Filter words belonging to this scene's time window
     scene_words = [
@@ -74,15 +91,26 @@ def generate_scene_subtitle_frames(
     if not scene_words:
         return []
 
-    # Build the full text for this scene to lock the layout wrapping structure
-    full_text = " ".join(w["word"] for w in scene_words)
+    # Build separate full_text locks for normal and quote modes
+    setup_full_text = " ".join(w["word"] for w in scene_words[:n_setup]) if n_setup else ""
+    quote_full_text = " ".join(w["word"] for w in scene_words[n_setup:]) if has_quote_marker else " ".join(w["word"] for w in scene_words)
 
     frames = []
-    cumulative = []
+    cumulative_setup: list[str] = []
+    cumulative_quote: list[str] = []
 
     for i, word in enumerate(scene_words):
-        cumulative.append(word["word"].strip())
-        visible_text = " ".join(cumulative)
+        word_str = word["word"].strip()
+        is_quote_frame = has_quote_marker and i >= n_setup
+
+        if is_quote_frame:
+            cumulative_quote.append(word_str)
+            visible_text = " ".join(cumulative_quote)
+            full_text = quote_full_text
+        else:
+            cumulative_setup.append(word_str)
+            visible_text = " ".join(cumulative_setup)
+            full_text = setup_full_text if setup_full_text else quote_full_text
 
         # Calculate overlay start/end times relative to the scene's start (0.0s)
         t_start = max(0.0, word["start"] - start_t)
@@ -101,10 +129,53 @@ def generate_scene_subtitle_frames(
             size=size,
             font_path=font_path,
             full_text=full_text,
+            is_quote=is_quote_frame,
+            style=style,
         )
         frames.append((png_path, t_start, t_end))
 
+    # Prepend the timed vignette overlay for the quote portion.
+    # Extends to clip_duration to guarantee continuous dark background during crossfades.
+    if has_quote_marker and scene_words:
+        if n_setup == 0 or prev_scene_ended_with_quote:
+            quote_t_start = 0.0
+        else:
+            quote_t_start = max(0.0, scene_words[n_setup]["start"] - start_t) if n_setup < len(scene_words) else 0.0
+        quote_t_end = max(clip_duration, end_t - start_t)
+        if quote_t_end > quote_t_start + 0.001:
+            vignette_png = out_dir / f"{scene_id}-vignette.png"
+            _generate_vignette_overlay(vignette_png, size, center_alpha=185)
+            frames.insert(0, (vignette_png, quote_t_start, quote_t_end))
+
     return frames
+
+
+def _generate_vignette_overlay(out_path: Path, size: tuple[int, int], center_alpha: int = 185) -> None:
+    """Generate a standalone RGBA vignette overlay PNG (black with Hermite radial alpha)."""
+    try:
+        from PIL import Image
+    except ImportError:
+        return
+
+    width, height = size
+    gw, gh = 300, 300
+    low = Image.new("L", (gw, gh), 0)
+    pix = low.load()
+    cx, cy = gw / 2.0, gh / 2.0
+    max_r = math.sqrt(cx * cx + cy * cy)
+
+    for y in range(gh):
+        for x in range(gw):
+            dist = (math.sqrt((x - cx) ** 2 + (y - cy) ** 2) / max_r) * 0.55
+            d = max(0.0, min(1.0, dist))
+            smooth_val = 1.0 - (3.0 * (d ** 2) - 2.0 * (d ** 3))
+            pix[x, y] = int(center_alpha * smooth_val)
+
+    grad_mask = low.resize((width, height), Image.Resampling.BICUBIC)
+    dark = Image.new("RGBA", (width, height), (0, 0, 0, 255))
+    dark.putalpha(grad_mask)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    dark.save(out_path)
 
 
 def render_scene_clip(
@@ -158,11 +229,31 @@ def render_scene_clip(
         prev = "[kbv]"
         kb_vf = f"{vf}[kbv]"
         
-        for idx, (_, t_start, t_end) in enumerate(subtitle_frames, start=1):
+        for idx, (png_path, t_start, t_end) in enumerate(subtitle_frames, start=1):
             out_label = f"[ov{idx}]"
-            chains.append(
-                f"{prev}[{idx}:v]overlay=0:0:enable='{subtitle_enable_expr(t_start, t_end)}':format=auto{out_label}"
-            )
+            if png_path.name.endswith("-vignette.png"):
+                fade_filters = []
+                # Fade in only if quote starts after scene start (t_start > 0.05s)
+                if t_start > 0.05:
+                    fade_in_d = min(0.8, (t_end - t_start) / 2)
+                    fade_filters.append(f"fade=t=in:st={t_start:.4f}:d={fade_in_d:.2f}:alpha=1")
+                # Fade out ONLY if quote genuinely ends before end of clip
+                if t_end < (duration - 0.05):
+                    fade_out_d = min(0.8, (t_end - t_start) / 2)
+                    fade_out_st = max(t_start, t_end - fade_out_d)
+                    fade_filters.append(f"fade=t=out:st={fade_out_st:.4f}:d={fade_out_d:.2f}:alpha=1")
+
+                filter_str = ",".join(["format=rgba"] + fade_filters)
+                filter_prefix = f"{filter_str}," if filter_str else ""
+                vignette_chain = (
+                    f"[{idx}:v]{filter_prefix}format=rgba[vig{idx}];"
+                    f"{prev}[vig{idx}]overlay=0:0:enable='{subtitle_enable_expr(t_start, t_end)}':format=auto{out_label}"
+                )
+                chains.append(vignette_chain)
+            else:
+                chains.append(
+                    f"{prev}[{idx}:v]overlay=0:0:enable='{subtitle_enable_expr(t_start, t_end)}':format=auto{out_label}"
+                )
             prev = out_label
             
         full_filter = kb_vf + ";" + ";".join(chains) + f";{prev}format=yuv420p[vout]"
@@ -247,6 +338,7 @@ def main():
     parser.add_argument("--project-dir", required=True, help="Path to the project directory")
     parser.add_argument("--force", action="store_true", help="Re-render even if clips already exist")
     parser.add_argument("--skip-subtitles", action="store_true", help="Skip subtitle overlay step")
+    parser.add_argument("--subtitle-style", choices=["soft_halo", "classic_card"], default="soft_halo", help="Subtitle visual style (soft_halo or classic_card)")
     parser.add_argument("--no-motion", action="store_true", help="Disable Ken Burns zoom motion (removes all shaking/trembling)")
     args = parser.parse_args()
 
@@ -295,6 +387,8 @@ def main():
     scene_clips: list[Path] = []
     durations: list[float] = []
 
+    prev_scene_ended_with_quote = False
+
     for idx, scene in enumerate(scenes):
         scene_id = scene["id"]
         start_t = float(scene.get("start_time") or 0.0)
@@ -313,12 +407,18 @@ def main():
         subtitle_frames = []
         if words:
             subtitle_frames = generate_scene_subtitle_frames(
-                scene, words, sub_dir, (width, height), font_path
+                scene, words, sub_dir, (width, height), font_path,
+                clip_duration=clip_duration,
+                prev_scene_ended_with_quote=prev_scene_ended_with_quote,
+                style=args.subtitle_style,
             )
 
         if not image_path.exists():
             print(f"ERROR: Image not found: {image_path}", file=sys.stderr)
             sys.exit(1)
+
+        is_quote = ">" in scene.get("text", "")
+        prev_scene_ended_with_quote = is_quote
 
         if clip_path.exists() and not args.force:
             print(f"  ✓ Cached: {scene_id}.mp4 ({clip_duration:.2f}s)")
