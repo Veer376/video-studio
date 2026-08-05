@@ -153,7 +153,7 @@ Each thumbnail must communicate one bold idea at a glance. Use high contrast, re
 
 Reserve the bottom-right safe zone for YouTube's duration badge: keep the bottom-right 20% of width and 15% of height free of text, faces, key objects, logos, and high-contrast details. It can contain low-detail background only.
 
-Design title and thumbnail as a pair. The thumbnail should not merely repeat the title; it should create the unresolved emotional moment that makes the title more clickable.
+Design title and thumbnail as a pair (the Macro Loop entry point). **Title-Thumbnail Asymmetry Rule:** Title provides the context/premise (`<Hindi Hook> | <English/Hinglish Hook>`); Thumbnail MUST provide the unresolved emotional tension. NEVER repeat the title text inside the thumbnail image.
 
 If the thumbnail uses text, the text must be hook copy, not a descriptive label. Use the same hook language as the title strategy: conflict, curiosity, reversal, stakes, insult, fear, price, secret, failure, duty, shame, self-respect, or transformation when truthful. Avoid vague fragments that do not make sense alone or give no reason to click.
 
@@ -176,8 +176,9 @@ Existing `images/scene-*.png` files may be inspected or used as visual reference
 2. Include exact `In-image text` in the image generation prompt itself, integrated into the thumbnail design.
 3. Use existing scene images only as optional references when useful; do not edit them into thumbnails unless the user explicitly asks.
 4. Include the bottom-right safe-zone instruction in every thumbnail prompt.
-5. Save final project-bound thumbnails under `library/<project_slug>/youtube/thumbnails/`.
-6. If no image generation capability is available, ask whether to use the project's internal image generation capability.
+5. **Mobile Quality Gate:** Verify generated thumbnails at 150px preview width to ensure high-contrast legibility of in-image text and clear facial expression visibility on mobile feeds.
+6. Save final project-bound thumbnails under `library/<project_slug>/youtube/thumbnails/`.
+7. If no image generation capability is available, ask whether to use the project's internal image generation capability.
 
 Do not leave thumbnail assets only in an external generated-images folder. Copy or move final selected images into the project folder.
 

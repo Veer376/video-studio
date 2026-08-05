@@ -91,21 +91,22 @@ Structure every prompt using these five elements:
 
 ---
 
-### Visual Continuity Rules
+### Visual Continuity & Retention Rules
 
 Design the full sequence as a **directed film** — not a collection of independent illustrations.
 
 1. **Alternate compositions:** Never place the same framing in two consecutive scenes. Wide shot → close-up → mid-shot, etc.
-2. **Evolve the color palette with the story arc:**
+2. **3-Scene Cadence Gate (Visual Pattern Interrupts):** Never allow 3 consecutive scenes to share the same framing scale or color tone. Every 3rd scene (~20–25 seconds) MUST introduce a stark Visual Pattern Interrupt (e.g. switching from an environmental wide shot to an extreme emotional close-up or high-contrast lighting shift) to reset viewer visual fatigue.
+3. **Evolve the color palette with the story arc:**
    - *Conflict/Doubt scenes:* Cool tones, heavy shadows, overcast light.
    - *Rising action scenes:* Warmer amber tones, growing light.
    - *Revelation/Resolution scenes:* Bright, expansive, golden warm light, wide frames.
-3. **Maintain spatial logic:** If the story is set on a battlefield, every scene should still feel grounded in that world unless the narration explicitly moves elsewhere.
-4. **Vary subject scale:** Alternate between individual characters in close focus and wide scenes showing the larger context.
-5. **Visual Context Anchoring:** Never prompt for a floating object or hand in a void. Always anchor props to the character's body or the environment:
+4. **Maintain spatial logic:** If the story is set on a battlefield, every scene should still feel grounded in that world unless the narration explicitly moves elsewhere.
+5. **Vary subject scale:** Alternate between individual characters in close focus and wide scenes showing the larger context.
+6. **Visual Context Anchoring:** Never prompt for a floating object or hand in a void. Always anchor props to the character's body or the environment:
    - ❌ `"a bow floating in air"`
    - ✅ `"the golden bow Gandiva resting across Arjuna's bronze-armored shoulder"`
-6. **Flow test:** After writing all prompts, read them in sequence. Does the visual journey feel like a film? Does each image logically follow from the previous?
+7. **Flow test:** After writing all prompts, read them in sequence. Does the visual journey feel like a film? Does each image logically follow from the previous?
 
 ---
 

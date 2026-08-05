@@ -54,7 +54,7 @@ Write one 2–3 sentence description that summarizes the video's promise without
 
 #### Template Blueprints:
 Generate 3 distinct templates:
-TEMPLATE — Opening hook: <The first 8 seconds of audio — one sentence> Middle arc: <How the story builds and connects to modern life — two sentences> Turn: <The emotional pivot or revelation — one sentence> Closing: <The final call to action or resolution — one sentence> Tone signature: <e.g., Rising inspiration, quiet contemplation, dramatic epic>
+TEMPLATE — Macro Loop (0:00-0:15): <Hook + Anti-hook pair> Micro Loops: <Tension teasers at ~60s intervals> Middle arc: <How the story builds and connects to modern life — two sentences> Turn: <The emotional pivot or revelation — one sentence> Closing: <The final call to action or resolution — one sentence> Tone signature: <e.g., Rising inspiration, quiet contemplation, dramatic epic>
 
 **Wait for the user's explicit selection before proceeding to Round 2.**
 
@@ -64,9 +64,9 @@ TEMPLATE — Opening hook: <The first 8 seconds of audio — one sentence> Middl
 
 Once the user approves a title and template:
 
-**Step 1 — Emotional Arc:**
-Before writing, define the listener's emotional journey in one line. Example:
-Arc: Curiosity → Tension → Doubt → Revelation → Resolve
+**Step 1 — Emotional Arc & Retention Anchors:**
+Before writing, define the listener's emotional journey and key tension points in one line. Example:
+Arc: Curiosity → Tension → Anti-Hook Twist → Micro-Loop Teaser → Revelation → Resolve
 State this briefly to the user.
 
 **Step 2 — Write:**
@@ -85,10 +85,9 @@ Description: <Approved Description>
 [Full narration script in flowing Hindi paragraphs, with quotes in > blockquotes]
 ```
 
-- Write as one continuous, flowing narrative in pure prose.
-- No scene numbers, image prompts, or voice directions.
-- The ONLY non-prose element allowed is `>` blockquotes for shlokas/quotes.
-- Structure with paragraph breaks only.
+- Write as a continuous, flowing narrative in pure prose with natural punctuation (`...`, `—`).
+- Use subtle, low-intensity prosody nudges (`[Subtle warmth]`, `[Conversational tone]`, `[Brief pause]`, `[Slightly slower]`). NEVER use extreme vocal verbs like `[Whisper]`, `[Shout]`, or `[Crying]` as they distort TTS synthesis.
+- Structure with paragraph breaks, inserting a micro open-loop teaser every ~100–120 words (~45–60 seconds of audio).
 
 ---
 
