@@ -12,3 +12,5 @@ branding
 kathamind
 
 output/
+*.egg-info/
+.venv/
