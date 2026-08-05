@@ -40,15 +40,15 @@ Count the total words in the cleaned narration body. This is `total_words`.
 
 ## Step 2 — Split the Script Intelligently
 
-**Goal:** Divide the narration into chunks at semantically meaningful boundaries, aiming for 1 image (scene) every 8–10 seconds of spoken narration.
+**Goal:** Divide the narration into chunks at semantically meaningful boundaries, aiming for 1 image (scene) every **7–9 seconds** of spoken narration for high visual retention.
 
-> In spoken Hindi, 8–10 seconds corresponds to roughly **18–22 words**. Standardize on a target of **20 words per scene**.
+> In spoken Hindi, 7–9 seconds corresponds to roughly **16–20 words**. Standardize on a target of **18 words per scene**.
 
 **Algorithm & Semantic Boundary Scoring:**
 
 1. Calculate target scene count:
    ```
-   target_scene_count = max(2, round(total_words / 20))
+   target_scene_count = max(2, round(total_words / 18))
    ```
 
 2. Compute target words per scene:
