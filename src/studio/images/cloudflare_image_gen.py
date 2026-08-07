@@ -226,3 +226,23 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+"""
+MODELS:
+
+Complete Official Catalog: All 11 Cloudflare Image Models (Ranked Best to Worst)
+
+1 👑	FLUX.2 [dev]	         @cf/black-forest-labs/flux-2-dev	multipart/form-data	~30 – 50 neurons	                            200 to 330 Images / Day
+2 ⚡	FLUX.2 [klein] 4B	         @cf/black-forest-labs/flux-2-klein-4b	multipart/form-data	~20 – 40 neurons	                        250 to 500 Images / Day
+3 🎨	FLUX.1 [schnell] 12B	 @cf/black-forest-labs/flux-1-schnell	application/json	~35 – 55 neurons	                        180 to 280 Images / Day
+4 ✨	Leonardo Phoenix 1.0	    @cf/leonardo/phoenix-1.0	application/json	~45 – 65 neurons	                                  150 to 220 Images / Day
+5 🖌️	Leonardo Lucid Origin	  @cf/leonardo/lucid-origin	application/json	~50 – 70 neurons	                                    140 to 200 Images / Day
+6 ⚡	SDXL-Lightning	             @cf/bytedance/stable-diffusion-xl-lightning	application/json	~20 – 30 neurons	               330 to 500 Images / Day
+7 🎭	DreamShaper 8 LCM	     @cf/lykon/dreamshaper-8-lcm	application/json	~20 – 35 neurons	                               280 to 500 Images / Day
+8 🖼️	SDXL Base 1.0	          @cf/stabilityai/stable-diffusion-xl-base-1.0	application/json	~180 – 250 neurons	                40 to 55 Images / Day
+9 🛠️	DreamShaper 8 Inpainting  @cf/lykon/dreamshaper-8-inpainting	application/json	~25 – 45 neurons	                        220 to 400 Images / Day
+10 🛠️	SD 1.5 Inpainting	      @cf/runwayml/stable-diffusion-v1-5-inpainting	application/json	~15 – 25 neurons	                400 to 650 Images / Day
+11 🔄	SD 1.5 Img2Img	         @cf/stabilityai/stable-diffusion-v1-5-img2img	application/json	~12 – 20 neurons	               500 to 800 Images / Day
+"""
