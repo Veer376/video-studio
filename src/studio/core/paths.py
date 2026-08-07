@@ -19,5 +19,8 @@ def src_dir() -> Path:
 
 
 def script_path(name: str) -> Path:
+    domain_path = src_dir() / "studio" / name
+    if domain_path.exists():
+        return domain_path
     return src_dir() / "studio" / "scripts" / name
 

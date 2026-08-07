@@ -4,79 +4,21 @@ Updates scenes.json in-place with start_time and end_time per scene,
 and writes an alignment_log.json in the audio/ directory for inspection.
 
 Usage:
-    python3 align_dp.py --project-dir library/2026-08-01_krishna-motivation
+    python3 -m studio.alignment.dp --project-dir library/2026-08-01_krishna-motivation
 """
 import argparse
 import json
 import math
-import re
 import sys
-import unicodedata
 from pathlib import Path
 
-
-_MORPH_MAP: dict[str, str] = {
-    "ये": "यह",   "यह": "यह",
-    "वो": "वह",   "वह": "वह",
-    "गए": "गया",  "गया": "गया",
-    "किए": "किया", "किया": "किया",
-    "नही": "नहीं", "नहीं": "नहीं",
-    "हुई": "हुआ",  "हुए": "हुआ",  "हुआ": "हुआ",
-}
-
-
-def content_words(text: str) -> list[str]:
-    """
-    Extract spoken content words from scene text, preserving digit tokens.
-    Strips symbols, stage directions, punctuation. Keeps digits as separate tokens.
-    Sub-2-char non-digit tokens are dropped.
-    """
-    clean = re.sub(r'\[.*?\]|\(.*?\)', '', text)
-    clean = re.sub(r'[>\*\"\'.!?,।—…:;\-\[\]()]', ' ', clean)
-    clean = unicodedata.normalize('NFC', clean)
-
-    tokens = []
-    for token in clean.split():
-        t = token.strip()
-        if t.isdigit():
-            tokens.append(t)
-        elif len(t) >= 2:
-            tokens.append(t)
-    return tokens
-
-
-def normalize_for_match(s: str) -> str:
-    """
-    Normalize a Devanagari string for consonant-skeleton comparison.
-    1. Strips all Devanagari dependent vowel marks (matras U+093E–U+094F) and nukta.
-    2. Applies morphological equivalence mapping.
-    """
-    s = re.sub(r'[>*"\'`.!?,।—…:;\-\[\]()0-9]', '', s)
-    s = unicodedata.normalize('NFC', s)
-    s = s.replace('\u094d', '').replace('\u093c', '')
-    result = []
-    for ch in s:
-        cp = ord(ch)
-        if 0x093E <= cp <= 0x094F or cp in (0x0902, 0x0903):
-            continue
-        result.append(ch)
-    s = ''.join(result).strip()
-    return _MORPH_MAP.get(s, s)
-
-
-def bigram_similarity(a: str, b: str) -> float:
-    """Character bigram Jaccard similarity over consonant skeleton normalized strings."""
-    if not a or not b:
-        return 0.0
-    if a == b:
-        return 1.0
-    bigrams_a = {a[i:i+2] for i in range(len(a) - 1)}
-    bigrams_b = {b[i:i+2] for i in range(len(b) - 1)}
-    if not bigrams_a or not bigrams_b:
-        return 1.0 if a == b else 0.0
-    intersection = bigrams_a & bigrams_b
-    union = bigrams_a | bigrams_b
-    return len(intersection) / len(union)
+from studio.alignment.base import (
+    AlignmentEngine,
+    bigram_similarity,
+    content_words,
+    normalize_for_match,
+    normalize_scene_intervals,
+)
 
 
 def calculate_sequence_similarity(scene_tokens: list[str], groq_tokens: list[str]) -> float:
@@ -249,34 +191,6 @@ def run_dp_alignment(scenes: list, all_candidates: list[list[dict]], groq_words:
     return chosen_path, best_last_score
 
 
-def normalize_scene_intervals(scenes: list, duration: float) -> list:
-    """Ensure monotonic non-overlapping scene boundaries spanning 0 to duration."""
-    if not scenes:
-        return scenes
-    starts = [float(scene.get("start_time") or 0.0) for scene in scenes]
-    starts[0] = 0.0
-    for idx in range(1, len(starts)):
-        minimum_start = starts[idx - 1] + 0.1
-        if starts[idx] < minimum_start:
-            starts[idx] = minimum_start
-        starts[idx] = min(starts[idx], max(duration - 0.1, minimum_start))
-
-    for idx, scene in enumerate(scenes):
-        scene["start_time"] = round(starts[idx], 3)
-        if idx == len(scenes) - 1:
-            scene["end_time"] = round(duration, 3)
-        else:
-            raw_end = float(scene.get("end_time") or starts[idx] + 0.1)
-            raw_end = max(raw_end, starts[idx] + 0.1)
-            raw_end = min(raw_end, duration)
-            next_start = starts[idx + 1]
-            if raw_end > next_start:
-                raw_end = next_start
-            scene["end_time"] = round(raw_end, 3)
-
-    return scenes
-
-
 def align_text_dp(scenes: list, words: list, duration: float) -> tuple[list, list]:
     """
     Main entry point for DP Monotonic Scene Alignment.
@@ -310,6 +224,9 @@ def align_text_dp(scenes: list, words: list, duration: float) -> tuple[list, lis
         })
 
     return scenes, log_entries
+
+
+align_scenes = align_text_dp
 
 
 def main():

@@ -4,7 +4,7 @@ Updates scenes.json in-place with start_time and end_time per scene,
 and writes an alignment_log.json in the audio/ directory for inspection.
 
 Usage:
-    python3 align_timestamps.py --project-dir library/2026-08-01_krishna-motivation
+    python3 -m studio.alignment.anchored --project-dir library/2026-08-01_krishna-motivation
 """
 import argparse
 import json
@@ -13,99 +13,18 @@ import sys
 import unicodedata
 from pathlib import Path
 
-
-def content_words(text: str) -> list[str]:
-    """
-    Extract spoken content words from scene text, preserving digit tokens.
-    Strips symbols, stage directions, punctuation. Keeps digits as separate tokens
-    so they can be used as positional wildcards in search_forward.
-    Sub-2-char non-digit tokens are dropped.
-    """
-    # Remove stage directions / bracketed annotations
-    clean = re.sub(r'\[.*?\]|\(.*?\)', '', text)
-    # Remove markdown symbols but NOT digits — digits become positional wildcards
-    clean = re.sub(r'[>\*\"\'.!?,।—…:;\-\[\]()]', ' ', clean)
-    clean = unicodedata.normalize('NFC', clean)
-
-    tokens = []
-    for token in clean.split():
-        t = token.strip()
-        # Keep pure digit tokens as-is (they become wildcards in search_forward)
-        if t.isdigit():
-            tokens.append(t)
-        elif len(t) >= 2:
-            tokens.append(t)
-    return tokens
+from studio.alignment.base import (
+    AlignmentEngine,
+    bigram_similarity,
+    content_words,
+    normalize_for_match,
+    normalize_scene_intervals,
+)
 
 
 def is_digit_token(s: str) -> bool:
     """Return True if the token is a pure digit string (e.g. '30', '5', '100')."""
     return s.strip().isdigit()
-
-
-# ── Phase 4: Morphological normalization map ─────────────────────────────────
-# Pairs of Hindi pronouns/forms that Groq commonly transcribes interchangeably.
-# We normalize BOTH script words AND Groq words to the canonical form before
-# comparison so they are treated as identical during matching.
-_MORPH_MAP: dict[str, str] = {
-    "ये": "यह",   "यह": "यह",
-    "वो": "वह",   "वह": "वह",
-    "गए": "गया",  "गया": "गया",
-    "किए": "किया", "किया": "किया",
-    "नही": "नहीं", "नहीं": "नहीं",
-    "हुई": "हुआ",  "हुए": "हुआ",  "हुआ": "हुआ",
-}
-
-
-def normalize_for_match(s: str) -> str:
-    """
-    Normalize a Devanagari string for consonant-skeleton comparison.
-
-    Two-layer normalization:
-    1. Strip all Devanagari dependent vowel marks (matras U+093E–U+094F) and
-       nukta (़) so matra-drop transcription errors self-match:
-         चेहरे → चहर,  माथे → माथ,  सांसें → सस
-    2. Apply morphological equivalence map (यह/ये, वह/वो, etc.).
-
-    This is equivalent to a consonant-skeleton phoneme key for Devanagari,
-    inspired by Phoneme-DTW approaches for noisy ASR alignment.
-    """
-    s = re.sub(r'[>*"\'`.!?,।—…:;\-\[\]()0-9]', '', s)
-    s = unicodedata.normalize('NFC', s)
-    # Strip nukta and halant
-    s = s.replace('\u094d', '').replace('\u093c', '')
-    # Strip ALL dependent vowel marks (matras): U+093E to U+094F
-    # This converts चेहरे → चहर, handles Groq matra-drop errors completely
-    result = []
-    for ch in s:
-        cp = ord(ch)
-        if 0x093E <= cp <= 0x094F:  # dependent vowel marks — skip
-            continue
-        if cp in (0x0902, 0x0903):   # anusvara (ं) and visarga (ः) — skip
-            continue
-        result.append(ch)
-    s = ''.join(result).strip()
-    # Morphological normalization
-    return _MORPH_MAP.get(s, s)
-
-
-def bigram_similarity(a: str, b: str) -> float:
-    """
-    Character bigram Jaccard similarity for fuzzy Devanagari matching.
-    Inputs are expected to already be normalize_for_match()-processed
-    (consonant skeleton form).
-    """
-    if not a or not b:
-        return 0.0
-    if a == b:
-        return 1.0
-    bigrams_a = {a[i:i+2] for i in range(len(a) - 1)}
-    bigrams_b = {b[i:i+2] for i in range(len(b) - 1)}
-    if not bigrams_a or not bigrams_b:
-        return 1.0 if a == b else 0.0
-    intersection = bigrams_a & bigrams_b
-    union = bigrams_a | bigrams_b
-    return len(intersection) / len(union)
 
 
 def best_token_match(groq_words: list, i: int, fp_word: str) -> tuple[float, int]:
@@ -353,47 +272,7 @@ def align_text_anchored(scenes: list, words: list, duration: float) -> tuple[lis
     return scenes, log_entries
 
 
-def normalize_scene_intervals(scenes: list, duration: float) -> list:
-    """
-    Ensure scene intervals are monotonically non-overlapping and cover the full audio duration.
-
-    Strategy:
-    - Scene 0 always starts at 0.0s.
-    - Push each scene's start_time forward if it would fall before prev_start + 0.1s.
-    - Unconditionally clamp raw_end to next_start if raw_end > next_start to strictly prevent
-      overlapping time windows across adjacent scenes.
-    - Last scene always ends at audio duration.
-    """
-    if not scenes:
-        return scenes
-
-    # Step 1: Enforce monotonically increasing start_times
-    starts = [float(scene.get("start_time") or 0.0) for scene in scenes]
-    starts[0] = 0.0
-    for idx in range(1, len(starts)):
-        minimum_start = starts[idx - 1] + 0.1
-        if starts[idx] < minimum_start:
-            starts[idx] = minimum_start
-        starts[idx] = min(starts[idx], max(duration - 0.1, minimum_start))
-
-    # Step 2: Apply corrected starts and resolve end_times
-    for idx, scene in enumerate(scenes):
-        scene["start_time"] = round(starts[idx], 3)
-        if idx == len(scenes) - 1:
-            scene["end_time"] = round(duration, 3)
-        else:
-            raw_end = float(scene.get("end_time") or starts[idx] + 0.1)
-            # Must be at least 0.1s after own start
-            raw_end = max(raw_end, starts[idx] + 0.1)
-            # Must not exceed audio duration
-            raw_end = min(raw_end, duration)
-            # Unconditionally clamp to next scene start if overlapping
-            next_start = starts[idx + 1]
-            if raw_end > next_start:
-                raw_end = next_start
-            scene["end_time"] = round(raw_end, 3)
-
-    return scenes
+align_scenes = align_text_anchored
 
 
 def main():
@@ -427,7 +306,7 @@ def main():
     print(f"  Script content words: {script_words} | Groq words: {groq_word_count} | Duration: {duration:.2f}s")
 
     if args.mode == "dp":
-        from studio.scripts.align_dp import align_text_dp
+        from studio.alignment.dp import align_text_dp
         scenes, log_entries = align_text_dp(scenes, words, duration)
     else:
         scenes, log_entries = align_text_anchored(scenes, words, duration)

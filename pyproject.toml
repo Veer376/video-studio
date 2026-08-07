@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = ["pillow>=10"]
 
 [project.scripts]
-story-video = "cli:main"
+story-video = "studio.pipeline_cli:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

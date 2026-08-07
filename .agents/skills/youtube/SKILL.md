@@ -33,7 +33,7 @@ python3 .agents/skills/youtube/scripts/youtube.py whoami
 Search YouTube:
 
 ```bash
-python3 .agents/skills/youtube/scripts/youtube.py search "vivekananda hindi motivation" --max-results 10
+python3 .agents/skills/youtube/scripts/youtube.py search "vivekananda hindi motivation" --max-results 50
 ```
 
 Fetch one video:
@@ -59,13 +59,13 @@ python3 .agents/skills/youtube/scripts/youtube.py channel @kathamindhindi
 List playlist videos:
 
 ```bash
-python3 .agents/skills/youtube/scripts/youtube.py playlist <playlist_id> --max-results 20
+python3 .agents/skills/youtube/scripts/youtube.py playlist <playlist_id> --max-results 50
 ```
 
 Fetch comments:
 
 ```bash
-python3 .agents/skills/youtube/scripts/youtube.py comments <video_id_or_url> --max-results 20
+python3 .agents/skills/youtube/scripts/youtube.py comments <video_id_or_url> --max-results 50
 ```
 
 Fetch transcript text:

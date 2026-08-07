@@ -56,17 +56,17 @@ def run_stage(project_dir: str | Path, stage: str, *, force: bool = False, valid
 
     if stage == "voice":
         args = ("--force",) if force else ()
-        _run_script(resolved, "generate_voice.py", *args)
-        _run_script(resolved, "extract_timestamps.py", *args)
-        _run_script(resolved, "align_timestamps.py")
+        _run_script(resolved, "voice/voice.py", *args)
+        _run_script(resolved, "transcription/groq.py", *args)
+        _run_script(resolved, "alignment/dp.py")
     elif stage == "illustrate":
         args = ("--force",) if force else ()
-        _run_script(resolved, "generate_images_cloudflare.py", *args)
+        _run_script(resolved, "images/cloudflare_image_gen.py", *args)
     elif stage == "render":
         args = ("--force",) if force else ()
-        _run_script(resolved, "render_subtitles.py")
-        _run_script(resolved, "render_image_story.py", *args)
-        _run_script(resolved, "render_final.py", *args)
+        _run_script(resolved, "subtitles/subtitles.py")
+        _run_script(resolved, "rendering/scenes.py", *args)
+        _run_script(resolved, "rendering/final.py", *args)
 
     after = stage_state(resolved, stage)
     if not after.complete:

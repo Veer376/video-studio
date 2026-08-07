@@ -27,11 +27,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-# Add project src to path for direct script execution.
-project_root = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(project_root / "src"))
-from subtitles import subtitle_enable_expr, write_subtitle_overlay
-from renderer import detect_devanagari_font
+from studio.subtitles.subtitles import detect_devanagari_font_path as detect_devanagari_font, subtitle_enable_expr, write_subtitle_overlay
 
 CROSSFADE_DURATION = 0.4   # seconds of crossfade between scenes
 KEN_BURNS_ZOOM     = 0.06  # max additional zoom (6%) applied over scene duration
