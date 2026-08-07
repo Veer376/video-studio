@@ -10,6 +10,7 @@ Usage:
 """
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -565,7 +566,21 @@ def format_srt_time(seconds: float) -> str:
     hours, remainder = divmod(millis, 3_600_000)
     minutes, remainder = divmod(remainder, 60_000)
     secs, millis = divmod(remainder, 1000)
-    return f"{hours:02}:{minutes:02}:{secs:02},{millis:03}"
+from studio.alignment.base import WORD_TO_DIGIT_MAP
+
+
+def format_word_for_display(word: str) -> str:
+    """
+    Format a spoken word token for clean subtitle display.
+    Converts spoken Hindi number words ('एक', 'दो', 'तीस', 'पैंतालीस') into clean numerical digits ('1', '2', '30', '45').
+    """
+    if not word:
+        return word
+    clean_core = re.sub(r"[^\w\d]", "", word, flags=re.UNICODE)
+    digit = WORD_TO_DIGIT_MAP.get(clean_core) or WORD_TO_DIGIT_MAP.get(word)
+    if digit:
+        return re.sub(re.escape(clean_core), digit, word)
+    return word
 
 
 def assign_words_to_scenes(words: list[dict], scenes: list[dict]) -> dict[int, list[dict]]:
@@ -658,7 +673,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         for i, word in enumerate(scene_words):
             clean_word = word["word"].replace(">", "").strip()
             if clean_word:
-                cumulative.append(clean_word)
+                display_word = format_word_for_display(clean_word)
+                cumulative.append(display_word)
             display_text = " ".join(cumulative)
 
             t_start = float(word["start"])
