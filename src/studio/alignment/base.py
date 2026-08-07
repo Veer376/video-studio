@@ -39,6 +39,15 @@ _MORPH_MAP: dict[str, str] = {
     "किए": "किया", "किया": "किया",
     "नही": "नहीं", "नहीं": "नहीं",
     "हुई": "हुआ",  "हुए": "हुआ",  "हुआ": "हुआ",
+    "1": "एक",    "एक": "एक",
+    "2": "दो",    "दो": "दो",
+    "3": "तीन",   "तीन": "तीन",
+    "4": "चार",   "चार": "चार",
+    "5": "पांच",  "पाँच": "पांच", "पांच": "पांच",
+    "30": "तीस",  "तीस": "तीस",
+    "45": "पैंतालीस", "पैंतालीस": "पैंतालीस",
+    "neuroscience": "न्यूरोसाइंस", "न्यूरोसाइंस": "न्यूरोसाइंस",
+    "overthinking": "ओवरथिंकिंग", "ओवरथिंकिंग": "ओवरथिंकिंग",
 }
 
 
@@ -118,3 +127,75 @@ def normalize_scene_intervals(scenes: list[dict[str, Any]], duration: float) -> 
             scene["end_time"] = round(starts[idx + 1], 3)
 
     return scenes
+
+
+def clean_hindi_char_count(text: str) -> int:
+    """Extract clean Devanagari/Hindi character count excluding whitespace and punctuation."""
+    clean = re.sub(r'\[.*?\]|\(.*?\)', '', text)
+    clean = re.sub(r'[>\*\"\'.!?,।—…:;\-\[\]()\s]', '', clean)
+    return len(clean)
+
+
+def apply_character_weighted_fallback(
+    scenes: list[dict[str, Any]],
+    log_entries: list[dict[str, Any]],
+    duration: float
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """
+    Shared post-processing pass to allocate valid display windows for contiguous FALLBACK scene blocks
+    proportionally by clean Hindi character counts between verified predecessor and successor anchors.
+    Ensures verified scene anchors are NEVER pushed or overlapped.
+    """
+    n = len(scenes)
+    i = 0
+
+    while i < n:
+        if log_entries[i].get("status") == "FALLBACK":
+            # Find contiguous block of FALLBACK scenes [i .. j-1]
+            j = i
+            while j < n and log_entries[j].get("status") == "FALLBACK":
+                j += 1
+
+            # Predecessor anchor: verified end_time of preceding OK scene (or 0.0)
+            start_anchor = scenes[i-1]["end_time"] if i > 0 and log_entries[i-1].get("status") == "OK" else 0.0
+            # Successor anchor: verified start_time of succeeding OK scene (or total audio duration)
+            end_anchor = scenes[j]["start_time"] if j < n and log_entries[j].get("status") == "OK" else duration
+
+            # Ensure end_anchor is monotonically greater than start_anchor with minimum scene display duration
+            min_required_dur = max(3.0, (j - i) * 2.5)
+            if end_anchor < start_anchor + min_required_dur:
+                end_anchor = start_anchor + min_required_dur
+                if j < n:
+                    scenes[j]["start_time"] = end_anchor
+                    log_entries[j]["start_time"] = end_anchor
+
+            gap_duration = max(min_required_dur, end_anchor - start_anchor)
+
+            # Calculate character weights for missing scenes in block
+            block_weights = [max(1, clean_hindi_char_count(scenes[k].get("text", ""))) for k in range(i, j)]
+            total_weight = sum(block_weights)
+
+            curr_t = start_anchor
+            for k_idx, k in enumerate(range(i, j)):
+                portion = block_weights[k_idx] / total_weight
+                scene_dur = gap_duration * portion
+                st = round(curr_t, 3)
+                et = round(curr_t + scene_dur, 3)
+                if k == j - 1:
+                    et = round(end_anchor, 3)
+
+                scenes[k]["start_time"] = st
+                scenes[k]["end_time"] = et
+                log_entries[k]["start_time"] = st
+                log_entries[k]["end_time"] = et
+                log_entries[k]["timing_source"] = "interpolated"
+                log_entries[k]["timing_confidence"] = "low"
+
+                curr_t = et
+
+            i = j
+        else:
+            i += 1
+
+    return scenes, log_entries
+

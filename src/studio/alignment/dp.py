@@ -25,8 +25,8 @@ def calculate_sequence_similarity(scene_tokens: list[str], groq_tokens: list[str
     """Calculate overall text similarity between scene content words and candidate Groq words."""
     if not scene_tokens or not groq_tokens:
         return 0.0
-    norm_scene = [normalize_for_match(t) for t in scene_tokens if not t.isdigit()]
-    norm_groq = [normalize_for_match(t) for t in groq_tokens if not t.isdigit()]
+    norm_scene = [normalize_for_match(t) for t in scene_tokens if t.strip()]
+    norm_groq = [normalize_for_match(t) for t in groq_tokens if t.strip()]
     if not norm_scene or not norm_groq:
         return 0.0
 
@@ -222,6 +222,10 @@ def align_text_dp(scenes: list, words: list, duration: float) -> tuple[list, lis
             "fingerprint": cand["fp"],
             "tail": cand["tail"]
         })
+
+    # Shared Post-processing Pass: Character-Weighted Fallback Window Allocation
+    from studio.alignment.base import apply_character_weighted_fallback
+    scenes, log_entries = apply_character_weighted_fallback(scenes, log_entries, duration)
 
     return scenes, log_entries
 

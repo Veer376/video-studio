@@ -716,7 +716,7 @@ def main():
     print(f"→ Using font: {font_name}" + (f" (from {font_dir})" if font_dir else ""))
     print(f"→ Processing {len(words)} words across {len(scenes)} scenes")
 
-    write_ass_file(words, scenes, out_path, width, height, font_name)
+    write_ass_file(scenes, words, out_path, width, height, font_name)
 
     subtitle_count = out_path.read_text(encoding="utf-8").count("Dialogue:")
     print(f"✓ ASS subtitle file written: {out_path}")

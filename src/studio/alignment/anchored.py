@@ -267,7 +267,9 @@ def align_text_anchored(scenes: list, words: list, duration: float) -> tuple[lis
             scenes[i]["start_time"] = round(prev_end, 3)
             scenes[i]["end_time"] = round(next_start, 3)
             log_entries[i]["start_time"] = round(prev_end, 3)
-            log_entries[i]["end_time"] = round(next_start, 3)
+    # Shared Post-processing Pass: Character-Weighted Fallback Window Allocation
+    from studio.alignment.base import apply_character_weighted_fallback
+    scenes, log_entries = apply_character_weighted_fallback(scenes, log_entries, duration)
 
     return scenes, log_entries
 
