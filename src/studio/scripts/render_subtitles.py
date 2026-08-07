@@ -55,20 +55,54 @@ def detect_devanagari_font(base_dir: Path) -> tuple[str, Path | None]:
     return ("Arial", None)
 
 
-def write_ass_file(
-    words: list[dict],
-    scenes: list[dict],
-    out_path: Path,
-    width: int,
-    height: int,
-    font_name: str,
-) -> None:
-    font_size = max(28, round(height * 0.052))
-    margin_v = round(height * 0.06)   # vertical margin from bottom
-    outline = 3
-    shadow = 0
+def assign_words_to_scenes(words: list[dict], scenes: list[dict]) -> dict[int, list[dict]]:
+    """
+    Assign each Groq word to exactly one scene using a greedy single-pass assignment.
+    Each word is assigned to the first scene (by scene order) whose [start_t, end_t) window
+    contains the word's start time. Returns dict mapping scene index -> list of assigned words.
+    Guarantees zero word duplication across adjacent scenes.
+    """
+    scene_windows = []
+    for idx, scene in enumerate(scenes):
+        start_t = scene.get("start_time")
+        end_t = scene.get("end_time")
+        if start_t is not None and end_t is not None:
+            scene_windows.append((float(start_t), float(end_t), idx))
+    scene_windows.sort(key=lambda x: x[0])
 
-    # ASS primary colour: white; outline: black; back (shadow box): semi-transparent black
+    assignment: dict[int, list[dict]] = {i: [] for i in range(len(scenes))}
+    scene_idx = 0
+    m = len(scene_windows)
+
+    if m == 0:
+        return assignment
+
+    for word in words:
+        w_start = float(word["start"])
+        while scene_idx < m - 1 and w_start >= scene_windows[scene_idx][1]:
+            scene_idx += 1
+        start_t, end_t, real_idx = scene_windows[scene_idx]
+        if w_start >= start_t and w_start < end_t:
+            assignment[real_idx].append(word)
+
+    return assignment
+
+
+def write_ass_file(
+    scenes: list[dict],
+    words: list[dict],
+    out_path: Path,
+    width: int = 1080,
+    height: int = 1920,
+    font_name: str = "Arial",
+    font_size: int = 40,
+    margin_v: int = 200,
+    outline: int = 4,
+    shadow: int = 2,
+) -> Path:
+    """
+    Generate an ASS subtitle file from scene windows and Groq word timestamps.
+    """
     header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {width}
@@ -85,25 +119,33 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
     dialogue_lines: list[str] = []
+    word_assignments = assign_words_to_scenes(words, scenes)
 
-    for scene in scenes:
+    for idx, scene in enumerate(scenes):
         start_t = scene.get("start_time")
         end_t = scene.get("end_time")
         if start_t is None or end_t is None:
             continue
 
-        # Collect Groq words that fall within this scene's time window
-        scene_words = [
-            w for w in words
-            if w["start"] >= (start_t - 0.15) and w["start"] < end_t
-        ]
+        # Collect Groq words assigned strictly to this scene (zero duplication)
+        scene_words = word_assignments.get(idx, [])
         if not scene_words:
+            # Fallback Protection: Do not drop subtitles. Render static scene text over scene duration.
+            raw_text = scene.get("text", "").replace(">", "").strip()
+            safe_text = raw_text.replace("{", "").replace("}", "")
+            if safe_text:
+                dialogue_lines.append(
+                    f"Dialogue: 0,{format_ass_time(float(start_t))},{format_ass_time(float(end_t))},"
+                    f"Default,,0,0,0,,{safe_text}"
+                )
             continue
 
         # Build cumulative word-reveal entries
         cumulative: list[str] = []
         for i, word in enumerate(scene_words):
-            cumulative.append(word["word"].strip())
+            clean_word = word["word"].replace(">", "").strip()
+            if clean_word:
+                cumulative.append(clean_word)
             display_text = " ".join(cumulative)
 
             t_start = float(word["start"])

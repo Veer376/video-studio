@@ -22,6 +22,7 @@ if sys.platform == "darwin" and "/opt/homebrew/lib" not in os.environ.get("DYLD_
 import argparse
 import json
 import math
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -52,6 +53,57 @@ def ffmpeg(*args: str) -> None:
         raise FFmpegError(f"ffmpeg failed:\n{tail}")
 
 
+def _bigram_sim(a: str, b: str) -> float:
+    """Character bigram Jaccard similarity (local copy for renderer use)."""
+    if not a or not b:
+        return 0.0
+    if a == b:
+        return 1.0
+    # Strip nukta and halant for Devanagari normalization
+    def _norm(s):
+        s = re.sub(r'[>*"\'.,!?।—…]', '', s)
+        return s.replace('\u094d', '').replace('\u093c', '')
+    a, b = _norm(a), _norm(b)
+    bg_a = {a[i:i+2] for i in range(len(a) - 1)}
+    bg_b = {b[i:i+2] for i in range(len(b) - 1)}
+    if not bg_a or not bg_b:
+        return 1.0 if a == b else 0.0
+    return len(bg_a & bg_b) / len(bg_a | bg_b)
+
+
+def assign_words_to_scenes(words: list[dict], scenes: list[dict]) -> dict[int, list[dict]]:
+    """
+    Assign each Groq word to exactly one scene using a greedy single-pass assignment.
+    Each word is assigned to the first scene (by scene order) whose [start_t, end_t) window
+    contains the word's start time. Returns dict mapping scene index -> list of assigned words.
+    Guarantees zero word duplication across adjacent scenes.
+    """
+    scene_windows = []
+    for idx, scene in enumerate(scenes):
+        start_t = scene.get("start_time")
+        end_t = scene.get("end_time")
+        if start_t is not None and end_t is not None:
+            scene_windows.append((float(start_t), float(end_t), idx))
+    scene_windows.sort(key=lambda x: x[0])
+
+    assignment: dict[int, list[dict]] = {i: [] for i in range(len(scenes))}
+    scene_idx = 0
+    m = len(scene_windows)
+
+    if m == 0:
+        return assignment
+
+    for word in words:
+        w_start = float(word["start"])
+        while scene_idx < m - 1 and w_start >= scene_windows[scene_idx][1]:
+            scene_idx += 1
+        start_t, end_t, real_idx = scene_windows[scene_idx]
+        if w_start >= start_t and w_start < end_t:
+            assignment[real_idx].append(word)
+
+    return assignment
+
+
 def generate_scene_subtitle_frames(
     scene: dict,
     words: list[dict],
@@ -61,6 +113,7 @@ def generate_scene_subtitle_frames(
     clip_duration: float = 0.0,
     prev_scene_ended_with_quote: bool = False,
     style: str = "soft_halo",
+    scene_words: list[dict] | None = None,
 ) -> list[tuple[Path, float, float]]:
     """
     Generate transparent PNG overlays for each word in the scene using Pillow.
@@ -68,46 +121,85 @@ def generate_scene_subtitle_frames(
 
     If scene["text"] contains ">", the words before ">" are rendered as normal
     bottom subtitles and words from ">" onwards switch to the centered quote layout.
+
+    n_setup is determined by bigram-matching the first quote word against scene_words
+    (Fix 7), so it is robust to Groq tokenization variance.
+
+    Quote display text is drawn from script text, not Groq transcription (Fix 8),
+    preserving correct Sanskrit, proper nouns, and stylized spellings.
     """
+    import unicodedata as _ud
     start_t = scene["start_time"]
     end_t = scene["end_time"]
     scene_id = scene["id"]
     scene_text = scene.get("text", "")
 
-    # Determine how many words are in the "setup" prefix (before ">")
-    # e.g. "ओशो कहते थे > जल तो दे सकता हूँ" → n_setup = 3
     has_quote_marker = ">" in scene_text
-    if has_quote_marker:
-        prefix_part = scene_text.split(">", 1)[0].strip()
-        n_setup = len(prefix_part.split()) if prefix_part else 0
-    else:
-        n_setup = 0
 
-    # Filter words belonging to this scene's time window
-    scene_words = [
-        w for w in words
-        if w["start"] >= (start_t - 0.15) and w["start"] < end_t
-    ]
+    # Filter words belonging to this scene's time window if pre-assigned list not provided
+    if scene_words is None:
+        scene_words = [
+            w for w in words
+            if w["start"] >= start_t and w["start"] < end_t
+        ]
     if not scene_words:
         return []
 
-    # Build separate full_text locks for normal and quote modes
+    # --- Fix 7: Determine n_setup by bigram-matching first quote word ---
+    if has_quote_marker:
+        quote_raw = scene_text.split(">", 1)[1].strip()
+        quote_first_word = re.sub(r'[*"\'.,!?।—…\[\]]', '', quote_raw.split()[0]).strip() if quote_raw.split() else ""
+        n_setup = 0
+        if quote_first_word:
+            for k, gw in enumerate(scene_words):
+                if _bigram_sim(gw["word"], quote_first_word) >= 0.55:
+                    n_setup = k
+                    break
+            else:
+                # Fallback to text.split() count if no bigram match found
+                prefix_part = scene_text.split(">", 1)[0].strip()
+                n_setup = len(prefix_part.split()) if prefix_part else 0
+        else:
+            n_setup = 0
+    else:
+        n_setup = 0
+
+    # --- Fix 8: Prepare script-side quote words for display ---
+    if has_quote_marker:
+        quote_script_raw = scene_text.split(">", 1)[1].strip()
+        quote_script_words = re.sub(r'[*"\'\[\]]', '', quote_script_raw).split()
+        quote_groq_words = scene_words[n_setup:]
+    else:
+        quote_script_words = []
+        quote_groq_words = []
+
+    # Build full_text locks (used for sizing/layout)
     setup_full_text = " ".join(w["word"] for w in scene_words[:n_setup]) if n_setup else ""
-    quote_full_text = " ".join(w["word"] for w in scene_words[n_setup:]) if has_quote_marker else " ".join(w["word"] for w in scene_words)
+    quote_full_text = " ".join(quote_script_words) if has_quote_marker and quote_script_words else " ".join(w["word"] for w in scene_words)
 
     frames = []
     cumulative_setup: list[str] = []
     cumulative_quote: list[str] = []
 
     for i, word in enumerate(scene_words):
-        word_str = word["word"].strip()
         is_quote_frame = has_quote_marker and i >= n_setup
 
         if is_quote_frame:
-            cumulative_quote.append(word_str)
+            # Map Groq word position to script word position proportionally
+            quote_pos = i - n_setup
+            if quote_script_words and quote_groq_words:
+                ratio = quote_pos / max(len(quote_groq_words) - 1, 1)
+                script_pos = min(round(ratio * (len(quote_script_words) - 1)), len(quote_script_words) - 1)
+                display_word = quote_script_words[script_pos]
+            else:
+                display_word = word["word"].strip()
+            # Avoid duplicating last word when Groq has more tokens than script
+            if not cumulative_quote or cumulative_quote[-1] != display_word:
+                cumulative_quote.append(display_word)
             visible_text = " ".join(cumulative_quote)
             full_text = quote_full_text
         else:
+            word_str = word["word"].strip()
             cumulative_setup.append(word_str)
             visible_text = " ".join(cumulative_setup)
             full_text = setup_full_text if setup_full_text else quote_full_text
@@ -381,6 +473,7 @@ def main():
     (project_dir / "output").mkdir(parents=True, exist_ok=True)
 
     font_path = detect_devanagari_font(project_dir)
+    word_assignments = assign_words_to_scenes(words, scenes) if words else {}
 
     # ── Sub-stage A: Render each scene clip ──────────────────────────────────
     print(f"→ Rendering {len(scenes)} scene clips at {width}x{height} @ {fps}fps")
@@ -411,6 +504,7 @@ def main():
                 clip_duration=clip_duration,
                 prev_scene_ended_with_quote=prev_scene_ended_with_quote,
                 style=args.subtitle_style,
+                scene_words=word_assignments.get(idx, []),
             )
 
         if not image_path.exists():

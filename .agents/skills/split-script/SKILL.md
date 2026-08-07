@@ -67,11 +67,12 @@ Count the total words in the cleaned narration body. This is `total_words`.
      - **Dangling Connectors:** Avoid splitting immediately before connector words (`लेकिन`, `क्योंकि`, `और तभी`, `इसलिए`, `मगर`) if the preceding thought is needed for context.
    - Cut at the highest scoring boundary.
    - **Hard Rule:** Never cut mid-sentence. Never cut at commas (`,`). If no sentence boundary exists in the search window, allow the scene to extend up to 30 words to reach the next full sentence end.
+   - **Quote Continuity Rule:** If a quote block (lines marked by `>`) is split across multiple scenes, **EVERY continuation scene** of that quote MUST also begin with the `> ` prefix so downstream renderers activate quote vignette styling continuously.
 
 4. Assign sequential IDs to the resulting chunks: `scene-001`, `scene-002`, etc.
 
 > [!IMPORTANT]
-> Scene splits must always fall at natural language breaks. Never cut mid-sentence. Never cut mid-thought. A listener should never notice where one scene ends and the next begins.
+> Scene splits must always fall at natural language breaks. Never cut mid-sentence. Never cut mid-thought. A listener should never notice where one scene ends and the next begins. If a quote spans multiple scenes, every continuation scene MUST retain the `> ` prefix.
 
 ---
 
@@ -112,7 +113,7 @@ Write the skeleton manifest to `library/<project_slug>/scenes.json`.
 ```
 
 **Field rules:**
-- `text`: The exact narration prose for this scene. No modifications.
+- `text`: The exact narration prose for this scene. No modifications, except ensuring that all quote and quote-continuation scenes MUST begin with the `> ` prefix.
 - `word_range`: `[start_index, end_index]` — zero-indexed, inclusive.
 - `image_prompt`: `null` — will be filled by the `design-visuals` skill.
 - `image_path`: `null` — will be filled by the `illustrate` skill.
@@ -138,3 +139,4 @@ Update `session.json`:
 - **`word_range` must be contiguous and cover the entire script** with no gaps or overlaps.
 - **Scene count is dynamically determined** based on script length (~20 words per scene), with a minimum of 2 scenes.
 - **`visual_style` must be a plain string**, not a nested JSON object.
+- **Multi-scene quotes MUST preserve `> ` on all continuation scenes.** Never drop `> ` from subsequent quote scenes.
