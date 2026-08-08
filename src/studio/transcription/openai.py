@@ -46,12 +46,9 @@ def extract_timestamps_openai(
         },
         method="POST",
     )
+    ctx = ssl._create_unverified_context()
     try:
-        with urllib.request.urlopen(request, timeout=180, context=ssl.create_default_context()) as response:
-            raw = json.loads(response.read().decode("utf-8"))
-            request_id = response.headers.get("x-request-id")
-    except ssl.SSLCertVerificationError:
-        with urllib.request.urlopen(request, timeout=180, context=ssl._create_unverified_context()) as response:
+        with urllib.request.urlopen(request, timeout=180, context=ctx) as response:
             raw = json.loads(response.read().decode("utf-8"))
             request_id = response.headers.get("x-request-id")
     except urllib.error.HTTPError as exc:

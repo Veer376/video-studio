@@ -145,7 +145,7 @@ def main():
     parser = argparse.ArgumentParser(description="Batch generate scene images using Cloudflare Workers AI")
     parser.add_argument("--project-dir", required=True, help="Path to the project directory")
     parser.add_argument("--force", action="store_true", help="Re-generate even if image already exists")
-    parser.add_argument("--model", default="@cf/black-forest-labs/flux-2-klein-4b", help="Cloudflare AI model to use")
+    parser.add_argument("--model", default="@cf/black-forest-labs/flux-1-schnell", help="Cloudflare AI model to use")
     parser.add_argument("--concurrency", type=int, default=2, help="Number of parallel generation threads")
     args = parser.parse_args()
 
