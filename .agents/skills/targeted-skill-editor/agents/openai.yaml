@@ -1,4 +1,0 @@
-interface:
-  display_name: "Targeted Skill Editor"
-  short_description: "Make minimal semantic skill edits."
-  default_prompt: "Use $targeted-skill-editor to make a minimal, semantics-first change to this skill."
