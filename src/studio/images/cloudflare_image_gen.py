@@ -33,8 +33,8 @@ def load_env():
 def generate_single_image(account_id: str, api_token: str, model: str, prompt: str, width: int, height: int, out_path: Path) -> None:
     url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{model}"
 
-    # Determine if the model requires multipart/form-data (like flux-2-klein-4b)
-    is_multipart = "klein" in model
+    # Determine if the model requires multipart/form-data (like flux-2-klein-4b or flux-2-dev)
+    is_multipart = "klein" in model or "flux-2-dev" in model
 
     if is_multipart:
         fields = {
