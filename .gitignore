@@ -14,3 +14,4 @@ kathamind
 output/
 *.egg-info/
 .venv/
+research

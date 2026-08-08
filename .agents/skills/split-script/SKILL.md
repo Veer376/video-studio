@@ -76,18 +76,7 @@ Count the total words in the cleaned narration body. This is `total_words`.
 
 ---
 
-## Step 3 — Assign Word Ranges
-
-For every scene chunk, calculate the inclusive zero-indexed word range:
-- `word_range[0]` = index of the **first** word in this chunk
-- `word_range[1]` = index of the **last** word in this chunk
-
-> [!IMPORTANT]
-> Word ranges must be **contiguous with no gaps and no overlaps**. The last word index of scene N must be exactly one less than the first word index of scene N+1. The final scene's last word index must equal `total_words - 1`.
-
----
-
-## Step 4 — Write `scenes.json`
+## Step 3 — Write `scenes.json`
 
 Write the skeleton manifest to `library/<project_name>/scenes.json`.
 
@@ -102,11 +91,6 @@ Write the skeleton manifest to `library/<project_name>/scenes.json`.
     {
       "id": "scene-001",
       "text": "<full narration text for this scene>",
-      "word_range": [0, 19],
-      "image_prompt": null,
-      "image_path": null,
-      "start_time": null,
-      "end_time": null
     }
   ]
 }
@@ -114,10 +98,6 @@ Write the skeleton manifest to `library/<project_name>/scenes.json`.
 
 **Field rules:**
 - `text`: The exact narration prose for this scene. No modifications, except ensuring that all quote and quote-continuation scenes MUST begin with the `> ` prefix.
-- `word_range`: `[start_index, end_index]` — zero-indexed, inclusive.
-- `image_prompt`: `null` — will be filled by the `design-visuals` skill.
-- `image_path`: `null` — will be filled by the `illustrate` skill.
-- `start_time` / `end_time`: `null` — will be filled after the `voice` skill generates audio.
 - `visual_style`: Store the raw string from `session.json visual.style`. If it is a nested object, extract only the string value.
 
 > [!CAUTION]
@@ -125,7 +105,7 @@ Write the skeleton manifest to `library/<project_name>/scenes.json`.
 
 ---
 
-## Step 5 — Update Status
+## Step 4 — Update Status
 
 Update `session.json`:
 - Set `session.status` to `"split_complete"`
@@ -135,8 +115,7 @@ Update `session.json`:
 ## Hard Rules
 
 - **Do not split mid-sentence or at commas.** Ever.
-- **Do not write image prompts.** That is the `design-visuals` skill's job.
-- **`word_range` must be contiguous and cover the entire script** with no gaps or overlaps.
-- **Scene count is dynamically determined** based on script length (~20 words per scene), with a minimum of 2 scenes.
+- **Do not write image prompts.** That is the `orchestrate-visuals` skill's job.
+- **Scene count is dynamically determined** based on script length (~18 words per scene), with a minimum of 2 scenes.
 - **`visual_style` must be a plain string**, not a nested JSON object.
 - **Multi-scene quotes MUST preserve `> ` on all continuation scenes.** Never drop `> ` from subsequent quote scenes.

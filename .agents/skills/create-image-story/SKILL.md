@@ -42,8 +42,8 @@ Six pipeline skills exist in `.agents/skills/`. Creative skills write source fil
 | `intake` | Onboarding creative brief — gathers user's intent | User answers | `library/<project_name>/session.json` |
 | `research` | Content discovery — searches web for facts, shlokas, quotes and stories | `session.json` | `library/<project_name>/research.md` |
 | `compose` | Script generation — writes the story in spoken prose rhythm | `research.md` | `library/<project_name>/script.md` |
-| `split-script` | Scene splitting — divides the narration into scenes at natural boundaries, writes the lean `scenes.json` skeleton (text + word_range only) | `script.md` | `library/<project_name>/scenes.json` (skeleton) |
-| `design-visuals` | Visual concept design — builds character visual identity sheets from the story, fills `image_prompt` for every scene with consistent, cinematically-aware descriptions | `scenes.json` (skeleton), `script.md` | updates `scenes.json` (fills `image_prompt`) |
+| `split-script` | Scene splitting — divides the narration into scenes at natural boundaries, writes the lean `scenes.json` skeleton (text only) | `script.md` | `library/<project_name>/scenes.json` (skeleton) |
+| `orchestrate-visuals` | Visual concept design — builds character visual identity sheets from the story, fills `image_prompt` for every scene with consistent, cinematically-aware descriptions | `scenes.json` (skeleton), `script.md` | updates `scenes.json` (fills `image_prompt`) |
 | `run-pipeline` | Production execution — resumes voice, Cloudflare image generation, and render through `story-video` CLI | `session.json`, `script.md`, `scenes.json` | `audio/`, `images/`, `subtitles/`, `temp/`, `output/final-video.mp4` |
 
 ---
