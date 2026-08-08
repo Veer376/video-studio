@@ -166,7 +166,9 @@ def render_quote_overlay(
     image = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
-    font_size = max(24, round(height * 0.048))
+    ref_dim = min(width, height)
+    is_vertical = height > width
+    font_size = max(24, round(ref_dim * 0.044 if is_vertical else ref_dim * 0.048))
     quote_size = max(36, round(font_size * 1.40))
     try:
         if font_path:
@@ -189,14 +191,16 @@ def render_quote_overlay(
     except AttributeError:
         line_height = font_size
 
-    max_line_px = width - 2 * round(width * h_margin_pct)
+    effective_h_margin = 0.08 if is_vertical else h_margin_pct
+    max_line_px = width - 2 * round(width * effective_h_margin)
     wrap_target = full_text if full_text is not None else text
     if ">" in wrap_target:
         wrap_target = wrap_target.split(">", 1)[1].strip()
     if ">" in text:
         text = text.split(">", 1)[1].strip()
 
-    full_lines = _wrap_text_px(draw, wrap_target, font, max_line_px, max_lines=5)
+    max_lines_limit = 6 if is_vertical else 5
+    full_lines = _wrap_text_px(draw, wrap_target, font, max_line_px, max_lines=max_lines_limit)
     total_lines = len(full_lines)
     line_gap = round(font_size * 0.45)
     total_height = total_lines * line_height + line_gap * max(0, total_lines - 1)
@@ -212,8 +216,15 @@ def render_quote_overlay(
             line_words = visible_words[word_idx : word_idx + count]
             visible_lines.append(" ".join(line_words))
             word_idx += count
+        # Prevent word truncation if full_lines reached max_lines limit
+        if word_idx < len(visible_words):
+            remainder = " ".join(visible_words[word_idx:])
+            if visible_lines:
+                visible_lines[-1] = f"{visible_lines[-1]} {remainder}".strip()
+            else:
+                visible_lines.append(remainder)
     else:
-        visible_lines = _wrap_text_px(draw, text, font, max_line_px, max_lines=5)
+        visible_lines = _wrap_text_px(draw, text, font, max_line_px, max_lines=max_lines_limit)
 
     # 1. Dedicated Quote Soft Blackish Gradient Halo Layer (alpha=145, 0.20 stroke mult)
     text_halo = Image.new("RGBA", size, (0, 0, 0, 0))
@@ -315,7 +326,9 @@ def render_subtitle_overlay(
     image = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
-    font_size = max(24, round(height * 0.047))
+    ref_dim = min(width, height)
+    is_vertical = height > width
+    font_size = max(22, round(ref_dim * 0.042 if is_vertical else ref_dim * 0.047))
 
     try:
         if font_path:
@@ -331,14 +344,19 @@ def render_subtitle_overlay(
     except AttributeError:
         line_height = font_size
 
-    max_line_px = width - 2 * round(width * h_margin_pct)
+    effective_h_margin = 0.08 if is_vertical else h_margin_pct
+    max_line_px = width - 2 * round(width * effective_h_margin)
     wrap_target = full_text if full_text is not None else text
 
-    full_lines = _wrap_text_px(draw, wrap_target, font, max_line_px, max_lines=2)
+    max_lines_limit = 4 if is_vertical else 2
+    full_lines = _wrap_text_px(draw, wrap_target, font, max_line_px, max_lines=max_lines_limit)
     total_lines = len(full_lines)
     line_gap = round(font_size * 0.35)
     total_height = total_lines * line_height + line_gap * max(0, total_lines - 1)
-    y_start = height - total_height - round(height * 0.07)
+    
+    # Margin from bottom: 14% for vertical shorts (clears Shorts/Reels UI), 7% for landscape
+    y_margin = round(height * 0.14) if is_vertical else round(height * 0.07)
+    y_start = height - total_height - y_margin
     line_positions = [y_start + i * (line_height + line_gap) for i in range(total_lines)]
 
     if full_text is not None:
@@ -350,8 +368,15 @@ def render_subtitle_overlay(
             line_words = visible_words[word_idx : word_idx + count]
             visible_lines.append(" ".join(line_words))
             word_idx += count
+        # Prevent word truncation if full_lines reached max_lines limit
+        if word_idx < len(visible_words):
+            remainder = " ".join(visible_words[word_idx:])
+            if visible_lines:
+                visible_lines[-1] = f"{visible_lines[-1]} {remainder}".strip()
+            else:
+                visible_lines.append(remainder)
     else:
-        visible_lines = _wrap_text_px(draw, text, font, max_line_px, max_lines=2)
+        visible_lines = _wrap_text_px(draw, text, font, max_line_px, max_lines=max_lines_limit)
 
     if style == "soft_halo":
         # 1. Soft Blackish Gradient Halo Layer for Setup Subtitles (alpha=160, 0.25 stroke mult)
@@ -623,14 +648,20 @@ def write_ass_file(
     width: int = 1080,
     height: int = 1920,
     font_name: str = "Arial",
-    font_size: int = 40,
-    margin_v: int = 200,
+    font_size: int | None = None,
+    margin_v: int | None = None,
     outline: int = 4,
     shadow: int = 2,
 ) -> Path:
     """
     Generate an ASS subtitle file from scene windows and Groq word timestamps.
     """
+    ref_dim = min(width, height)
+    is_vertical = height > width
+    if font_size is None:
+        font_size = max(24, round(ref_dim * 0.042 if is_vertical else ref_dim * 0.045))
+    if margin_v is None:
+        margin_v = round(height * 0.14) if is_vertical else round(height * 0.08)
     header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {width}
