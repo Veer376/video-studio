@@ -54,11 +54,10 @@ def generate_single_image(account_id: str, api_token: str, model: str, prompt: s
         data_bytes = b"\r\n".join(body)
         content_type = f"multipart/form-data; boundary={boundary}"
     else:
-        payload = {
-            "prompt": prompt,
-            "width": width,
-            "height": height
-        }
+        payload = {"prompt": prompt}
+        if "schnell" not in model:
+            payload["width"] = width
+            payload["height"] = height
         data_bytes = json.dumps(payload).encode("utf-8")
         content_type = "application/json"
 
