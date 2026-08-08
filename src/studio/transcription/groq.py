@@ -27,6 +27,37 @@ def load_env():
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
+def load_groq_keys() -> list[str]:
+    """
+    Collect all Groq API keys from environment variables.
+    Supports: GROQ_API_KEY, GROQ_API_KEY_1, GROQ_API_KEY_2, ..., GROQ_API_KEY_N
+    Keys are returned in a deterministic order: base key first, then _1, _2, etc.
+    """
+    keys = []
+    seen = set()
+
+    def _add(val: str) -> None:
+        val = val.strip().strip('"').strip("'")
+        if val and val not in seen:
+            keys.append(val)
+            seen.add(val)
+
+    # Base key first
+    base = os.environ.get("GROQ_API_KEY", "")
+    _add(base)
+
+    # Numbered variants: GROQ_API_KEY_1 ... GROQ_API_KEY_N
+    idx = 1
+    while True:
+        val = os.environ.get(f"GROQ_API_KEY_{idx}", "")
+        if not val:
+            break
+        _add(val)
+        idx += 1
+
+    return keys
+
+
 def build_multipart(fields: dict, files: dict) -> tuple[bytes, str]:
     """Build a multipart/form-data request body manually."""
     boundary = "----StoryVideoMakerBoundary7f3b8a2c"
@@ -58,9 +89,21 @@ def build_multipart(fields: dict, files: dict) -> tuple[bytes, str]:
 # TODO: Persist successful per-chunk ASR responses so interrupted
 # transcription jobs can resume without retranscribing completed chunks.
 
-def extract_timestamps_single(api_key: str, audio_path: Path, language: str, model_name: str = "whisper-large-v3") -> dict:
+def extract_timestamps_single(
+    audio_path: Path,
+    language: str,
+    keys: list[str],
+    model_name: str = "whisper-large-v3",
+    chunk_label: str = "",
+) -> dict:
     """
     Call Groq Whisper with verbose_json + word-level timestamps on a single audio file/chunk.
+
+    Key Rotation Strategy:
+    - Accepts a pool of Groq API keys (keys).
+    - On HTTP 500/429 (rate-limit/server errors), rotates to the next key in the pool.
+    - Retries across all keys up to max_attempts times before failing.
+    - Never falls back to a lighter model — always uses model_name (whisper-large-v3).
     """
     temp_mp3 = None
     upload_path = audio_path
@@ -97,23 +140,31 @@ def extract_timestamps_single(api_key: str, audio_path: Path, language: str, mod
 
     body = header + file_header + audio_data + footer
     content_type = f"multipart/form-data; boundary={boundary}"
-
     ctx = ssl._create_unverified_context()
 
-    req = urllib.request.Request(
-        "https://api.groq.com/openai/v1/audio/transcriptions",
-        data=body,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": content_type,
-            "User-Agent": "story-video-maker/0.1",
-        },
-        method="POST",
-    )
-
-    max_attempts = 4
+    # Key rotation: cycle through all available keys on retryable errors.
+    # Never fall back to a lighter model — always use model_name (whisper-large-v3).
+    n_keys = max(len(keys), 1)
+    max_attempts = n_keys * 3  # Give each key up to 3 chances
     raw = {}
+    last_exc = None
+
     for attempt in range(1, max_attempts + 1):
+        key_idx = (attempt - 1) % n_keys
+        current_key = keys[key_idx] if keys else ""
+        label = chunk_label or upload_path.name
+
+        req = urllib.request.Request(
+            "https://api.groq.com/openai/v1/audio/transcriptions",
+            data=body,
+            headers={
+                "Authorization": f"Bearer {current_key}",
+                "Content-Type": content_type,
+                "User-Agent": "story-video-maker/0.1",
+            },
+            method="POST",
+        )
+
         try:
             try:
                 with urllib.request.urlopen(req, timeout=180, context=ctx) as resp:
@@ -125,24 +176,28 @@ def extract_timestamps_single(api_key: str, audio_path: Path, language: str, mod
                     raw = json.loads(resp.read().decode("utf-8"))
                     break
         except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")[:800]
-            if exc.code in (500, 502, 503, 504):
-                if attempt < max_attempts:
-                    wait_time = attempt * 3
-                    print(f"  Warning: Groq Whisper HTTP {exc.code} on {model_name} (attempt {attempt}/{max_attempts}). Retrying in {wait_time}s...")
-                    time.sleep(wait_time)
-                    continue
-                elif model_name != "whisper-large-v3-turbo":
-                    print(f"  Warning: Groq Whisper HTTP {exc.code} on {model_name}. Falling back to whisper-large-v3-turbo for this chunk...")
-                    return extract_timestamps_single(api_key, audio_path, language, model_name="whisper-large-v3-turbo")
-            raise RuntimeError(f"Groq Whisper HTTP {exc.code}: {detail}") from exc
-        except urllib.error.URLError as exc:
-            if attempt < max_attempts:
-                wait_time = attempt * 3
-                print(f"  Warning: Groq Whisper network error {exc.reason} (attempt {attempt}/{max_attempts}). Retrying in {wait_time}s...")
+            detail = exc.read().decode("utf-8", errors="replace")[:400]
+            last_exc = exc
+            if exc.code in (429, 500, 502, 503, 504):
+                next_key_idx = (key_idx + 1) % n_keys
+                wait_time = 2 + (attempt % n_keys) * 2  # 2s, 4s, 6s per rotation cycle
+                print(
+                    f"  Warning: Groq HTTP {exc.code} [{label}] key[{key_idx + 1}/{n_keys}] "
+                    f"(attempt {attempt}/{max_attempts}). "
+                    f"Rotating to key[{next_key_idx + 1}] in {wait_time}s..."
+                )
                 time.sleep(wait_time)
                 continue
-            raise RuntimeError(f"Groq Whisper network error: {exc.reason}") from exc
+            raise RuntimeError(f"Groq Whisper HTTP {exc.code}: {detail}") from exc
+        except urllib.error.URLError as exc:
+            last_exc = exc
+            wait_time = 3
+            print(f"  Warning: Groq network error [{label}] (attempt {attempt}/{max_attempts}). Retrying in {wait_time}s...")
+            time.sleep(wait_time)
+            continue
+
+    if not raw:
+        raise RuntimeError(f"Groq Whisper failed after {max_attempts} attempts across {n_keys} key(s): {last_exc}")
 
     all_words = []
     root_words = raw.get("words")
@@ -177,7 +232,7 @@ def extract_timestamps_single(api_key: str, audio_path: Path, language: str, mod
     }
 
 
-def extract_timestamps(api_key: str, audio_path: Path, language: str, model_name: str = "whisper-large-v3") -> dict:
+def extract_timestamps(keys: list[str], audio_path: Path, language: str, model_name: str = "whisper-large-v3") -> dict:
     """
     Extract timestamps from narration audio using Overlapping Chunked ASR for long audio (> 120s),
     or single pass for short audio (<= 120s).
@@ -195,28 +250,31 @@ def extract_timestamps(api_key: str, audio_path: Path, language: str, model_name
         )
         total_duration = round(float(res.stdout.strip()), 2)
 
-    # Single pass if <= 120s
-    if total_duration <= 120.0:
-        return extract_timestamps_single(api_key, audio_path, language, model_name=model_name)
+    # Single pass if <= 60s (short narrations only)
+    if total_duration <= 60.0:
+        return extract_timestamps_single(audio_path, language, keys=keys, model_name=model_name)
 
-    # Overlapping Chunked ASR for long audio (> 120s)
-    chunk_size = 90.0
-    overlap = 10.0
+    # Overlapping Chunked ASR: 30-second native windows matching Whisper's attention span.
+    # This prevents degenerate multi-second word spans caused by >30s chunks.
+    chunk_size = 30.0
+    overlap = 5.0
     step = chunk_size - overlap
+    pacing_delay = 1.5  # seconds between chunk requests to stay within Groq RPM limits
 
     chunks = []
     curr = 0.0
     while curr < total_duration:
         c_end = min(curr + chunk_size, total_duration)
-        # Avoid tiny final chunk <= 10s by extending previous chunk
-        if total_duration - curr <= chunk_size + 10.0:
+        # Absorb tiny final chunk (<= 8s) into previous chunk
+        if total_duration - curr <= chunk_size + 8.0:
             c_end = total_duration
             chunks.append((round(curr, 2), round(c_end, 2)))
             break
         chunks.append((round(curr, 2), round(c_end, 2)))
         curr += step
 
-    print(f"→ Executing Overlapping Chunked ASR across {len(chunks)} audio chunks ({total_duration}s total)...")
+    n_keys = len(keys)
+    print(f"→ Executing Overlapping Chunked ASR: {len(chunks)} x 30s chunks | {n_keys} Groq key(s) | model={model_name}")
 
     temp_dir = audio_path.parent / "chunks_temp"
     temp_dir.mkdir(parents=True, exist_ok=True)
@@ -231,7 +289,14 @@ def extract_timestamps(api_key: str, audio_path: Path, language: str, model_name
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True
             )
 
-            res = extract_timestamps_single(api_key, chunk_file, language, model_name=model_name)
+            res = extract_timestamps_single(
+                chunk_file, language,
+                keys=keys,
+                model_name=model_name,
+                chunk_label=f"chunk_{idx+1}/{len(chunks)} [{cs}s->{ce}s]",
+            )
+            if idx < len(chunks) - 1:
+                time.sleep(pacing_delay)  # Pacing delay to respect Groq RPM limits
             c_words = res.get("words", [])
 
             # Convert local timestamps to global
@@ -284,10 +349,11 @@ def main():
     args = parser.parse_args()
 
     load_env()
-    api_key = os.environ.get("GROQ_API_KEY", "").strip()
-    if not api_key:
-        print("ERROR: GROQ_API_KEY not found in environment or ~/.config/projects/.env", file=sys.stderr)
+    keys = load_groq_keys()
+    if not keys:
+        print("ERROR: No Groq API keys found. Set GROQ_API_KEY (and optionally GROQ_API_KEY_1, GROQ_API_KEY_2, ...) in ~/.config/projects/.env", file=sys.stderr)
         sys.exit(1)
+    print(f"  Loaded {len(keys)} Groq API key(s) for rotation.")
 
     project_dir = Path(args.project_dir)
     audio_path = project_dir / "audio" / "narration.wav"
@@ -312,7 +378,7 @@ def main():
     print(f"→ Extracting timestamps from narration.wav ({size_mb:.1f} MB)")
     print(f"  Model: whisper-large-v3 | Language: {language}")
 
-    result = extract_timestamps(api_key=api_key, audio_path=audio_path, language=language)
+    result = extract_timestamps(keys=keys, audio_path=audio_path, language=language)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
