@@ -90,10 +90,7 @@ def main():
         )
         sys.exit(1)
 
-    fade_st = max(0.0, video_dur - CLOSING_FADE_DURATION)
-    audio_filter = f"apad,afade=t=out:st={fade_st:.3f}:d={CLOSING_FADE_DURATION:.3f}"
-
-    # Mux: video copy without re-encode, audio padded & faded over final tail
+    # Mux: video copy without re-encode, audio padded with silence for final tail (no audio fade)
     run_ffmpeg(
         "-i", str(video_path),
         "-i", str(audio_path),
@@ -102,7 +99,7 @@ def main():
         "-c:v", "copy",      # no re-encode — subtitles are already burned
         "-c:a", "aac",
         "-b:a", "192k",
-        "-af", audio_filter,
+        "-af", "apad",
         "-t", f"{video_dur:.3f}",
         "-movflags", "+faststart",
         str(out_path),
