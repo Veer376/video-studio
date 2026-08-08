@@ -197,6 +197,11 @@ def extract_timestamps_single(
             continue
 
     if not raw:
+        if model_name != "whisper-large-v3-turbo":
+            print(f"  Warning: All {max_attempts} retries failed for {model_name} on {chunk_label or upload_path.name}. Falling back to whisper-large-v3-turbo...")
+            return extract_timestamps_single(
+                audio_path, language, keys=keys, model_name="whisper-large-v3-turbo", chunk_label=chunk_label
+            )
         raise RuntimeError(f"Groq Whisper failed after {max_attempts} attempts across {n_keys} key(s): {last_exc}")
 
     all_words = []
