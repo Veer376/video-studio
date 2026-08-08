@@ -56,9 +56,7 @@ def run_stage(project_dir: str | Path, stage: str, *, force: bool = False, valid
 
     if stage == "voice":
         args = ("--force",) if force else ()
-        _run_script(resolved, "voice/voice.py", *args)
-        _run_script(resolved, "transcription/groq.py", *args)
-        _run_script(resolved, "alignment/dp.py")
+        _run_script(resolved, "pipeline_scripts/narration.py", *args)
     elif stage == "illustrate":
         args = ("--force",) if force else ()
         _run_script(resolved, "images/cloudflare_image_gen.py", *args)

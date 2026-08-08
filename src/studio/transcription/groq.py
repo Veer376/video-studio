@@ -13,7 +13,6 @@ import time
 import subprocess
 import urllib.error
 import urllib.request
-import io
 from pathlib import Path
 
 
@@ -64,25 +63,23 @@ def build_multipart(fields: dict, files: dict) -> tuple[bytes, str]:
     body_parts = []
 
     for name, value in fields.items():
-        body_parts.append(
-            f"--{boundary}\r\n"
-            f'Content-Disposition: form-data; name="{name}"\r\n\r\n'
-            f"{value}\r\n"
-        )
+        values = value if isinstance(value, (list, tuple)) else [value]
+        for item in values:
+            body_parts.append(
+                f"--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="{name}"\r\n\r\n'
+                f"{item}\r\n"
+            )
 
+    body = "".join(body_parts).encode("utf-8")
     for name, (filename, data, content_type) in files.items():
-        body_parts.append(
+        body += (
             f"--{boundary}\r\n"
             f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'
             f"Content-Type: {content_type}\r\n\r\n"
-        )
-        body_parts_bytes = "".join(body_parts).encode("utf-8") + data + b"\r\n"
-        body_parts = []
-        body_parts_bytes += f"--{boundary}--\r\n".encode("utf-8")
-        return body_parts_bytes, f"multipart/form-data; boundary={boundary}"
+        ).encode("utf-8") + data + b"\r\n"
 
-    # Only fields, no files
-    body = ("".join(body_parts) + f"--{boundary}--\r\n").encode("utf-8")
+    body += f"--{boundary}--\r\n".encode("utf-8")
     return body, f"multipart/form-data; boundary={boundary}"
 
 
@@ -95,6 +92,7 @@ def extract_timestamps_single(
     keys: list[str],
     model_name: str = "whisper-large-v3",
     chunk_label: str = "",
+    prompt: str | None = None,
 ) -> dict:
     """
     Call Groq Whisper with verbose_json + word-level timestamps on a single audio file/chunk.
@@ -105,18 +103,24 @@ def extract_timestamps_single(
     - Retries across all keys up to max_attempts times before failing.
     - Never falls back to a lighter model — always uses model_name (whisper-large-v3).
     """
-    temp_mp3 = None
+    temp_audio = None
     upload_path = audio_path
     filename = audio_path.name
     mime_type = "audio/wav"
 
-    # Compress large audio files > 5MB to lightweight MP3 (32k mono) to prevent Groq HTTP 500 errors
-    if audio_path.stat().st_size > 5 * 1024 * 1024 or audio_path.suffix.lower() == ".wav":
-        temp_mp3 = audio_path.parent / f"groq_temp_{audio_path.stem}.mp3"
-        subprocess.run(["ffmpeg", "-y", "-i", str(audio_path), "-ac", "1", "-ar", "16000", "-b:a", "32k", str(temp_mp3)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-        upload_path = temp_mp3
-        filename = "narration.mp3"
-        mime_type = "audio/mp3"
+    # Groq accepts WAV directly and downsamples internally. Only reduce files
+    # approaching the free-tier upload limit, and keep that conversion lossless.
+    if audio_path.stat().st_size > 20 * 1024 * 1024:
+        temp_audio = audio_path.parent / f"groq_temp_{audio_path.stem}.flac"
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(audio_path), "-ac", "1", "-ar", "16000", "-c:a", "flac", str(temp_audio)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True,
+        )
+        upload_path = temp_audio
+        filename = "narration.flac"
+        mime_type = "audio/flac"
 
     audio_data = upload_path.read_bytes()
     boundary = "----StoryVideoMakerBoundary7f3b8a2c"
@@ -128,7 +132,16 @@ def extract_timestamps_single(
     add_field("model", model_name)
     add_field("response_format", "verbose_json")
     add_field("timestamp_granularities[]", "word")
+    add_field("timestamp_granularities[]", "segment")
     add_field("language", language)
+    if prompt:
+        # Groq limits prompts to 896 characters. Preserve the tail because
+        # incomplete decodes have been dropping the ends of narration units.
+        if len(prompt) > 300:
+            prompt = prompt[-300:]
+            if " " in prompt:
+                prompt = prompt.split(" ", 1)[1]
+        add_field("prompt", prompt)
 
     header = "".join(body_lines).encode("utf-8")
     file_header = (
@@ -197,12 +210,9 @@ def extract_timestamps_single(
             continue
 
     if not raw:
-        if model_name != "whisper-large-v3-turbo":
-            print(f"  Warning: All {max_attempts} retries failed for {model_name} on {chunk_label or upload_path.name}. Falling back to whisper-large-v3-turbo...")
-            return extract_timestamps_single(
-                audio_path, language, keys=keys, model_name="whisper-large-v3-turbo", chunk_label=chunk_label
-            )
-        raise RuntimeError(f"Groq Whisper failed after {max_attempts} attempts across {n_keys} key(s): {last_exc}")
+        raise RuntimeError(
+            f"Groq {model_name} failed after {max_attempts} attempts across {n_keys} key(s): {last_exc}"
+        )
 
     all_words = []
     root_words = raw.get("words")
@@ -223,9 +233,9 @@ def extract_timestamps_single(
                     "end": float(w["end"]),
                 })
 
-    if temp_mp3 and temp_mp3.exists():
+    if temp_audio and temp_audio.exists():
         try:
-            temp_mp3.unlink()
+            temp_audio.unlink()
         except Exception:
             pass
 
@@ -234,117 +244,13 @@ def extract_timestamps_single(
         "language": raw.get("language", language),
         "word_count": len(all_words),
         "words": all_words,
+        "segments": raw.get("segments") or [],
     }
 
 
 def extract_timestamps(keys: list[str], audio_path: Path, language: str, model_name: str = "whisper-large-v3") -> dict:
-    """
-    Extract timestamps from narration audio using Overlapping Chunked ASR for long audio (> 120s),
-    or single pass for short audio (<= 120s).
-    """
-    # Probe duration
-    total_duration = 0.0
-    try:
-        with wave.open(str(audio_path), "rb") as w:
-            total_duration = round(w.getnframes() / w.getframerate(), 2)
-    except Exception:
-        # Fallback to ffprobe
-        res = subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(audio_path)],
-            capture_output=True, text=True, check=True
-        )
-        total_duration = round(float(res.stdout.strip()), 2)
-
-    # Single pass if <= 60s (short narrations only)
-    if total_duration <= 60.0:
-        return extract_timestamps_single(audio_path, language, keys=keys, model_name=model_name)
-
-    # Overlapping Chunked ASR: 30-second native windows matching Whisper's attention span.
-    # This prevents degenerate multi-second word spans caused by >30s chunks.
-    chunk_size = 30.0
-    overlap = 5.0
-    step = chunk_size - overlap
-    pacing_delay = 1.5  # seconds between chunk requests to stay within Groq RPM limits
-
-    chunks = []
-    curr = 0.0
-    while curr < total_duration:
-        c_end = min(curr + chunk_size, total_duration)
-        # Absorb tiny final chunk (<= 8s) into previous chunk
-        if total_duration - curr <= chunk_size + 8.0:
-            c_end = total_duration
-            chunks.append((round(curr, 2), round(c_end, 2)))
-            break
-        chunks.append((round(curr, 2), round(c_end, 2)))
-        curr += step
-
-    n_keys = len(keys)
-    print(f"→ Executing Overlapping Chunked ASR: {len(chunks)} x 30s chunks | {n_keys} Groq key(s) | model={model_name}")
-
-    temp_dir = audio_path.parent / "chunks_temp"
-    temp_dir.mkdir(parents=True, exist_ok=True)
-
-    all_chunk_words = []
-    try:
-        for idx, (cs, ce) in enumerate(chunks):
-            dur = ce - cs
-            chunk_file = temp_dir / f"chunk_{idx+1:02d}.mp3"
-            subprocess.run(
-                ["ffmpeg", "-y", "-ss", str(cs), "-i", str(audio_path), "-t", str(dur), "-ac", "1", "-ar", "16000", "-b:a", "32k", str(chunk_file)],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True
-            )
-
-            res = extract_timestamps_single(
-                chunk_file, language,
-                keys=keys,
-                model_name=model_name,
-                chunk_label=f"chunk_{idx+1}/{len(chunks)} [{cs}s->{ce}s]",
-            )
-            if idx < len(chunks) - 1:
-                time.sleep(pacing_delay)  # Pacing delay to respect Groq RPM limits
-            c_words = res.get("words", [])
-
-            # Convert local timestamps to global
-            global_words = []
-            for w in c_words:
-                global_words.append({
-                    "word": w["word"],
-                    "start": round(cs + float(w["start"]), 3),
-                    "end": round(cs + float(w["end"]), 3)
-                })
-            all_chunk_words.append(global_words)
-            print(f"  ✓ Chunk {idx+1}/{len(chunks)} [{cs}s -> {ce}s]: {len(global_words)} words extracted")
-    finally:
-        # Clean up temporary chunk files
-        for f in temp_dir.glob("*.mp3"):
-            try:
-                f.unlink()
-            except Exception:
-                pass
-        try:
-            temp_dir.rmdir()
-        except Exception:
-            pass
-
-    # Deduplicate words across overlapping boundaries
-    merged = list(all_chunk_words[0]) if all_chunk_words else []
-    for c_idx in range(1, len(all_chunk_words)):
-        curr_words = all_chunk_words[c_idx]
-        if not curr_words:
-            continue
-        last_merged_end = merged[-1]["end"] if merged else 0.0
-        for w in curr_words:
-            if w["start"] >= last_merged_end - 0.2:
-                if merged and w["word"].strip().lower() == merged[-1]["word"].strip().lower() and abs(w["start"] - merged[-1]["start"]) < 0.5:
-                    continue
-                merged.append(w)
-
-    return {
-        "duration": total_duration,
-        "language": language,
-        "word_count": len(merged),
-        "words": merged,
-    }
+    """Transcribe one audio file in one request; unitization is owned upstream."""
+    return extract_timestamps_single(audio_path, language, keys=keys, model_name=model_name)
 
 
 def main():

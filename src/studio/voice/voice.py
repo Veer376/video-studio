@@ -21,8 +21,9 @@ DEFAULT_GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview"
 DEFAULT_GEMINI_TTS_VOICE = "Aoede"
 
 def load_env():
-    env_path = Path.home() / ".config/projects/.env"
-    if env_path.exists():
+    for env_path in (Path.home() / ".config/projects/.env", Path.home() / "projects/.env"):
+        if not env_path.exists():
+            continue
         for line in env_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:

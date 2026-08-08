@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from studio.pipeline_scripts.image_story import PipelineError, print_status, run_pipeline, run_stage
+from studio.pipeline_scripts.narration import VOICE_STEPS, run_voice_step
 
 
 PIPELINE_CHOICES = ("image-story",)
@@ -43,6 +44,12 @@ def main(argv: list[str] | None = None) -> int:
     retry.add_argument("--force", action="store_true")
     retry.add_argument("--missing-only", action="store_true")
 
+    voice_step = sub.add_parser("voice-step", help="Run one internal voice step without rerunning the others.")
+    voice_step.add_argument("step_name", choices=VOICE_STEPS)
+    voice_step.add_argument("project_dir", type=Path)
+    voice_step.add_argument("--force", action="store_true")
+    voice_step.add_argument("--unit", help="Transcribe only one narration unit, such as unit-003.")
+
     args = parser.parse_args(argv)
     try:
         if args.command == "status":
@@ -55,6 +62,8 @@ def main(argv: list[str] | None = None) -> int:
             run_stage(args.project_dir, args.stage_name, force=args.force, validate_only=args.validate_only)
         elif args.command == "retry":
             run_stage(args.project_dir, args.stage_name, force=args.force)
+        elif args.command == "voice-step":
+            run_voice_step(args.project_dir, args.step_name, force=args.force, unit_id=args.unit)
         return 0
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
