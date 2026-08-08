@@ -88,7 +88,7 @@ Does library/<project_name>/session.json exist?
                   Yes → Does library/<project_name>/scenes.json exist?
                           No  → START at Skill: split-script
                           Yes → Are all image_prompt fields in scenes.json null?
-                                  Yes → START at Skill: design-visuals
+                                   Yes → START at Skill: orchestrate-visuals
                                    No  → Does library/<project_name>/audio/narration.wav exist?
                                           No  → START at Skill: run-pipeline
                                           Yes → Do all images in library/<project_name>/images/ exist?

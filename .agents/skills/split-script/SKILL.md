@@ -1,6 +1,6 @@
 ---
 name: split-script
-description: Script-splitting skill. Reads script.md and divides the narration prose into scenes at natural sentence boundaries. Writes a lean scenes.json skeleton (no image prompts yet). Runs after compose, before design-visuals.
+description: Script-splitting skill. Reads script.md and divides the narration prose into scenes at natural sentence boundaries. Writes a lean scenes.json skeleton (no image prompts yet). Runs after compose, before orchestrate-visuals.
 ---
 
 # Split-Script Skill

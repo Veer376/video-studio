@@ -30,25 +30,49 @@ def load_env():
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
-def generate_single_image(account_id: str, api_token: str, model: str, prompt: str, width: int, height: int, out_path: Path) -> None:
+def generate_single_image(
+    account_id: str,
+    api_token: str,
+    model: str,
+    prompt: str,
+    width: int,
+    height: int,
+    out_path: Path,
+    ref_image_path: Path | None = None,
+    ref_weight: float | None = None,
+) -> None:
     url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{model}"
 
-    # Determine if the model requires multipart/form-data (like flux-2-klein-4b or flux-2-dev)
-    is_multipart = "klein" in model or "flux-2-dev" in model
+    # Determine if the model requires multipart/form-data or has reference image
+    has_ref = ref_image_path is not None and ref_image_path.exists()
+    is_multipart = "klein" in model or "flux-2-dev" in model or has_ref
 
     if is_multipart:
-        fields = {
-            "prompt": prompt,
-            "width": width,
-            "height": height
-        }
         boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
         body = []
+        
+        fields = {
+            "prompt": prompt,
+            "width": str(width),
+            "height": str(height),
+        }
+        if has_ref and ref_weight is not None:
+            fields["strength"] = str(ref_weight)
+
         for key, value in fields.items():
             body.append(f"--{boundary}".encode("utf-8"))
             body.append(f'Content-Disposition: form-data; name="{key}"'.encode("utf-8"))
             body.append(b"")
             body.append(str(value).encode("utf-8"))
+
+        if has_ref and ref_image_path:
+            img_bytes = ref_image_path.read_bytes()
+            body.append(f"--{boundary}".encode("utf-8"))
+            body.append(f'Content-Disposition: form-data; name="image"; filename="{ref_image_path.name}"'.encode("utf-8"))
+            body.append(b"Content-Type: image/png")
+            body.append(b"")
+            body.append(img_bytes)
+
         body.append(f"--{boundary}--".encode("utf-8"))
         body.append(b"")
         data_bytes = b"\r\n".join(body)
@@ -160,21 +184,40 @@ def main():
     print(f"→ Generating scene images (Resolution: {width}x{height})")
     print(f"  Global Style: {visual_style}")
 
+    # Build tasks for scene images
     scenes = scenes_data.get("scenes", [])
-    
-    # We will build a list of tasks to execute
+    characters = scenes_data.get("characters", {})
     tasks = []
     for scene in scenes:
         scene_id = scene["id"]
         out_path = project_dir / "images" / f"{scene_id}.png"
         
         if out_path.exists() and not args.force:
-            # Already exists, just make sure path is written in scenes.json
             scene["image_path"] = f"images/{scene_id}.png"
             continue
 
         full_prompt = f"{visual_style} — {scene['image_prompt']}"
-        tasks.append((scene, full_prompt, out_path))
+
+        # Append referenced character visual descriptions to the prompt
+        ref_chars = scene.get("referenced_characters") or scene.get("characters") or []
+        for char_key in ref_chars:
+            char_info = characters.get(char_key, {})
+            char_desc = char_info.get("prompt", "").strip()
+            canonical = char_info.get("canonical_name", char_key)
+            if char_desc:
+                full_prompt += f" — {canonical}: {char_desc}"
+
+        # Resolve reference image (prior scene continuation only)
+        ref_image_path = None
+        ref_weight = scene.get("reference_weight", 0.65)
+        ref_scene_id = scene.get("reference_scene_id") or scene.get("reference_scene_ids", [None])[0]
+
+        if ref_scene_id and str(ref_scene_id).startswith("scene-"):
+            ref_p = project_dir / "images" / f"{ref_scene_id}.png"
+            if ref_p.exists():
+                ref_image_path = ref_p
+
+        tasks.append((scene, full_prompt, out_path, ref_image_path, ref_weight))
 
     if not tasks:
         print("✓ All images already exist. Nothing to generate.")
@@ -182,7 +225,7 @@ def main():
         print(f"→ Queueing {len(tasks)} images for generation (Concurrency: {args.concurrency})")
         
         def worker(task):
-            scene, prompt, out_path = task
+            scene, prompt, out_path, ref_path, ref_w = task
             try:
                 generate_single_image(
                     account_id=account_id,
@@ -191,7 +234,9 @@ def main():
                     prompt=prompt,
                     width=width,
                     height=height,
-                    out_path=out_path
+                    out_path=out_path,
+                    ref_image_path=ref_path,
+                    ref_weight=ref_w,
                 )
                 scene["image_path"] = f"images/{scene['id']}.png"
                 return True
