@@ -38,6 +38,9 @@ def get_duration(path: Path) -> float:
     return float(data.get("format", {}).get("duration", 0.0))
 
 
+CLOSING_FADE_DURATION = 4.0   # total duration of audio fade-out
+
+
 def main():
     parser = argparse.ArgumentParser(description="Mux video and narration audio into final MP4")
     parser.add_argument("--project-dir", required=True, help="Path to the project directory")
@@ -87,9 +90,10 @@ def main():
         )
         sys.exit(1)
 
-    # Mux: keep the shorter stream to avoid silent tail
-    # Video stream: copy without re-encoding (subtitles already burned in)
-    # Audio stream: encode to AAC 192k for broad compatibility
+    fade_st = max(0.0, video_dur - CLOSING_FADE_DURATION)
+    audio_filter = f"apad,afade=t=out:st={fade_st:.3f}:d={CLOSING_FADE_DURATION:.3f}"
+
+    # Mux: video copy without re-encode, audio padded & faded over final tail
     run_ffmpeg(
         "-i", str(video_path),
         "-i", str(audio_path),
@@ -98,7 +102,8 @@ def main():
         "-c:v", "copy",      # no re-encode — subtitles are already burned
         "-c:a", "aac",
         "-b:a", "192k",
-        "-shortest",         # trim to shorter stream (audio or video)
+        "-af", audio_filter,
+        "-t", f"{video_dur:.3f}",
         "-movflags", "+faststart",
         str(out_path),
     )
