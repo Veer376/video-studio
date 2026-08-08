@@ -85,7 +85,7 @@ python3 .agents/skills/tavily/scripts/tavily.py research --query "scientific bas
 ## Research Workflow
 
 ### Step 1 — Read the Brief
-Parse `library/<project_slug>/session.json`. Extract:
+Parse `library/<project_name>/session.json`. Extract:
 - `brief.topic` — what the story is about
 - `brief.tone` — the emotional register
 - `brief.audience` — who is watching
@@ -114,12 +114,12 @@ Execute your planned queries using the custom CLI scripts. For each result:
 
 ### Step 4 — Write `research.md`
 
-Write all findings to `library/<project_slug>/research.md`. Use this exact structure:
+Write all findings to `library/<project_name>/research.md`. Use this exact structure:
 
 ```markdown
 # Research: <topic>
 Generated: <date>
-Source: <session.json project_slug>
+Source: <session.json project_name>
 
 ---
 

@@ -9,9 +9,9 @@ This is the only agent-facing skill for production execution. It does not contai
 
 Use this skill after the creative stages have produced:
 
-- `library/<project_slug>/session.json`
-- `library/<project_slug>/script.md`
-- `library/<project_slug>/scenes.json`
+- `library/<project_name>/session.json`
+- `library/<project_name>/script.md`
+- `library/<project_name>/scenes.json`
 
 The current production pipeline is `image-story`:
 
@@ -34,45 +34,45 @@ Cloudflare is the only image backend for now. Do not use Codex `imagegen` in thi
 Inspect state:
 
 ```bash
-story-video status library/<project_slug>
+story-video status library/<project_name>
 ```
 
 Run or resume the full default pipeline:
 
 ```bash
-story-video run library/<project_slug>
+story-video run library/<project_name>
 ```
 
 Run the named pipeline explicitly:
 
 ```bash
-story-video pipeline image-story library/<project_slug>
+story-video pipeline image-story library/<project_name>
 ```
 
 Run one stage:
 
 ```bash
-story-video stage voice library/<project_slug>
-story-video stage illustrate library/<project_slug>
-story-video stage render library/<project_slug>
+story-video stage voice library/<project_name>
+story-video stage illustrate library/<project_name>
+story-video stage render library/<project_name>
 ```
 
 Retry missing image generation only:
 
 ```bash
-story-video stage illustrate library/<project_slug>
+story-video stage illustrate library/<project_name>
 ```
 
 Force regenerate all images:
 
 ```bash
-story-video stage illustrate library/<project_slug> --force
+story-video stage illustrate library/<project_name> --force
 ```
 
 Force one stage while resuming the rest:
 
 ```bash
-story-video run library/<project_slug> --force-stage illustrate
+story-video run library/<project_name> --force-stage illustrate
 ```
 
 ## Resume Rules

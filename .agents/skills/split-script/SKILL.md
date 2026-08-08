@@ -21,8 +21,8 @@ Activate this skill when:
 ## Step 1 — Read All Inputs
 
 Read the following files before doing anything:
-1. `library/<project_slug>/session.json` → extract `project_slug`, `visual.style`
-2. `library/<project_slug>/script.md` → extract the full narration body
+1. `library/<project_name>/session.json` → extract `project_name`, `visual.style`
+2. `library/<project_name>/script.md` → extract the full narration body
 
 **Extracting the narration body from `script.md`:**
 Strip everything that is not the spoken prose itself:
@@ -89,12 +89,12 @@ For every scene chunk, calculate the inclusive zero-indexed word range:
 
 ## Step 4 — Write `scenes.json`
 
-Write the skeleton manifest to `library/<project_slug>/scenes.json`.
+Write the skeleton manifest to `library/<project_name>/scenes.json`.
 
 **Schema — exactly this, nothing more, nothing less:**
 ```json
 {
-  "project_slug": "<from session.json>",
+  "project_name": "<from session.json>",
   "visual_style": "<session.json visual.style string>",
   "total_words": 400,
   "scene_count": 20,

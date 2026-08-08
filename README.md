@@ -17,33 +17,33 @@ A Story Video Maker workspace with two clear layers:
 Inspect a project:
 
 ```bash
-story-video status library/<project_slug>
+story-video status library/<project_name>
 ```
 
 Run or resume the default image-story pipeline:
 
 ```bash
-story-video run library/<project_slug>
+story-video run library/<project_name>
 ```
 
 Run one stage:
 
 ```bash
-story-video stage voice library/<project_slug>
-story-video stage illustrate library/<project_slug>
-story-video stage render library/<project_slug>
+story-video stage voice library/<project_name>
+story-video stage illustrate library/<project_name>
+story-video stage render library/<project_name>
 ```
 
 Default stage behavior is missing-only. For example:
 
 ```bash
-story-video stage illustrate library/<project_slug>
+story-video stage illustrate library/<project_name>
 ```
 
 generates only missing scene images. To regenerate all scene images:
 
 ```bash
-story-video stage illustrate library/<project_slug> --force
+story-video stage illustrate library/<project_name> --force
 ```
 
 ## New Studio Layout

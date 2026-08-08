@@ -47,7 +47,7 @@ Conduct the intake as a natural, friendly conversation. Acknowledge each answer 
 After the intake, derive this value automatically — do **not** ask the user:
 
 ```
-project_slug       = YYYY-MM-DD_<kebab-title-from-topic>
+project_name       = <kebab-title-from-topic>
 ```
 
 ---
@@ -56,14 +56,14 @@ project_slug       = YYYY-MM-DD_<kebab-title-from-topic>
 
 Follow these steps in exact order:
 
-1. **Derive the `project_slug`** from the topic: lowercase, spaces replaced with hyphens, prefixed with today's date. Example: `2026-08-01_krishna-motivation`.
+1. **Derive the `project_name`** from the topic: lowercase, spaces replaced with hyphens. Example: `krishna-motivation`.
 2. **Create the project folder** if it does not already exist:
    ```
-   library/<project_slug>/
+   library/<project_name>/
    ```
 3. **Write `session.json`** inside that folder:
    ```
-   library/<project_slug>/session.json
+   library/<project_name>/session.json
    ```
    Set `status: "intake_complete"` in the output.
 
@@ -72,7 +72,7 @@ Follow these steps in exact order:
 {
   "session": {
     "created_at": "2026-08-01T12:30:00",
-    "project_slug": "2026-08-01_krishna-motivation",
+    "project_name": "krishna-motivation",
     "status": "intake_complete"
   },
   "brief": {

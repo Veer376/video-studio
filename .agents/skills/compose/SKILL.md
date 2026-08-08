@@ -20,7 +20,7 @@ Activate this skill when:
 
 ## Inputs
 
-Read `library/<project_slug>/session.json` before writing.
+Read `library/<project_name>/session.json` before writing.
 
 Treat `target_duration_seconds` as a rough script-length target, not a strict constraint.
 
@@ -78,7 +78,7 @@ State this briefly to the user.
 Read `references/hindi-voice-guide.md` and follow all narration rules defined there.
 
 Write the full script to:
-`library/<project_slug>/script.md`
+`library/<project_name>/script.md`
 
 #### Script Format:
 ```markdown

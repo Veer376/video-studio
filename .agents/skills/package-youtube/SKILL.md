@@ -1,11 +1,11 @@
 ---
 name: package-youtube
-description: YouTube packaging skill for Story Video Maker. Use when the user asks to create YouTube-ready title, description, tags, script-in-description, or thumbnails for an existing library/<project_slug> video. Writes packaging files under the project slug's youtube/ folder only; does not participate in the main image-story creation pipeline.
+description: YouTube packaging skill for Story Video Maker. Use when the user asks to create YouTube-ready title, description, tags, script-in-description, or thumbnails for an existing library/<project_name> video. Writes packaging files under the project's youtube/ folder only; does not participate in the main image-story creation pipeline.
 ---
 
 # Package YouTube Skill
 
-This skill packages a completed or near-completed Story Video Maker project for YouTube. It is not part of the main creation flow and should only run when the user asks for YouTube upload content for a specific `library/<project_slug>`.
+This skill packages a completed or near-completed Story Video Maker project for YouTube. It is not part of the main creation flow and should only run when the user asks for YouTube upload content for a specific `library/<project_name>`.
 
 ## Boundaries
 
@@ -22,12 +22,12 @@ This skill creates:
 Read from the selected project folder:
 
 ```text
-library/<project_slug>/session.json
-library/<project_slug>/research.md
-library/<project_slug>/script.md
-library/<project_slug>/scenes.json
-library/<project_slug>/output/final-video.mp4
-library/<project_slug>/images/
+library/<project_name>/session.json
+library/<project_name>/research.md
+library/<project_name>/script.md
+library/<project_name>/scenes.json
+library/<project_name>/output/final-video.mp4
+library/<project_name>/images/
 ```
 
 If `output/final-video.mp4` is missing, flag user.
@@ -37,7 +37,7 @@ If `output/final-video.mp4` is missing, flag user.
 Write all output under:
 
 ```text
-library/<project_slug>/youtube/
+library/<project_name>/youtube/
 ```
 
 Recommended files:
@@ -177,7 +177,7 @@ Existing `images/scene-*.png` files may be inspected or used as visual reference
 3. Use existing scene images only as optional references when useful; do not edit them into thumbnails unless the user explicitly asks.
 4. Include the bottom-right safe-zone instruction in every thumbnail prompt.
 5. **Mobile Quality Gate:** Verify generated thumbnails at 150px preview width to ensure high-contrast legibility of in-image text and clear facial expression visibility on mobile feeds.
-6. Save final project-bound thumbnails under `library/<project_slug>/youtube/thumbnails/`.
+6. Save final project-bound thumbnails under `library/<project_name>/youtube/thumbnails/`.
 7. If no image generation capability is available, ask whether to use the project's internal image generation capability.
 
 Do not leave thumbnail assets only in an external generated-images folder. Copy or move final selected images into the project folder.
@@ -230,7 +230,7 @@ Do not add thumbnail text later using code, PIL, Canvas, or other local overlay 
 
 ## Hard Rules
 
-- Write only inside `library/<project_slug>/youtube/`.
+- Write only inside `library/<project_name>/youtube/`.
 - Run market grounding with the `youtube` skill before generating final titles or thumbnails.
 - Keep packaging grounded in the actual script and research.
 - Do not fabricate sources, quotes, or achievements.

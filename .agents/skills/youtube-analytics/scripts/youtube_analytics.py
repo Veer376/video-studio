@@ -459,7 +459,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     fetch = sub.add_parser("fetch", help="Fetch analytics for a project and write youtube/analytics.json.")
-    fetch.add_argument("project_dir", help="Path like library/<project_slug>")
+    fetch.add_argument("project_dir", help="Path like library/<project_name>")
     add_date_args(fetch)
     fetch.set_defaults(func=command_fetch)
 

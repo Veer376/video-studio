@@ -20,12 +20,12 @@ Discovery answers:
 Discovery does not:
 
 - create or edit `session.json`
-- write project `library/<slug>` files
+- write project `library/<project_name>` files
 - write the final narration
 - split scenes, design visuals, package YouTube metadata, publish, or analyze performance
 - depend on any specific channel, platform, or source provider
 
-The `research` skill still owns selected-project research at `library/<project_slug>/research.md`. Discovery's `research.md` is only a pre-project scratchpad for idea hunting.
+The `research` skill still owns selected-project research at `library/<project_name>/research.md`. Discovery's `research.md` is only a pre-project scratchpad for idea hunting.
 
 ## Scratchpad
 
@@ -132,7 +132,7 @@ Next research needed: <what the research skill should verify after intake>
 
 - Do not write project files.
 - Do not create or edit `session.json`.
-- Do not write `library/<project_slug>/research.md`; the `research` skill owns that.
+- Do not write `library/<project_name>/research.md`; the `research` skill owns that.
 - Do not write to `references/`; keep stable skill knowledge separate from runtime scratch.
 - Do not create multiple discovery run files unless the user explicitly asks.
 - Do not copy another creator's script or idea verbatim. Use sources to derive original story angles.

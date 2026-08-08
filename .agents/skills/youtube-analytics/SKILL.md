@@ -1,6 +1,6 @@
 ---
 name: youtube-analytics
-description: Standalone YouTube Analytics skill for Story Video Maker. Use when the user asks to analyze a YouTube video, fetch analytics for a library/<project_slug>, inspect retention, traffic sources, countries, devices, daily performance, or run a raw YouTube Analytics report. Bundles its own youtube_analytics.py script and is not part of the main image-story pipeline.
+description: Standalone YouTube Analytics skill for Story Video Maker. Use when the user asks to analyze a YouTube video, fetch analytics for a library/<project_name>, inspect retention, traffic sources, countries, devices, daily performance, or run a raw YouTube Analytics report. Bundles its own youtube_analytics.py script and is not part of the main image-story pipeline.
 ---
 
 # YouTube Analytics Skill
@@ -12,7 +12,7 @@ This standalone skill fetches YouTube Analytics for uploaded videos and channels
 Use the bundled script only:
 
 ```bash
-python3 .agents/skills/youtube-analytics/scripts/youtube_analytics.py fetch library/<project_slug>
+python3 .agents/skills/youtube-analytics/scripts/youtube_analytics.py fetch library/<project_name>
 python3 .agents/skills/youtube-analytics/scripts/youtube_analytics.py video <video_id_or_url>
 python3 .agents/skills/youtube-analytics/scripts/youtube_analytics.py channel
 python3 .agents/skills/youtube-analytics/scripts/youtube_analytics.py query --metrics views
@@ -25,7 +25,7 @@ The script manages OAuth automatically.
 For project analytics, read:
 
 ```text
-library/<project_slug>/youtube/upload.json
+library/<project_name>/youtube/upload.json
 ```
 
 The file must contain `video_id`.
@@ -35,7 +35,7 @@ The file must contain `video_id`.
 Project fetches write:
 
 ```text
-library/<project_slug>/youtube/analytics.json
+library/<project_name>/youtube/analytics.json
 ```
 
 Do not create Markdown reports or cache files.
@@ -45,7 +45,7 @@ Do not create Markdown reports or cache files.
 Fetch analytics for one project:
 
 ```bash
-python3 .agents/skills/youtube-analytics/scripts/youtube_analytics.py fetch library/<project_slug>
+python3 .agents/skills/youtube-analytics/scripts/youtube_analytics.py fetch library/<project_name>
 ```
 
 Fetch analytics for a video URL or ID without writing project files:
@@ -57,7 +57,7 @@ python3 .agents/skills/youtube-analytics/scripts/youtube_analytics.py video <vid
 Attach analytics for a video URL or ID to a project:
 
 ```bash
-python3 .agents/skills/youtube-analytics/scripts/youtube_analytics.py video <video_id_or_url> --project library/<project_slug>
+python3 .agents/skills/youtube-analytics/scripts/youtube_analytics.py video <video_id_or_url> --project library/<project_name>
 ```
 
 Fetch channel-level analytics:
@@ -92,6 +92,6 @@ Some reports may return no rows for new videos or low-data videos. Preserve the 
 
 - Use only official YouTube Analytics API calls.
 - Do not inspect browser cookies, storage, XHR auth headers, or private Studio endpoints.
-- Do not modify project files except `library/<project_slug>/youtube/analytics.json`.
+- Do not modify project files except `library/<project_name>/youtube/analytics.json`.
 - Do not create list cache files.
 - Do not invent analytics. If YouTube has no rows yet, report no data.

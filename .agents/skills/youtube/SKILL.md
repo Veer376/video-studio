@@ -1,6 +1,6 @@
 ---
 name: youtube
-description: General YouTube API skill for authentication, channel confirmation, public search, video fetch, channel lookup, playlist lookup, comments, caption-track lookup, and generic local video upload. Use when Codex needs YouTube platform/data access or to upload any local video file. For Story Video Maker library/<project_slug> publishing, use publish-youtube instead.
+description: General YouTube API skill for authentication, channel confirmation, public search, video fetch, channel lookup, playlist lookup, comments, caption-track lookup, and generic local video upload. Use when Codex needs YouTube platform/data access or to upload any local video file. For Story Video Maker library/<project_name> publishing, use publish-youtube instead.
 ---
 
 # YouTube Skill
@@ -19,7 +19,7 @@ This skill owns generic YouTube API capability:
 - `search`, `fetch`, `channel`, `playlist`, `comments`, `transcript`
 - `upload-file` for any local video path
 
-It does not own Story Video Maker project publishing semantics. For `library/<project_slug>` publishing, use `publish-youtube`.
+It does not own Story Video Maker project publishing semantics. For `library/<project_name>` publishing, use `publish-youtube`.
 
 ## Core Commands
 

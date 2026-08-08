@@ -326,7 +326,7 @@ def main():
     silence_gap_count = sum(1 for entry in log_entries if entry["status"] == "SILENCE_GAP")
 
     log_data = {
-        "project_slug": scenes_data.get("project_slug", project_dir.name),
+        "project_name": scenes_data.get("project_name", project_dir.name),
         "groq_words": groq_word_count,
         "script_words": script_words,
         "groq_ratio": round(groq_word_count / max(script_words, 1), 4),

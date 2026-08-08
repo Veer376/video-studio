@@ -265,7 +265,7 @@ def main():
     fallback_count = sum(1 for e in log_entries if e["status"] == "FALLBACK")
 
     log_data = {
-        "project_slug": scenes_data.get("project_slug", project_dir.name),
+        "project_name": scenes_data.get("project_name", project_dir.name),
         "groq_words": len(words),
         "alignment_mode": "dp_monotonic",
         "scenes_total": len(scenes),

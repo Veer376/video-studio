@@ -22,9 +22,9 @@ Activate this skill when:
 ## Step 1 — Read All Inputs
 
 Read the following files before doing anything:
-1. `library/<project_slug>/session.json` → extract `visual.style`
-2. `library/<project_slug>/scenes.json` → read all scenes (id, text, word_range)
-3. `library/<project_slug>/script.md` → read the **full script** to understand the story arc, setting, and recurring characters/props
+1. `library/<project_name>/session.json` → extract `visual.style`
+2. `library/<project_name>/scenes.json` → read all scenes (id, text, word_range)
+3. `library/<project_name>/script.md` → read the **full script** to understand the story arc, setting, and recurring characters/props
 
 Do not modify any existing field. You will only fill in `image_prompt` for each scene.
 
@@ -124,13 +124,13 @@ Every prompt is prepended with the `visual_style` value from `scenes.json` when 
 
 ## Step 4 — Write Image Prompts Back to `scenes.json`
 
-Update `library/<project_slug>/scenes.json` — fill in the `image_prompt` field for every scene. Do not modify any other field.
+Update `library/<project_name>/scenes.json` — fill in the `image_prompt` field for every scene. Do not modify any other field.
 
 The file after this skill runs should look like:
 
 ```json
 {
-  "project_slug": "2026-08-01_sample-story",
+  "project_name": "sample-story",
   "visual_style": "premium cinematic digital painting, vivid colors, mystical lighting, ancient India",
   "total_words": 90,
   "scene_count": 2,
