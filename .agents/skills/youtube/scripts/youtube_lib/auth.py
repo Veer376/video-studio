@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .common import MANAGE_SCOPE, READONLY_SCOPE, UPLOAD_SCOPE, die, load_google_libs
+from .common import FORCE_SSL_SCOPE, MANAGE_SCOPE, READONLY_SCOPE, UPLOAD_SCOPE, die, load_google_libs
 
 
 def token_path(scope_profile: str) -> Path:
@@ -35,7 +35,7 @@ def scopes_for_profile(scope_profile: str) -> list[str]:
     if scope_profile == "upload":
         return [UPLOAD_SCOPE]
     if scope_profile == "manage":
-        return [MANAGE_SCOPE]
+        return [MANAGE_SCOPE, FORCE_SSL_SCOPE]
     if scope_profile == "readonly":
         return [READONLY_SCOPE]
     die(f"unknown scope profile: {scope_profile}")

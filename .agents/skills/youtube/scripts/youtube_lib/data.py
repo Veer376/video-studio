@@ -182,3 +182,24 @@ def command_comments(args, youtube) -> None:
         top = item.get("snippet", {}).get("topLevelComment", {}).get("snippet", {})
         text = top.get("textDisplay", "").replace("\n", " ")[:180]
         print(f"{top.get('publishedAt', '')}\t{top.get('likeCount', '')}\t{top.get('authorDisplayName', '')}\t{text}")
+
+
+def command_comment_post(args, youtube) -> None:
+    video_id = parse_video_id(args.video)
+    body = {
+        "snippet": {
+            "videoId": video_id,
+            "topLevelComment": {
+                "snippet": {
+                    "textOriginal": args.text
+                }
+            }
+        }
+    }
+    response = youtube.commentThreads().insert(part="snippet", body=body).execute()
+    if args.json:
+        print(json.dumps(response, indent=2, ensure_ascii=False))
+        return
+    comment_id = response.get("id", "")
+    print(f"✓ Comment posted successfully to video {video_id} (comment_id: {comment_id})")
+

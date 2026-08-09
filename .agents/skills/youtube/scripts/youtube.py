@@ -84,6 +84,11 @@ def command_comments_router(args: argparse.Namespace) -> None:
     data.command_comments(args, youtube_client("readonly"))
 
 
+def command_comment_post_router(args: argparse.Namespace) -> None:
+    data.command_comment_post(args, youtube_client("manage"))
+
+
+
 def command_transcript_router(args: argparse.Namespace) -> None:
     data.command_transcript(args, youtube_client("readonly"))
 
@@ -150,6 +155,13 @@ def build_parser() -> argparse.ArgumentParser:
     comments.add_argument("--order", choices=["time", "relevance"], default="relevance")
     comments.add_argument("--json", action="store_true")
     comments.set_defaults(func=command_comments_router)
+
+    comment_post = sub.add_parser("comment-post", help="Post a top-level comment to a video.")
+    comment_post.add_argument("video", help="Video ID or URL")
+    comment_post.add_argument("--text", required=True, help="Comment text")
+    comment_post.add_argument("--json", action="store_true")
+    comment_post.set_defaults(func=command_comment_post_router)
+
 
     transcript = sub.add_parser("transcript", help="Fetch public transcript text with official caption-track lookup first.")
     transcript.add_argument("video")

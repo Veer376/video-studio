@@ -12,6 +12,7 @@ from urllib.parse import parse_qs, urlparse
 
 UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
 MANAGE_SCOPE = "https://www.googleapis.com/auth/youtube"
+FORCE_SSL_SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl"
 READONLY_SCOPE = "https://www.googleapis.com/auth/youtube.readonly"
 THUMBNAIL_MAX_BYTES = 2 * 1024 * 1024
 SUPPORTED_THUMBNAIL_SUFFIXES = {".png", ".jpg", ".jpeg"}
