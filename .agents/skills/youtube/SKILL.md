@@ -68,6 +68,12 @@ Fetch comments:
 python3 .agents/skills/youtube/scripts/youtube.py comments <video_id_or_url> --max-results 50
 ```
 
+Post a top-level comment to a video:
+
+```bash
+python3 .agents/skills/youtube/scripts/youtube.py comment-post <video_id_or_url> --text "🎥 Watch Full Video: https://youtu.be/<full_video_id>"
+```
+
 Fetch transcript text:
 
 ```bash
