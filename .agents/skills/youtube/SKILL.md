@@ -107,3 +107,5 @@ Do not copy another creator's idea verbatim. Use YouTube data to derive original
 - Do not inspect browser cookies, storage, XHR auth headers, or private Studio endpoints.
 - Keep generic API commands read-only unless the command is explicitly an upload/update command.
 - Do not read or write Story Video Maker `library/<project_slug>` paths from this skill.
+- **Sequential Execution During Auth:** Never launch multiple YouTube CLI commands in parallel if OAuth credentials are missing or unverified on disk. Execute a single command first to complete and save the OAuth token before queueing additional requests.
+- **User Notification on Browser Auth:** Always inform the user immediately when a command triggers an interactive browser OAuth consent flow, explaining that a Google login prompt will open.

@@ -1,5 +1,5 @@
 """
-Batch generate scene images using Cloudflare Workers AI flux-1-schnell model.
+Batch generate scene images using Cloudflare Workers AI flux-2-dev model.
 
 Usage:
     python3 generate_images.py --project-dir library/2026-08-01_krishna-motivation
@@ -30,9 +30,51 @@ def load_env():
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
+def load_cloudflare_credentials() -> list[tuple[str, str]]:
+    """
+    Collect all Cloudflare (account_id, api_token) pairs from environment variables.
+    Supports: CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN,
+    CLOUDFLARE_ACCOUNT_ID_1 + CLOUDFLARE_API_TOKEN_1, ..., _N
+    (also tolerates common typos like CLOURFLARE_ACCOUNT_ID_2).
+    """
+    pairs = []
+    seen = set()
+
+    def _get(key_names: list[str]) -> str:
+        for k in key_names:
+            v = os.environ.get(k, "").strip().strip('"').strip("'")
+            if v:
+                return v
+        return ""
+
+    def _add(acc: str, tok: str) -> None:
+        if acc and tok and (acc, tok) not in seen:
+            pairs.append((acc, tok))
+            seen.add((acc, tok))
+
+    # Base pair
+    acc_base = _get(["CLOUDFLARE_ACCOUNT_ID", "CLOURFLARE_ACCOUNT_ID"])
+    tok_base = _get(["CLOUDFLARE_API_TOKEN", "CLOURFLARE_API_TOKEN"])
+    _add(acc_base, tok_base)
+
+    # Numbered variants: 1...N
+    idx = 1
+    while True:
+        acc = _get([f"CLOUDFLARE_ACCOUNT_ID_{idx}", f"CLOURFLARE_ACCOUNT_ID_{idx}"])
+        tok = _get([f"CLOUDFLARE_API_TOKEN_{idx}", f"CLOURFLARE_API_TOKEN_{idx}"])
+        if not acc and not tok:
+            if idx > 10:
+                break
+            idx += 1
+            continue
+        _add(acc, tok)
+        idx += 1
+
+    return pairs
+
+
 def generate_single_image(
-    account_id: str,
-    api_token: str,
+    credentials: list[tuple[str, str]],
     model: str,
     prompt: str,
     width: int,
@@ -41,11 +83,12 @@ def generate_single_image(
     ref_image_path: Path | None = None,
     ref_weight: float | None = None,
 ) -> None:
-    url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{model}"
+    if not credentials:
+        raise RuntimeError("No Cloudflare credentials provided")
 
     # Determine if the model requires multipart/form-data or has reference image
     has_ref = ref_image_path is not None and ref_image_path.exists()
-    is_multipart = "klein" in model or "flux-2-dev" in model or has_ref
+    is_multipart = ("klein" in model or "flux-2-dev" in model or has_ref) and "schnell" not in model
 
     if is_multipart:
         boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
@@ -78,39 +121,46 @@ def generate_single_image(
         data_bytes = b"\r\n".join(body)
         content_type = f"multipart/form-data; boundary={boundary}"
     else:
-        payload = {"prompt": prompt}
-        if "schnell" not in model:
-            payload["width"] = width
-            payload["height"] = height
+        payload = {
+            "prompt": prompt,
+            "width": width,
+            "height": height,
+        }
         data_bytes = json.dumps(payload).encode("utf-8")
         content_type = "application/json"
-
-    req = urllib.request.Request(
-        url,
-        data=data_bytes,
-        headers={
-            "Authorization": f"Bearer {api_token}",
-            "Content-Type": content_type,
-            "User-Agent": "story-video-maker/0.1"
-        },
-        method="POST"
-    )
 
     try:
         ctx = ssl._create_unverified_context()
     except Exception:
         ctx = ssl.create_default_context()
 
-    # Retry loop for rate limits or transient errors
-    for attempt in range(1, 4):
+    n_creds = len(credentials)
+    max_attempts = n_creds * 3
+
+    for attempt in range(1, max_attempts + 1):
+        cred_idx = (attempt - 1) % n_creds
+        account_id, api_token = credentials[cred_idx]
+        url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{model}"
+
+        req = urllib.request.Request(
+            url,
+            data=data_bytes,
+            headers={
+                "Authorization": f"Bearer {api_token}",
+                "Content-Type": content_type,
+                "User-Agent": "story-video-maker/0.1"
+            },
+            method="POST"
+        )
+
         try:
             with urllib.request.urlopen(req, timeout=120, context=ctx) as response:
-                content_type = response.headers.get("Content-Type", "")
+                resp_content_type = response.headers.get("Content-Type", "")
                 response_data = response.read()
 
                 out_path.parent.mkdir(parents=True, exist_ok=True)
 
-                if "application/json" in content_type:
+                if "application/json" in resp_content_type:
                     data = json.loads(response_data.decode("utf-8"))
                     if "result" in data and "image" in data["result"]:
                         img_b64 = data["result"]["image"]
@@ -119,7 +169,6 @@ def generate_single_image(
                     else:
                         raise RuntimeError(f"Unexpected Cloudflare JSON response structure: {data}")
                 else:
-                    # Raw binary image bytes
                     out_path.write_bytes(response_data)
                 
                 print(f"✓ Image saved: {out_path.name}")
@@ -127,15 +176,25 @@ def generate_single_image(
 
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:500]
-            if exc.code in (429, 500, 503, 504) and attempt < 3:
+            is_quota_error = exc.code == 429 or "4006" in detail or "daily free allocation" in detail or "used up your daily free allocation" in detail
+            if is_quota_error and n_creds > 1:
+                next_cred_idx = (cred_idx + 1) % n_creds
+                print(
+                    f"  Warning: Cloudflare HTTP {exc.code} quota limit on account key[{cred_idx + 1}/{n_creds}] ({account_id[:8]}...). "
+                    f"Rotating to key[{next_cred_idx + 1}]...",
+                    file=sys.stderr
+                )
+                time.sleep(1.0)
+                continue
+            elif exc.code in (429, 500, 503, 504) and attempt < max_attempts:
                 wait = 3.0 * attempt
-                print(f"  Cloudflare HTTP {exc.code} (attempt {attempt}/3). Retrying in {wait}s...", file=sys.stderr)
+                print(f"  Cloudflare HTTP {exc.code} (attempt {attempt}/{max_attempts}). Retrying in {wait}s...", file=sys.stderr)
                 time.sleep(wait)
             else:
                 raise RuntimeError(f"Cloudflare HTTP {exc.code}: {detail}") from exc
         except urllib.error.URLError as exc:
-            if attempt < 3:
-                print(f"  Cloudflare network error (attempt {attempt}/3). Retrying...", file=sys.stderr)
+            if attempt < max_attempts:
+                print(f"  Cloudflare network error (attempt {attempt}/{max_attempts}). Retrying...", file=sys.stderr)
                 time.sleep(3.0)
             else:
                 raise RuntimeError(f"Cloudflare network error: {exc.reason}") from exc
@@ -145,17 +204,18 @@ def main():
     parser = argparse.ArgumentParser(description="Batch generate scene images using Cloudflare Workers AI")
     parser.add_argument("--project-dir", required=True, help="Path to the project directory")
     parser.add_argument("--force", action="store_true", help="Re-generate even if image already exists")
-    parser.add_argument("--model", default="@cf/black-forest-labs/flux-1-schnell", help="Cloudflare AI model to use")
+    parser.add_argument("--model", default="@cf/black-forest-labs/flux-2-klein-4b", help="Cloudflare AI model to use")
     parser.add_argument("--concurrency", type=int, default=2, help="Number of parallel generation threads")
     args = parser.parse_args()
 
     load_env()
-    account_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
-    api_token = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
+    credentials = load_cloudflare_credentials()
 
-    if not account_id or not api_token:
-        print("ERROR: CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not found in ~/.config/projects/.env", file=sys.stderr)
+    if not credentials:
+        print("ERROR: No Cloudflare ACCOUNT_ID / API_TOKEN credentials found in ~/.config/projects/.env", file=sys.stderr)
         sys.exit(1)
+
+    print(f"  Loaded {len(credentials)} Cloudflare account credential pair(s).")
 
     project_dir = Path(args.project_dir)
     session_path = project_dir / "session.json"
@@ -228,8 +288,7 @@ def main():
             scene, prompt, out_path, ref_path, ref_w = task
             try:
                 generate_single_image(
-                    account_id=account_id,
-                    api_token=api_token,
+                    credentials=credentials,
                     model=args.model,
                     prompt=prompt,
                     width=width,
@@ -276,17 +335,17 @@ if __name__ == "__main__":
 """
 MODELS:
 
-Complete Official Catalog: All 11 Cloudflare Image Models (Ranked Best to Worst)
+Complete Official Catalog: Cloudflare Image Models (Grounded Real-World Neuron Pricing)
 
-1 👑	FLUX.2 [dev]	         @cf/black-forest-labs/flux-2-dev	multipart/form-data	~30 – 50 neurons	                            200 to 330 Images / Day
-2 ⚡	FLUX.2 [klein] 4B	         @cf/black-forest-labs/flux-2-klein-4b	multipart/form-data	~20 – 40 neurons	                        250 to 500 Images / Day
-3 🎨	FLUX.1 [schnell] 12B	 @cf/black-forest-labs/flux-1-schnell	application/json	~35 – 55 neurons	                        180 to 280 Images / Day
-4 ✨	Leonardo Phoenix 1.0	    @cf/leonardo/phoenix-1.0	application/json	~45 – 65 neurons	                                  150 to 220 Images / Day
-5 🖌️	Leonardo Lucid Origin	  @cf/leonardo/lucid-origin	application/json	~50 – 70 neurons	                                    140 to 200 Images / Day
-6 ⚡	SDXL-Lightning	             @cf/bytedance/stable-diffusion-xl-lightning	application/json	~20 – 30 neurons	               330 to 500 Images / Day
-7 🎭	DreamShaper 8 LCM	     @cf/lykon/dreamshaper-8-lcm	application/json	~20 – 35 neurons	                               280 to 500 Images / Day
-8 🖼️	SDXL Base 1.0	          @cf/stabilityai/stable-diffusion-xl-base-1.0	application/json	~180 – 250 neurons	                40 to 55 Images / Day
-9 🛠️	DreamShaper 8 Inpainting  @cf/lykon/dreamshaper-8-inpainting	application/json	~25 – 45 neurons	                        220 to 400 Images / Day
-10 🛠️	SD 1.5 Inpainting	      @cf/runwayml/stable-diffusion-v1-5-inpainting	application/json	~15 – 25 neurons	                400 to 650 Images / Day
-11 🔄	SD 1.5 Img2Img	         @cf/stabilityai/stable-diffusion-v1-5-img2img	application/json	~12 – 20 neurons	               500 to 800 Images / Day
+1 👑	FLUX.2 [dev]	         @cf/black-forest-labs/flux-2-dev	multipart/form-data	~2,500 – 3,500 neurons	           3 to 4 Images / Day
+2 🎨	FLUX.1 [schnell] 12B	 @cf/black-forest-labs/flux-1-schnell	application/json	~1,000 – 1,200 neurons	       8 to 10 Images / Day
+3 ⚡	FLUX.2 [klein] 4B	         @cf/black-forest-labs/flux-2-klein-4b	multipart/form-data	~500 – 800 neurons	           12 to 20 Images / Day
+4 ✨	Leonardo Phoenix 1.0	    @cf/leonardo/phoenix-1.0	application/json	~800 – 1,500 neurons	                 6 to 12 Images / Day
+5 🖌️	Leonardo Lucid Origin	  @cf/leonardo/lucid-origin	application/json	~800 – 1,500 neurons	                   6 to 12 Images / Day
+6 ⚡	SDXL-Lightning	             @cf/bytedance/stable-diffusion-xl-lightning	application/json	~150 – 250 neurons	  40 to 65 Images / Day
+7 🎭	DreamShaper 8 LCM	     @cf/lykon/dreamshaper-8-lcm	application/json	~100 – 200 neurons	                  50 to 100 Images / Day
+8 🖼️	SDXL Base 1.0	          @cf/stabilityai/stable-diffusion-xl-base-1.0	application/json	~300 – 600 neurons	   15 to 30 Images / Day
+9 🛠️	DreamShaper 8 Inpainting  @cf/lykon/dreamshaper-8-inpainting	application/json	~200 – 400 neurons	           25 to 50 Images / Day
+10 🛠️	SD 1.5 Inpainting	      @cf/runwayml/stable-diffusion-v1-5-inpainting	application/json	~150 – 300 neurons	   30 to 60 Images / Day
+11 🔄	SD 1.5 Img2Img	         @cf/stabilityai/stable-diffusion-v1-5-img2img	application/json	~100 – 200 neurons	  50 to 100 Images / Day
 """

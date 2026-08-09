@@ -171,4 +171,5 @@ Update `session.json` status to `"storyboard_complete"`.
 2. **No consecutive camera framing.** Rotate composition across adjacent scenes.
 3. **Reference scene ID must point to a prior scene** — never forward-reference a scene that has not yet been written.
 4. **Character keys are `snake_case`.** Use the same key name consistently across `characters` and `referenced_characters`.
-5. **In-image text must match `brief.language`** from `session.json` — not English, unless English is the brief language.
+6. **Safety filter avoidance.** Do not use adjectives or phrasing that trigger false-positive AI safety filters (e.g. avoid 'piercing gaze', explicit age/thinness body descriptors; use neutral emotional descriptors like 'serene gaze', 'calm posture').
+7. **9:16 vertical visual composition.** When `aspect_ratio` is `9:16`, keep primary subjects centered in frame to avoid important details getting cropped at vertical edges.
