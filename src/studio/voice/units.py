@@ -56,12 +56,14 @@ def _input_hash(text: str, model: str, voice: str) -> str:
 def _generate_audio(keys: list[str], model: str, voice: str, text: str, output: Path) -> None:
     errors: list[str] = []
     for key_number, key in enumerate(keys, start=1):
+        masked = key[:6] + "..." + key[-4:] if len(key) > 10 else "***"
         try:
+            print(f"  → Requesting TTS with Key {key_number}/{len(keys)} [{masked}]...", flush=True)
             call_gemini_tts(key, model, voice, text, output)
             return
         except Exception as exc:
-            errors.append(f"key {key_number}: {exc}")
-            print(f"  TTS key {key_number}/{len(keys)} failed; trying the next key.")
+            errors.append(f"key {key_number} [{masked}]: {exc}")
+            print(f"  ⚠ Key {key_number}/{len(keys)} [{masked}] failed ({str(exc)[:60]}). Rotating immediately to next key...", flush=True)
     raise RuntimeError("All Gemini TTS keys failed: " + " | ".join(errors))
 
 
@@ -106,7 +108,7 @@ def generate_narration_units(
             not force
             and audio_path.exists()
             and audio_path.stat().st_size > 44
-            and previous.get("input_hash") == input_hash
+            and (not previous or previous.get("input_hash") == input_hash)
         )
         if reusable:
             print(f"  {unit_id}: reusing audio")

@@ -12,10 +12,12 @@ from typing import Any
 YOUTUBE_SCRIPTS = Path(__file__).resolve().parents[2] / "youtube" / "scripts"
 if not YOUTUBE_SCRIPTS.exists():
     YOUTUBE_SCRIPTS = Path.cwd() / ".agents" / "skills" / "youtube" / "scripts"
+if not YOUTUBE_SCRIPTS.exists():
+    YOUTUBE_SCRIPTS = Path.home() / ".gemini" / "config" / "skills" / "youtube" / "scripts"
 sys.path.insert(0, str(YOUTUBE_SCRIPTS))
 
-from youtube_lib.auth import youtube_client  # noqa: E402
-from youtube_lib.common import (  # noqa: E402
+from auth import youtube_client  # noqa: E402
+from common import (  # noqa: E402
     SUPPORTED_THUMBNAIL_SUFFIXES,
     THUMBNAIL_MAX_BYTES,
     die,
@@ -23,11 +25,12 @@ from youtube_lib.common import (  # noqa: E402
     read_json,
     sha256_json,
     utc_now,
+    validate_channel,
     video_url,
 )
-from youtube_lib.data import fetch_video_resource  # noqa: E402
-from youtube_lib.media import compress_thumbnail, ensure_uploadable_thumbnail  # noqa: E402
-from youtube_lib.upload import print_upload_result, upload_file  # noqa: E402
+from data import fetch_video_resource  # noqa: E402
+from media import compress_thumbnail, ensure_uploadable_thumbnail  # noqa: E402
+from upload import print_upload_result, upload_file  # noqa: E402
 
 
 def write_upload_json(project_dir: Path, payload: dict[str, Any]) -> Path:
@@ -119,6 +122,7 @@ def upload_state_from_video(project_dir: Path, video_id: str, item: dict[str, An
 
 
 def command_publish(args: argparse.Namespace) -> None:
+    validate_channel(args.channel)
     project_dir = normalize_project_dir(args.project_dir)
     paths = project_paths(project_dir)
 
@@ -153,7 +157,7 @@ def command_publish(args: argparse.Namespace) -> None:
         compression = None
 
     payload = upload_file(
-        youtube_client("upload"),
+        youtube_client("upload", args.channel),
         video_path=paths["video"],
         title=str(title),
         description=str(description),
@@ -190,7 +194,7 @@ def command_status(args: argparse.Namespace) -> None:
     if not video_id:
         die(f"upload.json does not contain video_id: {paths['upload']}")
 
-    item = fetch_video_resource(youtube_client("manage"), video_id, include_processing=True)
+    item = fetch_video_resource(youtube_client("manage", args.channel), video_id, include_processing=True)
     status = item.get("status", {}) if item else {}
     processing = item.get("processingDetails", {}) if item else {}
     payload.update(
@@ -224,7 +228,7 @@ def command_attach(args: argparse.Namespace) -> None:
             "use --force to attach a different video"
         )
 
-    item = fetch_video_resource(youtube_client("manage"), video_id)
+    item = fetch_video_resource(youtube_client("manage", args.channel), video_id)
     payload = existing or {}
     payload.update(upload_state_from_video(project_dir, video_id, item))
     out = write_upload_json(project_dir, payload)
@@ -260,7 +264,17 @@ def command_compress_thumbnail(args: argparse.Namespace) -> None:
     print("status ok" if out.stat().st_size <= args.max_bytes else "status over_limit")
 
 
+def add_channel_arg(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--channel",
+        required=True,
+        metavar="CHANNEL",
+        help="Registered channel alias (e.g. kathamind, kahanikachakkar)",
+    )
+
+
 def add_publish_args(parser: argparse.ArgumentParser) -> None:
+    add_channel_arg(parser)
     parser.add_argument("project_dir", help="Path like library/<project_slug>")
     parser.add_argument("--visibility", choices=["private", "unlisted", "public"], default="private")
     parser.add_argument("--thumbnail", help="Thumbnail filename under youtube/thumbnails/ or explicit path.")
@@ -278,10 +292,12 @@ def build_parser() -> argparse.ArgumentParser:
     publish.set_defaults(func=command_publish)
 
     status = sub.add_parser("status", help="Check an existing project upload.")
+    add_channel_arg(status)
     status.add_argument("project_dir", help="Path like library/<project_slug>")
     status.set_defaults(func=command_status)
 
     attach = sub.add_parser("attach", help="Attach a manually uploaded YouTube video to a project.")
+    add_channel_arg(attach)
     attach.add_argument("project_dir", help="Path like library/<project_slug>")
     attach.add_argument("video", help="YouTube video id or URL")
     attach.add_argument("--force", action="store_true")

@@ -147,7 +147,7 @@ Mix:
 
 ## Thumbnail Images
 
-Create 3 distinct thumbnail PNG files for every YouTube packaging run.
+Create distinct thumbnails PNG files for every YouTube packaging run.
 
 Each thumbnail must communicate one bold idea at a glance. Use high contrast, readable text, a clear emotional face/figure, a strong mystery cue, or a single striking visual conflict. Do not split attention across multiple competing hooks.
 
@@ -234,4 +234,4 @@ Do not add thumbnail text later using code, PIL, Canvas, or other local overlay 
 - Run market grounding with the `youtube` skill before generating final titles or thumbnails.
 - Keep packaging grounded in the actual script and research.
 - Do not fabricate sources, quotes, or achievements.
-- Always generate 3 thumbnail PNGs.
+- Prefer to generate 3 thumbnail PNGs if unspecified by the user. 

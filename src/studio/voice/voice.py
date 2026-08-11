@@ -82,48 +82,37 @@ def call_gemini_tts(api_key: str, model: str, voice: str, text: str, out_path: P
         method="POST",
     )
 
-    for attempt in range(1, 6):
-        try:
-            with urllib.request.urlopen(req, timeout=120, context=ctx) as resp:
-                res_data = json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=120, context=ctx) as resp:
+            res_data = json.loads(resp.read().decode("utf-8"))
 
-            parts = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-            if not parts:
-                raise RuntimeError(f"No parts in Gemini TTS response: {res_data}")
+        parts = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        if not parts:
+            raise RuntimeError(f"No parts in Gemini TTS response: {res_data}")
 
-            audio_b64 = parts[0].get("inlineData", {}).get("data")
-            if not audio_b64:
-                raise RuntimeError(f"No audio data in Gemini TTS response: {res_data}")
+        audio_b64 = parts[0].get("inlineData", {}).get("data")
+        if not audio_b64:
+            raise RuntimeError(f"No audio data in Gemini TTS response: {res_data}")
 
-            raw_pcm = base64.b64decode(audio_b64)
+        raw_pcm = base64.b64decode(audio_b64)
 
-            # Gemini returns little-endian 16-bit PCM at 24000 Hz
-            out_path.parent.mkdir(parents=True, exist_ok=True)
-            with wave.open(str(out_path), "wb") as wav:
-                wav.setnchannels(1)
-                wav.setsampwidth(2)
-                wav.setframerate(24000)
-                wav.writeframes(raw_pcm)
+        # Gemini returns little-endian 16-bit PCM at 24000 Hz
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        with wave.open(str(out_path), "wb") as wav:
+            wav.setnchannels(1)
+            wav.setsampwidth(2)
+            wav.setframerate(24000)
+            wav.writeframes(raw_pcm)
 
-            print(f"✓ Audio written to: {out_path}")
-            return
+        print(f"✓ Audio written to: {out_path}")
+        return
 
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")[:500]
-            if exc.code in (429, 500, 503, 504) and attempt < 5:
-                wait = 2.0 * (2 ** (attempt - 1))
-                print(f"  HTTP {exc.code} — retrying in {wait:.1f}s... (attempt {attempt}/5)", file=sys.stderr)
-                time.sleep(wait)
-            else:
-                raise RuntimeError(f"Gemini TTS HTTP {exc.code}: {detail}") from exc
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:500]
+        raise RuntimeError(f"Gemini TTS HTTP {exc.code}: {detail}") from exc
 
-        except urllib.error.URLError as exc:
-            if attempt < 5:
-                wait = 2.0 * (2 ** (attempt - 1))
-                print(f"  Network error ({exc.reason}) — retrying in {wait:.1f}s...", file=sys.stderr)
-                time.sleep(wait)
-            else:
-                raise RuntimeError(f"Gemini TTS network error: {exc.reason}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Gemini TTS network error: {exc.reason}") from exc
 
 
 def concatenate_wav_files(input_paths: list[Path], output_path: Path) -> None:
@@ -175,20 +164,23 @@ def main():
     # Split by paragraph
     paragraphs = [p.strip() for p in narration.split("\n\n") if p.strip()]
 
+    # Helper function to mask key for logging
+    def mask_key(k: str) -> str:
+        return k[:6] + "..." + k[-4:] if len(k) > 10 else "***"
+
     # If --no-split is specified, or only 1 paragraph, generate all at once (fallback)
     if args.no_split or len(paragraphs) <= 1:
         word_count = len(narration.split())
         print(f"→ Generating full audio in a single request for {word_count} words")
         print(f"  Model: {model} | Voice: {voice}")
-        for key in api_keys:
+        for idx, key in enumerate(api_keys):
             try:
+                print(f"  Trying Key {idx+1}/{len(api_keys)} [{mask_key(key)}]...")
                 call_gemini_tts(api_key=key, model=model, voice=voice, text=narration, out_path=out_path)
                 return
-            except RuntimeError as e:
-                if "400" in str(e) or "403" in str(e):
-                    print(f"  Key failed ({str(e)[:60]}...) — trying next key", file=sys.stderr)
-                    continue
-                raise
+            except Exception as e:
+                print(f"  Key {idx+1} failed ({str(e)[:80]}...) — rotating to next key", file=sys.stderr)
+                continue
         print("ERROR: All Gemini API keys exhausted.", file=sys.stderr)
         sys.exit(1)
     else:
@@ -200,6 +192,9 @@ def main():
         temp_dir.mkdir(parents=True, exist_ok=True)
         
         temp_files = []
+        current_key_idx = 0
+        total_keys = len(api_keys)
+
         for i, paragraph_text in enumerate(paragraphs):
             p_id = f"paragraph-{i+1:03d}"
             p_wav = temp_dir / f"{p_id}.wav"
@@ -209,33 +204,29 @@ def main():
                 print(f"  Skipping {p_id} (already generated)...")
                 continue
             
-            # Select key using round-robin rotation across the list of unique keys
-            key_index = i % len(api_keys)
-            key = api_keys[key_index]
-            
-            print(f"  Generating audio for {p_id} ({len(paragraph_text.split())} words) using Key {key_index + 1}/{len(api_keys)}...")
-            
             success = False
-            for attempt in range(3):
+            max_attempts = total_keys * 3
+            
+            for _ in range(max_attempts):
+                key_idx = current_key_idx % total_keys
+                key = api_keys[key_idx]
+                key_label = f"Key {key_idx + 1}/{total_keys} [{mask_key(key)}]"
+                
+                print(f"  Generating audio for {p_id} ({len(paragraph_text.split())} words) using {key_label}...")
+                
                 try:
                     call_gemini_tts(api_key=key, model=model, voice=voice, text=paragraph_text, out_path=p_wav)
                     success = True
+                    current_key_idx += 1  # Move to next key for the next paragraph
                     break
                 except Exception as e:
-                    print(f"    Warning: Key {key_index + 1} attempt {attempt+1} failed: {e}. Trying fallback keys...")
-                    for alt_key in api_keys:
-                        if alt_key == key:
-                            continue
-                        try:
-                            call_gemini_tts(api_key=alt_key, model=model, voice=voice, text=paragraph_text, out_path=p_wav)
-                            success = True
-                            break
-                        except Exception:
-                            continue
-                    if success:
-                        break
+                    err_msg = str(e)
+                    current_key_idx += 1  # Instantly rotate to next key (wrap around after key 7)
+                    next_key_idx = (current_key_idx % total_keys) + 1
+                    print(f"    ⚠ {key_label} failed ({err_msg[:60]}). Rotating immediately to Key {next_key_idx}/{total_keys}...", file=sys.stderr)
+
             if not success:
-                print(f"ERROR: Failed to generate audio for {p_id}", file=sys.stderr)
+                print(f"ERROR: Failed to generate audio for {p_id} after trying all available keys.", file=sys.stderr)
                 sys.exit(1)
                 
         # Concatenate temp files into out_path

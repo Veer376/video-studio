@@ -1,6 +1,6 @@
 ---
 name: tavily
-description: Tavily web-source capability skill. Use when Codex needs Tavily-backed search, URL extraction, site mapping, site crawling, or async deep research for any workflow, including Story Video Maker discovery and research skills.
+description: Tavily web-source capability skill. Use when you need Tavily-backed search, URL extraction, site mapping, site crawling, or async deep research for any workflow.
 ---
 
 # Tavily
