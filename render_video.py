@@ -13,8 +13,8 @@ from typing import Any
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
+DEFAULT_CONFIG = PROJECT_ROOT / "stories" / "aloo-flood-rescue" / "scenes.json"
 DEFAULT_TITLE = "One Hour Before..."
-DEFAULT_OUTPUT = PROJECT_ROOT / "final_video.mp4"
 DEFAULT_TITLE_START = 21.0
 DEFAULT_TITLE_DURATION = 3.0
 FONT_CANDIDATES = (
@@ -29,8 +29,13 @@ class RenderError(RuntimeError):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path, default=PROJECT_ROOT / "scenes.json")
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Final MP4 path (default: <story>/output/final-video.mp4)",
+    )
     parser.add_argument("--title", default=DEFAULT_TITLE)
     parser.add_argument("--title-start", type=float, default=DEFAULT_TITLE_START)
     parser.add_argument("--title-duration", type=float, default=DEFAULT_TITLE_DURATION)
@@ -179,7 +184,10 @@ def render(args: argparse.Namespace) -> None:
     title_end = title_start + args.title_duration
     if title_start < 0 or args.title_duration <= 0 or title_end > base_duration:
         raise RenderError("Title start and duration must fit entirely inside the final video")
-    output = args.output if args.output.is_absolute() else PROJECT_ROOT / args.output
+    if args.output is None:
+        output = config_path.parent / "output" / "final-video.mp4"
+    else:
+        output = args.output if args.output.is_absolute() else PROJECT_ROOT / args.output
     print(f"Scenes: {len(scenes)}")
     print("Black transition: none")
     print(f"Title overlay pass: final timeline, {title_start:.3f}s–{title_end:.3f}s")

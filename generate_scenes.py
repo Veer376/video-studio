@@ -1,4 +1,4 @@
-"""Generate one canonical Omni Flash video for each scene in scenes.json."""
+"""Generate canonical Omni Flash videos from a story's scenes.json."""
 
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ from typing import Any
 from main import create_client, generate_video
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent
+DEFAULT_CONFIG = PROJECT_ROOT / "stories" / "aloo-flood-rescue" / "scenes.json"
 HANDLE_PATTERN = re.compile(r"(?<![A-Za-z0-9_])@[A-Za-z][A-Za-z0-9_-]*")
 
 
@@ -35,8 +37,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--config",
         type=Path,
-        default=Path("scenes.json"),
-        help="Scene configuration file (default: scenes.json)",
+        default=DEFAULT_CONFIG,
+        help="Story scene configuration (default: current flood story)",
     )
     parser.add_argument(
         "--scene",
@@ -278,8 +280,9 @@ def scene_is_selected(scene: dict[str, Any], args: argparse.Namespace) -> bool:
 
 
 def run(args: argparse.Namespace) -> int:
-    config_path = args.config.resolve()
-    project_root = config_path.parent
+    config_path = args.config if args.config.is_absolute() else PROJECT_ROOT / args.config
+    config_path = config_path.resolve()
+    project_root = PROJECT_ROOT
     config = load_json(config_path)
     scenes = config.get("scenes")
     if not isinstance(scenes, list) or not all(isinstance(item, dict) for item in scenes):

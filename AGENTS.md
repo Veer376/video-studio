@@ -2,7 +2,7 @@
 
 ## Required context
 
-- Read `README.md`, `STORY_PLAN.md`, `characters.json`, and `scenes.json` before planning or generating story clips.
+- Read `README.md` plus the selected story's `story.md`, `characters.json`, and `scenes.json` before planning or generating clips.
 - Use the shared `omni-flash-prompt-writer` skill for every Gemini Omni Flash clip prompt, prompt revision, and prompt diagnosis.
 - Do not use that skill for still-image character design prompts or API implementation.
 
@@ -42,7 +42,7 @@
 
 ## Output discipline
 
-- Store final authoring prompts in `scenes.json` using `@handles`.
+- Store final authoring prompts in the selected story's `scenes.json` using `@handles`.
 - Keep `characters.json` limited to recurring, consistency-critical character identity: handle, name, and reference path.
 - Save one canonical video at each scene's `output_path`. Skip existing videos by default; replace one only when regeneration is explicitly requested and the replacement has passed stream validation.
 - Visually review generated clips and verify final media streams before marking a scene generated.

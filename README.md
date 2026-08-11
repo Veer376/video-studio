@@ -4,21 +4,38 @@ An experimental, API-driven pipeline for building a story from short Gemini Omni
 
 Project-specific model behavior and recovery patterns are recorded in [`OMNI_FINDINGS.md`](OMNI_FINDINGS.md).
 
+## Project layout
+
+```text
+assets/characters/                 reusable character references
+stories/<story-slug>/story.md      creative contract, parts and scene briefs
+stories/<story-slug>/characters.json
+stories/<story-slug>/scenes.json   executable production prompts
+stories/<story-slug>/videos/       canonical scene MP4s
+stories/<story-slug>/temp/         continuity frames and review media
+stories/<story-slug>/reviews/      future reviewer decisions
+stories/<story-slug>/output/       final renders
+youtube/                            branding, thumbnails and promotion assets
+```
+
+The current story slug is `aloo-flood-rescue`. Reusable assets remain at project level; every story references them using explicit project-relative paths.
+
 ## Workflow
 
 1. Describe the story and each rough scene manually.
 2. Convert every rough scene into a production prompt with the `omni-flash-prompt-writer` skill.
 3. Define handles, names, and reference paths only for recurring characters whose appearance must stay consistent across clips.
-4. Store each production prompt, its subject handles, additional ordered reference images, and optional previous-scene reference in `scenes.json`.
+4. Store each production prompt, its subject handles, additional ordered reference images, and optional previous-scene reference in the story's `scenes.json`.
 5. Resolve subject handles to Gemini image-reference tags at request time and generate each clip with `gemini-omni-flash-preview`.
 6. Review the canonical scene MP4 files, regenerate individual scenes when necessary, then concatenate them with FFmpeg into the final video.
 
-The current structures are stored in `characters.json` and `scenes.json`. A scene has this minimal form:
+The current structures are stored in `stories/aloo-flood-rescue/characters.json` and `stories/aloo-flood-rescue/scenes.json`. A scene has this minimal form:
 
 ```json
 {
   "model": "gemini-omni-flash-preview",
   "aspect_ratio": "16:9",
+  "characters_file": "stories/aloo-flood-rescue/characters.json",
   "scenes": [
     {
       "id": "s001",
@@ -26,7 +43,7 @@ The current structures are stored in `characters.json` and `scenes.json`. A scen
       "subjects": ["@aloo", "@gajar"],
       "reference_images": [],
       "reference_scene_id": null,
-      "output_path": "scenes/s001.mp4"
+      "output_path": "stories/aloo-flood-rescue/videos/s001.mp4"
     },
     {
       "id": "s002",
@@ -34,7 +51,7 @@ The current structures are stored in `characters.json` and `scenes.json`. A scen
       "subjects": ["@aloo", "@chhotu"],
       "reference_images": [],
       "reference_scene_id": "s001",
-      "output_path": "scenes/s002.mp4"
+      "output_path": "stories/aloo-flood-rescue/videos/s002.mp4"
     }
   ]
 }
@@ -89,10 +106,16 @@ Official references: [Gemini Omni Flash guide](https://ai.google.dev/gemini-api/
 
 ## Generate scenes
 
-`generate_scenes.py` reads `scenes.json`, validates every referenced character asset, compiles project `@handles` into ordered Gemini image references, and saves one canonical MP4 per scene. Preview the work without using generation quota:
+`generate_scenes.py` reads the selected story's `scenes.json`, validates every referenced character asset, compiles project `@handles` into ordered Gemini image references, and saves one canonical MP4 per scene. Its default is the current `aloo-flood-rescue` story. Preview the work without using generation quota:
 
 ```bash
 python3 generate_scenes.py --dry-run
+```
+
+Select another story explicitly:
+
+```bash
+python3 generate_scenes.py --config stories/<story-slug>/scenes.json --dry-run
 ```
 
 Generate every missing scene:
@@ -111,7 +134,7 @@ python3 generate_scenes.py --scene s001
 Each scene has one `output_path`:
 
 ```text
-scenes/
+stories/aloo-flood-rescue/videos/
   s001.mp4
   s002.mp4
 ```
@@ -130,7 +153,7 @@ The presence of a valid `output_path` file is the generation state; no separate 
 
 ```bash
 python3 render_video.py --dry-run
-python3 render_video.py --output final_video-01.mp4
+python3 render_video.py
 ```
 
 The default title is `One Hour Before...`, overlaid on the finished video from 21.0s to 24.0s. Override the title or timing when needed:
@@ -140,10 +163,10 @@ python3 render_video.py \
   --title "One Hour Before..." \
   --title-start 21.0 \
   --title-duration 3.0 \
-  --output final_video-01.mp4
+  --output stories/aloo-flood-rescue/output/final-video-01.mp4
 ```
 
-The script writes a temporary partial render, validates its video and audio streams with `ffprobe`, and promotes it to the requested output only after successful validation.
+By default, the script writes to the selected story's `output/final-video.mp4`. It uses a temporary partial render, validates its video and audio streams with `ffprobe`, and promotes it only after successful validation.
 
 ## Setup
 
@@ -169,7 +192,7 @@ Optional image references can be supplied in upload order:
 ```bash
 python3 main.py \
   --prompt "[# Sources <FIRST_FRAME>@Image1] [# References <IMAGE_REF_0>@Image2] ..." \
-  --image scenes/s001-last-frame.png \
+  --image stories/aloo-flood-rescue/videos/s001-last-frame.png \
   --image assets/references/ravi.png \
   --task reference_to_video \
   --output tests/videos/continued-scene.mp4
@@ -181,7 +204,7 @@ For an isolated uploaded-video edit, supply one short video and use a surgical p
 
 ```bash
 python3 main.py \
-  --video scenes/s014.mp4 \
+  --video stories/aloo-flood-rescue/videos/s014.mp4 \
   --task edit \
   --prompt "Remove only the duplicate character. Keep the original camera, movement, timing, lighting, and audio unchanged. Keep everything else the same." \
   --output tests/videos/s014-edited.mp4

@@ -9,6 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
-# Generated scene videos
-scenes/*.mp4
-scenes/*.partial.mp4
+# Generated story media
+stories/*/videos/*.mp4
+stories/*/videos/*.partial.mp4
+stories/*/temp/contact_sheets/*
+stories/*/temp/partial/*
