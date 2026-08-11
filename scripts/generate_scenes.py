@@ -12,10 +12,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from main import create_client, generate_video
+try:
+    from .main import create_client, generate_video
+except ImportError:  # Direct execution: python3 scripts/generate_scenes.py
+    from main import create_client, generate_video
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = PROJECT_ROOT / "stories" / "aloo-flood-rescue" / "scenes.json"
 HANDLE_PATTERN = re.compile(r"(?<![A-Za-z0-9_])@[A-Za-z][A-Za-z0-9_-]*")
 

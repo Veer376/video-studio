@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from generate_scenes import compile_scene, scene_first_frame_path, scene_output_path
+from scripts.generate_scenes import compile_scene, scene_first_frame_path, scene_output_path
 
 
 class CompileSceneTests(unittest.TestCase):

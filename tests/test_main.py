@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from main import video_input, video_response_format
+from scripts.main import video_input, video_response_format
 
 
 class VideoInputTests(unittest.TestCase):
