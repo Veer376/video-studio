@@ -1,6 +1,6 @@
 ---
 name: compose
-description: Generate or revise narration scripts from completed story research through blueprint approval and script writing. Use when session.json has research_complete, research.md exists, and script.md is missing or the user requests a rewrite. Routes vertical Shorts, standard scripts, and >=480-second long-form scripts to distinct duration rules.
+description: Generate or revise narration scripts from completed story research through blueprint approval and script writing. Use when session.json has research_complete, research.md exists, and script.md is missing or the user requests a rewrite. Routes vertical Shorts, standard scripts, and long-form scripts of 480 seconds or longer to distinct duration rules.
 ---
 
 # Compose Skill
