@@ -1,24 +1,18 @@
----
-name: intake
-description: Pre-flight brief gathering skill. Run this at the start of any video project. Gathers the core idea, tone, audience, voice language, target duration, and visual style to create a lean session.json.
----
+# Intake Stage
 
-# Intake Skill
-
-Run this skill at the very beginning of every new video project, before writing any script or generating any assets. The output is a `session.json` file that acts as the single source of truth for the entire video production pipeline.
+Run this stage at the beginning of a new video project, before writing a script or generating assets. Its output is the pipeline's `session.json` source of truth.
 
 ---
 
-## When to Activate
+## When to Run
 
-Activate this skill when:
+Run this stage when:
 - The user says they want to create a new story video or a vertical Short.
 - No `session.json` exists in the target project folder.
 - The user says "let's start fresh", "new video", or "create a short".
 
 > [!NOTE]
-> Use the `/grill-me` or `interview-me` skill, if available in your system.
-If the user has alread discovered the idea, use the selected idea from conversation as the answer.
+> Use the `ask_question` tool, if available in your system.
 ---
 
 ## Intake Workflow
@@ -99,6 +93,6 @@ Follow these steps in exact order:
 
 - Default language if skipped: `hi-IN`.
 - Default aspect ratio if skipped: `16:9`. If vertical or Short is specified, set `visual.aspect_ratio` to `9:16`.
-- The current production pipeline is fixed to `image-story`, 30fps, Cloudflare images, Gemini TTS, and subtitles enabled. Resolution matches the aspect ratio (`1920x1080` for `16:9`, `1080x1920` for `9:16`). Do not write those defaults into `session.json`.
+- The default production flow uses 30fps, Cloudflare images, Gemini TTS, and subtitles. Resolution matches the aspect ratio (`1920x1080` for `16:9`, `1080x1920` for `9:16`). Do not write those defaults into `session.json`.
 - Keep `voice` lean for now: only write `voice.language`.
-- Never generate story content, images, or audio during this skill. This skill only asks questions and writes `session.json`.
+- Never generate story content, images, or audio during this stage. This stage only asks questions and writes `session.json`.

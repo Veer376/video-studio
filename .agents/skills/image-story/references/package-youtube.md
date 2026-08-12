@@ -1,11 +1,6 @@
----
-name: package-youtube
-description: YouTube packaging skill for Story Video Maker. Use when the user asks to create YouTube-ready title, description, tags, script-in-description, or thumbnails for an existing library/<project_name> video. Writes packaging files under the project's youtube/ folder only; does not participate in the main image-story creation pipeline.
----
+# YouTube Packaging Stage
 
-# Package YouTube Skill
-
-This skill packages a completed or near-completed Story Video Maker project for YouTube. It is not part of the main creation flow and should only run when the user asks for YouTube upload content for a specific `library/<project_name>`.
+Run this optional stage only when the user requests YouTube packaging for a specific completed or near-completed `library/<project_name>` project.
 
 ## Boundaries
 
@@ -47,14 +42,13 @@ youtube/
 └── metadata.json
 ```
 
-Always generate actual thumbnail images and save them as:
+Generate only the thumbnail images explicitly chosen by the user and save them as:
 
 ```text
 youtube/
 └── thumbnails/
     ├── thumbnail-01.png
-    ├── thumbnail-02.png
-    └── thumbnail-03.png
+    └── ... up to thumbnail-05.png
 ```
 
 ## Content Strategy
@@ -147,7 +141,17 @@ Mix:
 
 ## Thumbnail Images
 
-Create distinct thumbnails PNG files for every YouTube packaging run.
+Thumbnail generation is user-budgeted. Never assume a fixed count and never generate an image before the selection gate below.
+
+### Concept and Count Gate
+
+1. Create exactly **5 distinct thumbnail concepts** grounded in the chosen title strategy. Concepts are text proposals, not generated images.
+2. Rank them by expected effectiveness and present all 5 with their short name, in-image text, composition, emotion, and reason.
+3. Ask how many thumbnails to generate now, from **1 to 5**, using `ask_question` or an equivalent structured question tool when available. Also let the user name specific concept numbers.
+4. If the user gives only a count, generate the top-ranked N concepts. If they name concepts, generate only those concepts.
+5. Do not continue to image generation until the user answers. A previous generic request to "package the video" is not consent to spend image-generation credits.
+
+Create a distinct PNG file for each selected concept only.
 
 Each thumbnail must communicate one bold idea at a glance. Use high contrast, readable text, a clear emotional face/figure, a strong mystery cue, or a single striking visual conflict. Do not split attention across multiple competing hooks.
 
@@ -157,7 +161,7 @@ Design title and thumbnail as a pair (the Macro Loop entry point). **Title-Thumb
 
 If the thumbnail uses text, the text must be hook copy, not a descriptive label. Use the same hook language as the title strategy: conflict, curiosity, reversal, stakes, insult, fear, price, secret, failure, duty, shame, self-respect, or transformation when truthful. Avoid vague fragments that do not make sense alone or give no reason to click.
 
-Each generated thumbnail should have a clear visual direction:
+Each of the 5 proposed thumbnail concepts should have a clear visual direction:
 
 ```text
 Thumbnail <N>: <short name>
@@ -172,7 +176,7 @@ Existing `images/scene-*.png` files may be inspected or used as visual reference
 
 ## Thumbnail Image Generation
 
-1. Generate fresh complete thumbnail images with the system `imagegen` skill or any available built-in image generation tool.
+1. After the user passes the concept-and-count gate, generate fresh complete thumbnail images only for the selected concepts with the system `imagegen` skill or any available built-in image generation tool.
 2. Include exact `In-image text` in the image generation prompt itself, integrated into the thumbnail design.
 3. Use existing scene images only as optional references when useful; do not edit them into thumbnails unless the user explicitly asks.
 4. Include the bottom-right safe-zone instruction in every thumbnail prompt.
@@ -234,4 +238,5 @@ Do not add thumbnail text later using code, PIL, Canvas, or other local overlay 
 - Run market grounding with the `youtube` skill before generating final titles or thumbnails.
 - Keep packaging grounded in the actual script and research.
 - Do not fabricate sources, quotes, or achievements.
-- Prefer to generate 3 thumbnail PNGs if unspecified by the user. 
+- Always present 5 thumbnail concepts, then ask the user to choose a generation count from 1 to 5.
+- Never generate thumbnails when the count or selected concepts are unspecified.

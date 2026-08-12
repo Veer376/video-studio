@@ -1,13 +1,13 @@
 ---
 name: discovery
-description: Optional idea-discovery skill for Story Video Maker. Use when the user wants help finding, researching, comparing, or selecting a story idea before intake. Supports quick idea cards in chat and deeper source-agnostic idea research using web search, crawl/extract tools, public video-platform signals, user-provided material, or other available sources; may write only .agents/skills/discovery/research.md as a scratchpad/handoff, never project files.
+description: Optional idea-discovery skill for Story Video Maker. Use when the user wants help finding, researching, comparing, or selecting a story idea before starting image-story intake. Supports quick idea cards in chat and deeper source-agnostic idea research using web search, crawl/extract tools, public video-platform signals, user-provided material, or other available sources; may write only .agents/skills/discovery/research.md as a scratchpad/handoff, never project files.
 ---
 
 # Discovery Skill
 
 Discover **what story to make**. Stay independent from any specific YouTube channel, project slug, or production pipeline.
 
-Use this skill when the user asks for ideas, angles, story discovery, topic exploration, or help deciding what story to create. If the user already has a clear story idea, skip this skill and use `intake`.
+Use this skill when the user asks for ideas, angles, story discovery, topic exploration, or help deciding what story to create. If the user already has a clear story idea, skip this skill and use the `image-story` intake stage.
 
 ## Boundary
 
@@ -15,7 +15,7 @@ Discovery answers:
 
 - What story ideas are worth creating?
 - What source basis, demand signal, emotional hook, and originality angle supports each idea?
-- Which idea should move forward into `intake`?
+- Which idea should move forward into `image-story` intake?
 
 Discovery does not:
 
@@ -25,7 +25,7 @@ Discovery does not:
 - split scenes, design visuals, package YouTube metadata, publish, or analyze performance
 - depend on any specific channel, platform, or source provider
 
-The `research` skill still owns selected-project research at `library/<project_name>/research.md`. Discovery's `research.md` is only a pre-project scratchpad for idea hunting.
+The `image-story` research stage owns selected-project research at `library/<project_name>/research.md`. Discovery's `research.md` is only a pre-project scratchpad for idea hunting.
 
 ## Scratchpad
 
@@ -88,7 +88,7 @@ Optional sources when available:
 6. Cluster ideas by promise, audience, emotional conflict, and originality.
 7. Reject weak, generic, copied, or overdone ideas.
 8. Present the strongest idea candidates in chat.
-9. After the user picks one, return a concise handoff for `intake`.
+9. After the user picks one, return a concise handoff for `image-story` intake.
 
 Prefer source-backed ideas, but do not imply a source exists when the idea comes from internal reasoning.
 
@@ -125,14 +125,14 @@ Expected runtime: <rough runtime range, e.g. 10-12m>
 Core promise: <what the viewer should feel or understand>
 Best angle: <the strongest emotional or narrative angle>
 Originality note: <how to make it ours>
-Next research needed: <what the research skill should verify after intake>
+Next research needed: <what the image-story research stage should verify after intake>
 ```
 
 ## Hard Rules
 
 - Do not write project files.
 - Do not create or edit `session.json`.
-- Do not write `library/<project_name>/research.md`; the `research` skill owns that.
+- Do not write `library/<project_name>/research.md`; the `image-story` research stage owns that.
 - Do not write to `references/`; keep stable skill knowledge separate from runtime scratch.
 - Do not create multiple discovery run files unless the user explicitly asks.
 - Do not copy another creator's script or idea verbatim. Use sources to derive original story angles.

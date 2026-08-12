@@ -4,11 +4,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from studio.pipeline_scripts.image_story import PipelineError, print_status, run_pipeline, run_stage
+from studio.pipeline_scripts.production import PipelineError, print_status, run_pipeline, run_stage
 from studio.pipeline_scripts.narration import VOICE_STEPS, run_voice_step
-
-
-PIPELINE_CHOICES = ("image-story",)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -18,25 +15,24 @@ def main(argv: list[str] | None = None) -> int:
     status = sub.add_parser("status", help="Inspect resumable pipeline state for a project.")
     status.add_argument("project_dir", type=Path)
 
-    run = sub.add_parser("run", help="Run the default image-story pipeline.")
+    run = sub.add_parser("run", help="Run the default production flow.")
     run.add_argument("project_dir", type=Path)
     run.add_argument("--from", dest="from_stage", choices=["voice", "illustrate", "render"])
     run.add_argument("--force-stage", choices=["voice", "illustrate", "render"])
     run.add_argument("--force", action="store_true")
 
-    pipeline = sub.add_parser("pipeline", help="Run a named pipeline.")
-    pipeline.add_argument("pipeline_name", choices=PIPELINE_CHOICES)
-    pipeline.add_argument("project_dir", type=Path)
-    pipeline.add_argument("--from", dest="from_stage", choices=["voice", "illustrate", "render"])
-    pipeline.add_argument("--force-stage", choices=["voice", "illustrate", "render"])
-    pipeline.add_argument("--force", action="store_true")
-
-    stage = sub.add_parser("stage", help="Run or validate one image-story stage.")
+    stage = sub.add_parser("stage", help="Run or validate one production stage.")
     stage.add_argument("stage_name", choices=["voice", "illustrate", "render"])
     stage.add_argument("project_dir", type=Path)
     stage.add_argument("--force", action="store_true")
     stage.add_argument("--missing-only", action="store_true", help="Default behavior; kept for explicit retry commands.")
     stage.add_argument("--validate-only", action="store_true")
+    stage.add_argument(
+        "--illustration-phase",
+        choices=("all", "characters", "scenes"),
+        default="all",
+        help="For illustrate: run both phases, canonical characters only, or scenes only.",
+    )
 
     retry = sub.add_parser("retry", help="Retry one stage. Defaults to missing-only behavior.")
     retry.add_argument("project_dir", type=Path)
@@ -56,10 +52,14 @@ def main(argv: list[str] | None = None) -> int:
             print_status(args.project_dir)
         elif args.command == "run":
             run_pipeline(args.project_dir, from_stage=args.from_stage, force_stage=args.force_stage, force=args.force)
-        elif args.command == "pipeline":
-            run_pipeline(args.project_dir, from_stage=args.from_stage, force_stage=args.force_stage, force=args.force)
         elif args.command == "stage":
-            run_stage(args.project_dir, args.stage_name, force=args.force, validate_only=args.validate_only)
+            run_stage(
+                args.project_dir,
+                args.stage_name,
+                force=args.force,
+                validate_only=args.validate_only,
+                illustration_phase=args.illustration_phase,
+            )
         elif args.command == "retry":
             run_stage(args.project_dir, args.stage_name, force=args.force)
         elif args.command == "voice-step":

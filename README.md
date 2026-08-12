@@ -9,8 +9,8 @@ A Story Video Maker workspace with two clear layers:
 
 2. **Agent-facing creative skills**
    - Located in `.agents/skills/`.
-   - Creative skills produce `session.json`, `research.md`, `script.md`, and `scenes.json`.
-   - The single production skill, `run-pipeline`, calls the project CLI instead of carrying executable pipeline code.
+   - `image-story` owns intake, research, splitting, production, packaging, and publishing through stage references.
+   - `compose` and `orchestrate-visuals` remain focused creative skills.
 
 ## Pipeline CLI
 
@@ -20,7 +20,7 @@ Inspect a project:
 story-video status library/<project_name>
 ```
 
-Run or resume the default image-story pipeline:
+Run or resume the default production flow:
 
 ```bash
 story-video run library/<project_name>
@@ -34,13 +34,20 @@ story-video stage illustrate library/<project_name>
 story-video stage render library/<project_name>
 ```
 
+Illustration can also run its two resumable phases independently:
+
+```bash
+story-video stage illustrate library/<project_name> --illustration-phase characters
+story-video stage illustrate library/<project_name> --illustration-phase scenes
+```
+
 Default stage behavior is missing-only. For example:
 
 ```bash
 story-video stage illustrate library/<project_name>
 ```
 
-generates only missing scene images. To regenerate all scene images:
+generates only missing character and scene images. To regenerate all character and scene images:
 
 ```bash
 story-video stage illustrate library/<project_name> --force
@@ -59,16 +66,14 @@ src/studio/
 
 ```text
 Story Video Maker          product/repository name
-create-image-story         master Codex skill
-run-pipeline               production-only Codex skill
-story-video                CLI executable
-image-story                current image-based production pipeline
+image-story                master workflow Codex skill
+story-video                production CLI executable
 ```
 
-Current pipeline:
+Default production flow:
 
 ```text
-image-story = voice -> illustrate -> render
+voice -> illustrate -> render
 ```
 
 Cloudflare is the only image backend for now. Provider abstraction can be added later without changing the pipeline contract.

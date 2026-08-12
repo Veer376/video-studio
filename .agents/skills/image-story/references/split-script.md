@@ -1,17 +1,12 @@
----
-name: split-script
-description: Script-splitting skill. Reads script.md and divides the narration prose into scenes at natural sentence boundaries. Writes a lean scenes.json skeleton (no image prompts yet). Runs after compose, before orchestrate-visuals.
----
+# Split-Script Stage
 
-# Split-Script Skill
-
-This skill is the **film editor**. Its only job is precision: it reads the narration prose and makes one decision for every scene — *exactly where does this scene begin and end?* It does not design images. It does not think about visuals. It thinks only about text rhythm, pacing, and word counts.
+This stage is the **film editor**. Its only job is precision: read the narration prose and decide exactly where each scene begins and ends. Do not design images; consider only text rhythm, pacing, and word counts.
 
 ---
 
-## When to Activate
+## When to Run
 
-Activate this skill when:
+Run this stage when:
 - `session.json` exists with `status: "compose_complete"`
 - `script.md` is written and contains the approved narration
 - `scenes.json` does not yet exist (or you are re-splitting)
@@ -115,7 +110,7 @@ Update `session.json`:
 ## Hard Rules
 
 - **Do not split mid-sentence or at commas.** Ever.
-- **Do not write image prompts.** That is the `orchestrate-visuals` skill's job.
+- **Do not write image prompts.** That belongs to the standalone `orchestrate-visuals` skill.
 - **Scene count is dynamically determined** based on script length (~18 words per scene), with a minimum of 2 scenes.
 - **`visual_style` must be a plain string**, not a nested JSON object.
 - **Multi-scene quotes MUST preserve `> ` on all continuation scenes.** Never drop `> ` from subsequent quote scenes.

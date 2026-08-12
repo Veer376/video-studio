@@ -1,17 +1,12 @@
----
-name: research
-description: Content discovery skill. Runs after intake. Searches the web for real stories, historical facts, spiritual sources, and surprising angles related to the brief, then writes everything to research.md — formatted specifically to help the compose skill write a richer, more emotionally resonant script.
----
+# Research Stage
 
-# Research Skill
-
-This skill is a **researcher and story archaeologist**. Its only job is to go outside, find real and powerful material, and bring it back in a format that makes the composer's job easier. It does **not** write any story. It collects raw material.
+This stage is the **researcher and story archaeologist**. Its only job is to find real and powerful material and persist it in a format that makes the standalone `compose` skill more effective. It does **not** write the story.
 
 ---
 
-## When to Activate
+## When to Run
 
-Activate this skill when:
+Run this stage when:
 - `session.json` exists with `status: "intake_complete"`
 - `research.md` does not yet exist, or the user asks to re-research
 
@@ -36,7 +31,7 @@ The composer needs more than facts. They need:
 
 For Tavily-backed source work, use the `tavily` skill. It owns the provider commands and loads API authentication from `~/.config/projects/.env`.
 
-Use the `run_command` tool to execute them:
+Use the available shell execution tool to run them from the repository root:
 
 ### Tool 1 — `search` (Primary Discovery)
 Perform web searches with adjustable depth, classification topic, and results count.
@@ -183,6 +178,6 @@ Source: <session.json project_name>
 - **Specific beats generic every time.** "A soldier from Lucknow in 1947" beats "an Indian soldier".
 - **Always include source URLs** for factual claims so the composer can verify or deepen them.
 - **Flag all creative additions** in the "Creative Bridges" section — never mix fiction with fact silently.
-- **No story writing in this skill.** Only raw material collection.
+- **No story writing in this stage.** Only raw material collection.
 - **Preserve confirmed discovery direction** when research follows discovery; deepen it rather than replacing it.
 - **Update `session.json`** status to `"research_complete"` after writing `research.md`.

@@ -1,11 +1,6 @@
----
-name: run-pipeline
-description: Single production pipeline runner for Story Video Maker. Use after creative files exist to resume or run voice, Cloudflare illustration, and render through the project CLI.
----
+# Production Pipeline Stage
 
-# Run-Pipeline Skill
-
-This is the only agent-facing skill for production execution. It does not contain production code. The project pipeline owns execution, retries, and validation.
+This stage owns production execution guidance. It does not contain production code. The project pipeline owns execution, retries, and validation.
 
 Use this skill after the creative stages have produced:
 
@@ -13,7 +8,7 @@ Use this skill after the creative stages have produced:
 - `library/<project_name>/script.md`
 - `library/<project_name>/scenes.json`
 
-The current production pipeline is `image-story`:
+The default production flow is:
 
 ```text
 voice -> illustrate -> render
@@ -24,10 +19,9 @@ Cloudflare is the only image backend for now. Do not use Codex `imagegen` in thi
 ## Naming Contract
 
 - `Story Video Maker`: product/repository name.
-- `create-image-story`: master skill for the complete creative + production workflow.
-- `run-pipeline`: production-only skill.
-- `story-video`: project CLI executable.
-- `image-story`: current image-based production pipeline.
+- `image-story`: master skill and workflow owner.
+- `story-video`: production CLI executable.
+- `voice -> illustrate -> render`: unnamed default production flow.
 
 ## Commands
 
@@ -43,12 +37,6 @@ Run or resume the full default pipeline:
 story-video run library/<project_name>
 ```
 
-Run the named pipeline explicitly:
-
-```bash
-story-video pipeline image-story library/<project_name>
-```
-
 Run one stage:
 
 ```bash
@@ -56,6 +44,15 @@ story-video stage voice library/<project_name>
 story-video stage illustrate library/<project_name>
 story-video stage render library/<project_name>
 ```
+
+Illustration has two resumable phases. Normal `illustrate` runs both in order:
+
+```bash
+story-video stage illustrate library/<project_name> --illustration-phase characters
+story-video stage illustrate library/<project_name> --illustration-phase scenes
+```
+
+The character phase creates missing canonical assets under project `assets/characters/`. A `root:assets/...` character with `prompt: null` is reused directly; with a non-null prompt it is adapted into a project-local asset and the manifest is updated after success. The scene phase uses canonical assets plus a compatible prior scene when available. Cloudflare receives at most four references; production owns that allocation.
 
 Retry missing image generation only:
 
@@ -87,6 +84,8 @@ The project pipeline computes state from files, not only `session.json`.
 
 `illustrate` is complete when:
 
+- every registered character has a valid project-local image or an approved `root:assets/...` shared image
+- every character referenced by a generated scene has a valid canonical image on disk
 - every scene has `image_path`
 - every referenced image exists on disk
 
@@ -116,6 +115,6 @@ If the result is greater than `60.000` seconds:
 - Use `story-video run` for normal resumes.
 - Use `story-video stage illustrate` for missing-only image retries.
 - Use `--force` or `--force-stage` only when the user asks to regenerate work.
-- Do not call scripts under `.agents/skills/*/scripts`; production scripts live under `src/studio/scripts`.
+- Do not call production scripts from skill folders; production implementation lives under `src/studio/` and is invoked through `story-video`.
 - Do not skip `voice` before render; render depends on narration audio and timestamps.
 - Never accept a Short over `60.000` seconds as complete.

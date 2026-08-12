@@ -7,7 +7,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from PIL import Image
+
 from studio.core.io import read_json
+from studio.core.paths import is_root_asset_locator, resolve_asset_locator
 
 
 STAGES = ("voice", "illustrate", "render")
@@ -34,6 +37,19 @@ def scene_items(project_dir: Path) -> list[dict[str, Any]]:
     return list(scenes_data.get("scenes") or [])
 
 
+def _valid_project_image(project_dir: Path, image_path: str) -> bool:
+    project_root = project_dir.resolve()
+    resolved = (project_dir / image_path).resolve()
+    if not resolved.is_relative_to(project_root) or not resolved.is_file():
+        return False
+    try:
+        with Image.open(resolved) as image:
+            image.verify()
+        return True
+    except (OSError, ValueError):
+        return False
+
+
 def voice_state(project_dir: Path) -> StageState:
     missing: list[str] = []
     if not (project_dir / "audio" / "narration.wav").exists():
@@ -53,16 +69,50 @@ def voice_state(project_dir: Path) -> StageState:
 
 def illustrate_state(project_dir: Path) -> StageState:
     missing: list[str] = []
-    scenes = scene_items(project_dir)
+    scenes_data = load_scenes(project_dir) or {}
+    scenes = list(scenes_data.get("scenes") or [])
     if not scenes:
         missing.append("scenes.json")
+    characters = scenes_data.get("characters") or {}
+    if not isinstance(characters, dict):
+        missing.append("scenes.json.characters")
+        characters = {}
+    for key, character in characters.items():
+        image_path = character.get("image_path") if isinstance(character, dict) else None
+        if not image_path:
+            missing.append(f"characters.{key}.image_path")
+            continue
+        locator = str(image_path)
+        prompt = character.get("prompt") if isinstance(character, dict) else None
+        if is_root_asset_locator(locator) and isinstance(prompt, str) and prompt.strip():
+            missing.append(f"characters.{key}.root_adaptation")
+            continue
+        try:
+            resolved = resolve_asset_locator(project_dir, locator)
+        except ValueError:
+            missing.append(str(image_path))
+            continue
+        local_character_root = (project_dir / "assets" / "characters").resolve()
+        if not is_root_asset_locator(locator) and not resolved.is_relative_to(
+            local_character_root
+        ):
+            missing.append(locator)
+            continue
+        if not resolved.is_file():
+            missing.append(locator)
+            continue
+        try:
+            with Image.open(resolved) as image:
+                image.verify()
+        except (OSError, ValueError):
+            missing.append(locator)
     for scene in scenes:
         scene_id = scene.get("id", "<unknown>")
         image_path = scene.get("image_path")
         if not image_path:
             missing.append(f"{scene_id}.image_path")
             continue
-        if not (project_dir / image_path).exists():
+        if not _valid_project_image(project_dir, str(image_path)):
             missing.append(str(image_path))
     return StageState("illustrate", not missing, tuple(missing))
 
@@ -112,4 +162,3 @@ def stage_state(project_dir: Path, stage: str) -> StageState:
 
 def all_states(project_dir: Path) -> list[StageState]:
     return [stage_state(project_dir, stage) for stage in STAGES]
-

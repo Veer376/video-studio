@@ -10,9 +10,6 @@ from studio.core.session import update_status
 from studio.core.state import STAGES, all_states, stage_state
 
 
-PIPELINE_NAME = "image-story"
-
-
 class PipelineError(RuntimeError):
     pass
 
@@ -21,7 +18,13 @@ def _run_script(project_dir: Path, script_name: str, *extra_args: str) -> None:
     env = os.environ.copy()
     existing = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = str(src_dir()) + (os.pathsep + existing if existing else "")
-    cmd = [sys.executable, str(script_path(script_name)), "--project-dir", str(project_dir), *extra_args]
+    cmd = [
+        sys.executable,
+        str(script_path(script_name)),
+        "--project-dir",
+        str(project_dir),
+        *extra_args,
+    ]
     result = subprocess.run(cmd, env=env)
     if result.returncode != 0:
         raise PipelineError(f"{script_name} failed with exit code {result.returncode}")
@@ -38,10 +41,23 @@ def print_status(project_dir: str | Path) -> None:
                 print(f"  missing: {item}")
 
 
-def run_stage(project_dir: str | Path, stage: str, *, force: bool = False, validate_only: bool = False) -> None:
+def run_stage(
+    project_dir: str | Path,
+    stage: str,
+    *,
+    force: bool = False,
+    validate_only: bool = False,
+    illustration_phase: str = "all",
+) -> None:
     resolved = resolve_project_dir(project_dir)
     if stage not in STAGES:
-        raise PipelineError(f"Unknown {PIPELINE_NAME} stage: {stage}")
+        raise PipelineError(f"Unknown production stage: {stage}")
+    if illustration_phase not in ("all", "characters", "scenes"):
+        raise PipelineError(f"Unknown illustration phase: {illustration_phase}")
+    if stage != "illustrate" and illustration_phase != "all":
+        raise PipelineError("--illustration-phase is valid only for the illustrate stage")
+    if validate_only and illustration_phase != "all":
+        raise PipelineError("partial illustration phases cannot use --validate-only")
 
     current = stage_state(resolved, stage)
     if validate_only:
@@ -50,7 +66,9 @@ def run_stage(project_dir: str | Path, stage: str, *, force: bool = False, valid
             return
         raise PipelineError(f"{stage} is incomplete: {', '.join(current.missing)}")
 
-    if current.complete and not force:
+    if current.complete and not force and not (
+        stage == "illustrate" and illustration_phase == "characters"
+    ):
         print(f"OK {stage} already complete. Use --force to rerun.")
         return
 
@@ -58,8 +76,12 @@ def run_stage(project_dir: str | Path, stage: str, *, force: bool = False, valid
         args = ("--force",) if force else ()
         _run_script(resolved, "pipeline_scripts/narration.py", *args)
     elif stage == "illustrate":
-        args = ("--force",) if force else ()
+        args = ("--phase", illustration_phase)
+        if force:
+            args += ("--force",)
         _run_script(resolved, "images/cloudflare_image_gen.py", *args)
+        if illustration_phase == "characters":
+            return
     elif stage == "render":
         args = ("--force",) if force else ()
         _run_script(resolved, "subtitles/subtitles.py")

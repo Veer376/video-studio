@@ -33,7 +33,7 @@ Classify the proposed edit into exactly one of these:
 | **Specificity addition** | Adds project-specific content, hardcodes a style/value, narrows the skill's scope | ❌ Block it |
 | **Scope creep** | Adds responsibility the skill doesn't own (render style, story concept, intake data) | ❌ Block it |
 
-If the change is Class 4 or 5, redirect: the content belongs in `session.json`, `intake`, or user input — not in the skill.
+If the change is Class 4 or 5, redirect: the content belongs in `session.json`, the `image-story` intake stage, or user input — not in the specialist skill.
 
 ---
 
@@ -56,9 +56,9 @@ Every piece of content has an owner. Before adding anything, verify it doesn't a
 
 | Content Type | Owner |
 |---|---|
-| Render style / visual quality (3D, 2D, cinematic) | `intake` → `session.json visual.style` |
-| Story idea, tone, audience | `intake` → `session.json brief` |
-| Script text, scenes split | `split-script` |
+| Render style / visual quality (3D, 2D, cinematic) | `image-story` intake → `session.json visual.style` |
+| Story idea, tone, audience | `image-story` intake → `session.json brief` |
+| Scene splitting and skeleton schema | `image-story` split stage |
 | Character anthropomorphization, prompt craft, framing | `orchestrate-visuals` |
 | Voice, TTS language | `voice` skill |
 
