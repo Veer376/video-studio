@@ -1,25 +1,30 @@
 # Discovery Research
 
 ## User Direction
-- **Theme/Brief**: Release Batch #2 (Toxic People) — `जब लोग आपका जीना हराम कर दें | Chanakya Niti Motivational Story Hindi`
-- **Vocabulary Refinement**: Replace literary term *फुत्कारना* (hissing) with simple, punchy, high-converting everyday Hindi terms like *तेवर दिखाना*, *आँख दिखाना*, *चेतावनी देना*, or *सीमा तय करना*.
-- **Goal**: Provide everyday Hindi replacements for "फुत्कारना" that instantly hit viewer emotions on YouTube thumbnails and titles.
+The user noted that the Swami Vivekananda Short is getting strong traction and wants to discover 3-4 powerful, high-retention Swami Vivekananda story ideas for both dedicated Shorts (<60s) and Long-Form (8-12m) formats.
 
 ## Search Plan
-- Refine Candidate 1 to use clear, accessible phrasing:
-  - Phrase A: *"काटना मत, पर तेवर दिखाना कभी मत छोड़ना!"* (Showing warning attitude)
-  - Phrase B: *"काटना मत, पर आँख दिखाना सीखो!"* (Showing strong eyes/warning)
-  - Phrase C: *"काटना मत, पर चेतावनी देना मत भूलना!"* (Giving a clear warning)
+1. Search famous incidents from Swami Vivekananda's life focused on high-emotion tension, intellectual sharpness, and self-respect.
+2. Filter ideas by strong demand signals (Chicago speech, concentration power, 2 paisa river boat story, knife test).
+3. Structure concrete Idea Cards per Discovery guidelines.
 
 ## Source Notes
-- Chanakya Niti core lesson: Non-violence does not mean submission. Self-defense requires projecting power (*Tevar / Warning*) without unprovoked aggression.
+- **Incident 1 (River Crossing / 2 Paisa Miracle)**: A sadhu boasts about walking on water after 14 years of tapasya. Vivekananda reveals the true value of spiritual energy vs vanity.
+- **Incident 2 (The Knife Test of Motherhood/Selflessness)**: Testing a disciple's true character through a simple gesture of passing a sharp knife.
+- **Incident 3 (The Speed Reading / Focus Secret)**: The secret of single-minded concentration (*Ekagrata*) when reading massive volumes in a library.
+- **Incident 4 (The Marriage Proposal / Motherhood)**: An American woman's proposal and Vivekananda's profound subversion into filial respect.
+
+## Demand Signals
+- Swami Vivekananda content in Hindi has massive viral reach on YouTube (100K to 5M+ views).
+- Audiences resonate strongly with themes of **focus, self-respect, overcoming insult, concentration, and practical wisdom**.
 
 ## Story Candidates
-
-### Candidate 1 (Refined): The Art of Tevar (तेवर और चेतावनी की कला)
-- **Working Title**: `जब लोग आपका जीना हराम कर दें | Chanakya Niti Motivational Story Hindi`
-- **Core Hook**: *"काटना मत, पर तेवर दिखाना (Warning Stance) कभी मत छोड़ना!"*
-- **Premise**: Somdutta learns from Chanakya that being polite is good, but being weak is a crime. Chanakya uses the snake parable to teach him how to project warning eyes (*आँख दिखाना* / *तेवर*) to stop toxic abusers in their tracks.
+(Detailed below in Idea Cards)
 
 ## Final Shortlist
-- **Top Choice**: Candidate 1 with refined vocabulary (*तेवर दिखाना* / *आँख दिखाना* / *चेतावनी देना*).
+- **Candidate 1 (Shorts)**: 2 पैसे की करामात | The 14-Year Tapasya Trap (Shorts < 60s)
+- **Candidate 2 (Shorts)**: एकाग्रता का रहस्य | The Library Speed Reading Secret (Shorts < 60s)
+- **Candidate 3 (Long-Form)**: जब माँ ने माँगा चाकू | The Knife Test of True Character (Long-Form 8-10m)
+
+## Handoff For Intake
+Pending user selection.

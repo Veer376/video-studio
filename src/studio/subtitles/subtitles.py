@@ -354,9 +354,13 @@ def render_subtitle_overlay(
     line_gap = round(font_size * 0.35)
     total_height = total_lines * line_height + line_gap * max(0, total_lines - 1)
     
-    # Margin from bottom: 14% for vertical shorts (clears Shorts/Reels UI), 7% for landscape
-    y_margin = round(height * 0.14) if is_vertical else round(height * 0.07)
-    y_start = height - total_height - y_margin
+    if is_vertical:
+        # Position subtitles near the top for vertical Shorts/Reels (14% top margin) to avoid bottom UI overlays
+        y_start = round(height * 0.14)
+    else:
+        # Margin from bottom: 7% for landscape videos
+        y_margin = round(height * 0.07)
+        y_start = height - total_height - y_margin
     line_positions = [y_start + i * (line_height + line_gap) for i in range(total_lines)]
 
     if full_text is not None:
@@ -658,6 +662,7 @@ def write_ass_file(
     """
     ref_dim = min(width, height)
     is_vertical = height > width
+    align = 8 if is_vertical else 2
     if font_size is None:
         font_size = max(24, round(ref_dim * 0.042 if is_vertical else ref_dim * 0.045))
     if margin_v is None:
@@ -671,7 +676,7 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{font_name},{font_size},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,{outline},{shadow},2,20,20,{margin_v},0
+Style: Default,{font_name},{font_size},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,{outline},{shadow},{align},20,20,{margin_v},0
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
