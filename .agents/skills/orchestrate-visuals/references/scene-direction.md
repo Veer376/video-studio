@@ -3,6 +3,7 @@
 ## Build a Continuity Ledger
 
 Derive a compact internal ledger from the script and existing scenes. Do not add it to `scenes.json`.
+Establish the complete spatial and continuity ledger before drafting any scene prompt; do not discover the story's physical logic while bulk-writing prompts.
 
 Track only facts that must persist:
 
@@ -45,3 +46,12 @@ Avoid visible text unless narration requires a specific inscription, document, o
 Set `reference_scene_id` to a backward compatible scene only when its visible composition, subject state, props, and environment form a valid continuity base. Otherwise use null.
 
 Production owns provider-specific reference mapping. Do not write reference-strength controls.
+
+## Audit the Sequence
+
+Direct each scene independently through the fidelity gate, then audit the completed sequence before writing final status. Reject and correct:
+
+- templated lighting, framing, gestures, or mood language repeated without narrative reason
+- unsupported identity, costume, prop, reaction, or historical detail
+- crowded compositions whose action or focal relationship will not read clearly
+- scene references incompatible with the required subjects, environment, composition, or state
