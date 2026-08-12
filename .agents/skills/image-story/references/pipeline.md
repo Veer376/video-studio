@@ -14,11 +14,8 @@ The default production flow is:
 voice -> illustrate -> render
 ```
 
-Cloudflare is the only image backend for now. Do not use Codex `imagegen` in this pipeline unless the project adds that provider later.
-
 ## Naming Contract
 
-- `Story Video Maker`: product/repository name.
 - `image-story`: master skill and workflow owner.
 - `story-video`: production CLI executable.
 - `voice -> illustrate -> render`: unnamed default production flow.
