@@ -1,6 +1,6 @@
 ---
 name: compose
-description: Generate or revise narration scripts from completed story research through blueprint approval and script writing. Use when session.json has research_complete, research.md exists, and script.md is missing or the user requests a rewrite. Routes <=60-second Shorts, standard scripts, and >=480-second long-form scripts to distinct duration rules.
+description: Generate or revise narration scripts from completed story research through blueprint approval and script writing. Use when session.json has research_complete, research.md exists, and script.md is missing or the user requests a rewrite. Routes vertical Shorts, standard scripts, and >=480-second long-form scripts to distinct duration rules.
 ---
 
 # Compose Skill
@@ -16,13 +16,13 @@ Read these files before presenting blueprints:
 - `library/<project_name>/session.json`
 - `library/<project_name>/research.md`
 
-Read `brief.target_duration_seconds` and select exactly one mode:
+Read `brief.target_duration_seconds` and `visual.aspect_ratio`, then select exactly one mode:
 
-- **Short:** `<= 60` seconds. Read `references/duration_rules/short.md`. Its drafting gate is mandatory.
-- **Standard:** `61–479` seconds. Preserve natural pacing; treat the target as approximate.
+- **Short:** `visual.aspect_ratio` is `9:16` and `target_duration_seconds <= 180`. Read `references/duration_rules/short.md`. Its drafting gate is mandatory.
+- **Standard:** `< 480` seconds and not Short mode. Preserve natural pacing; treat the target as approximate.
 - **Long:** `>= 480` seconds. Read `references/duration_rules/long.md`; treat the target as approximate.
 
-Do not infer mode from aspect ratio, filename, or platform labels.
+Do not infer mode from filename or a platform label alone. A contemporary YouTube Short must be square or vertical and no longer than three minutes; this pipeline's Short format is `9:16`.
 
 ---
 

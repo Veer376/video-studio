@@ -90,17 +90,17 @@ The project pipeline computes state from files, not only `session.json`.
 
 - `output/final-video.mp4` exists
 - `ffprobe` confirms video and audio streams
-- when `brief.target_duration_seconds <= 60`, `ffprobe` confirms the final duration is `<= 60.000` seconds
+- for a `9:16` project with `brief.target_duration_seconds <= 180`, `ffprobe` confirms the final duration is `<= 180.000` seconds
 
 ## Short Duration Gate
 
-After rendering a project with `brief.target_duration_seconds <= 60`, read the final media duration:
+After rendering a `9:16` project with `brief.target_duration_seconds <= 180`, read the final media duration:
 
 ```bash
 ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 library/<project_name>/output/final-video.mp4
 ```
 
-If the result is greater than `60.000` seconds:
+If the result is greater than `180.000` seconds:
 
 - Do not report the render or project as complete.
 - Return to `compose` and compress the script while preserving its hook and payoff.
@@ -114,4 +114,4 @@ If the result is greater than `60.000` seconds:
 - Use `--force` or `--force-stage` only when the user asks to regenerate work.
 - Do not call production scripts from skill folders; production implementation lives under `src/studio/` and is invoked through `story-video`.
 - Do not skip `voice` before render; render depends on narration audio and timestamps.
-- Never accept a Short over `60.000` seconds as complete.
+- Never accept a Short over `180.000` seconds as complete.

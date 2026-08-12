@@ -19,7 +19,7 @@ Run this stage when:
 
 Conduct the intake as a natural, friendly conversation. Acknowledge each answer before moving to the next group.
 
-**Short Video Optimization**: If the user starts the conversation by requesting a "Short" or "vertical video", automatically set `visual.aspect_ratio` to `"9:16"`, default `brief.target_duration_seconds` to `50` seconds, and skip asking **Q4** and **Q5** to maintain a clean flow.
+**Short Video Optimization**: If the user starts the conversation by requesting a "Short" or "vertical video", automatically set `visual.aspect_ratio` to `"9:16"` and skip **Q4**. Still ask **Q5** because a YouTube Short may run anywhere up to three minutes and duration is a creative choice.
 
 ### Group 1 — The Idea
 > **Q1.** What is this video about? Give me the core idea — it can be a theme, a story concept, a life lesson, a character, or even just a feeling.
@@ -28,7 +28,7 @@ Conduct the intake as a natural, friendly conversation. Acknowledge each answer 
 
 ### Group 2 — Format, Language & Length
 > **Q4.** What is the video format or aspect ratio? *(e.g., Long-form 16:9 (recommended) / Short 9:16 (vertical Shorts))*
-> **Q5.** How long should the video be? *(e.g., 10-12 minutes , 60 seconds (Short), >20 minutes)*
+> **Q5.** How long should the video be? *(e.g., 45 seconds, 90 seconds, or up to 3 minutes for a Short; 10–12 minutes for long-form)*
 > **Q6.** What language? *(Hindi / English / Hinglish)*
 
 ### Group 3 — Visual Style (Optional)

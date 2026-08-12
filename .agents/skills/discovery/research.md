@@ -1,7 +1,7 @@
 # Discovery Research
 
 ## User Direction
-The user noted that the Swami Vivekananda Short is getting strong traction and wants to discover 3-4 powerful, high-retention Swami Vivekananda story ideas for both dedicated Shorts (<60s) and Long-Form (8-12m) formats.
+The user noted that the Swami Vivekananda Short is getting strong traction and wants to discover 3-4 powerful, high-retention Swami Vivekananda story ideas for both dedicated Shorts (up to 3 minutes) and Long-Form (8-12m) formats.
 
 ## Search Plan
 1. Search famous incidents from Swami Vivekananda's life focused on high-emotion tension, intellectual sharpness, and self-respect.
@@ -22,8 +22,8 @@ The user noted that the Swami Vivekananda Short is getting strong traction and w
 (Detailed below in Idea Cards)
 
 ## Final Shortlist
-- **Candidate 1 (Shorts)**: 2 पैसे की करामात | The 14-Year Tapasya Trap (Shorts < 60s)
-- **Candidate 2 (Shorts)**: एकाग्रता का रहस्य | The Library Speed Reading Secret (Shorts < 60s)
+- **Candidate 1 (Shorts)**: 2 पैसे की करामात | The 14-Year Tapasya Trap (Shorts up to 3 minutes)
+- **Candidate 2 (Shorts)**: एकाग्रता का रहस्य | The Library Speed Reading Secret (Shorts up to 3 minutes)
 - **Candidate 3 (Long-Form)**: जब माँ ने माँगा चाकू | The Knife Test of True Character (Long-Form 8-10m)
 
 ## Handoff For Intake

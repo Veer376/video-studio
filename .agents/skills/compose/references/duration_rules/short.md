@@ -1,6 +1,6 @@
-# Short-Form (<=60 Seconds) Rule
+# Short-Form (Up to Three Minutes) Rule
 
-Treat `target_duration_seconds <= 60` as project Short mode. Optimize for one complete, high-retention story unit. Do not apply these constraints to Standard or Long mode.
+Treat `visual.aspect_ratio: "9:16"` with `target_duration_seconds <= 180` as project Short mode. Optimize for one complete, high-retention story unit. Do not apply these constraints to Standard or Long mode.
 
 ## Round 1 Blueprint
 
@@ -27,7 +27,7 @@ Reject generic wisdom, vague questions, and hooks that could introduce any unrel
 
 ## Compression Pass
 
-Use exactly one central promise, one conflict, one escalation, one turn, and one takeaway or closing echo.
+Use exactly one central promise, one conflict, one escalation chain, one decisive turn, and one takeaway or closing echo.
 
 Assign every sentence at least one job: `HOOK`, `ADVANCE`, `ESCALATE`, `REVEAL`, or `LAND`. Delete or merge sentences with no job.
 
@@ -45,7 +45,7 @@ Assign every sentence at least one job: `HOOK`, `ADVANCE`, `ESCALATE`, `REVEAL`,
 Calculate the maximum before writing:
 
 ```text
-effective_seconds = min(target_duration_seconds, 55)
+effective_seconds = min(target_duration_seconds, 170)
 spoken_word_ceiling = floor(effective_seconds * 2.2)
 ```
 
@@ -62,4 +62,4 @@ Draft the narration, run this check, and only then persist it to `script.md`:
 
 If any check fails, compress and re-check. Do not write `script.md` or set `compose_complete` until all checks pass.
 
-The production stage must still verify `output/final-video.mp4 <= 60.000` seconds. If it exceeds the hard maximum, return to Compose compression; do not accelerate audio or cut the payoff.
+The production stage must still verify `output/final-video.mp4 <= 180.000` seconds.
