@@ -100,6 +100,17 @@ python3 scripts/render_video.py \
 
 The renderer validates every canonical input and the completed output with `ffprobe`.
 
+Add optional timed text in a separate pass without changing the canonical scene renderer:
+
+```bash
+python3 scripts/render_text.py \
+  --input stories/<story-slug>/output/final-video.mp4 \
+  --output stories/<story-slug>/output/final-video-with-text.mp4 \
+  --text "One Hour Before..." \
+  --start 21 \
+  --duration 3
+```
+
 ## Authentication and isolated tests
 
 Generation uses Google Cloud Application Default Credentials when available, otherwise `GEMINI_API_KEY`. Credentials are never copied into this repository.

@@ -39,7 +39,7 @@ Use the chosen scope for the current task until the user changes it. Do not pers
 - Preserve one canonical MP4 per scene. Replace it only through the bounded repair policy or explicit user authorization, and only after the replacement passes validation and review.
 - A successful generation or playable file is not an accepted scene.
 - Inspect a predecessor's exact final frame before generating any clip that uses it for continuity.
-- A `needs_fix` decision permits at most three diagnosed repair retries for that scene. Log and review every attempt; if the third retry still returns `needs_fix`, stop and ask the user before any further generation.
+- A `needs_fix` decision permits at most two diagnosed repair retries for that scene. Log and review every attempt; if the second retry still returns `needs_fix`, stop and ask the user before any further generation.
 - Do not claim dialogue or audio correctness from still frames.
 
 ## Completion

@@ -7,7 +7,7 @@ stories/<story-slug>/
   story.md
   characters.json
   scenes.json
-  assets/story_specific/
+  assets/
   videos/
   temp/continuity_frames/
   temp/contact_sheets/
@@ -108,7 +108,6 @@ Register only recurring characters whose appearance must remain consistent acros
 {
   "id": "s001",
   "part_id": "part_01",
-  "duration_seconds": 10,
   "prompt": "Final authoring prompt with @handles",
   "subjects": ["@name"],
   "reference_images": [],
@@ -146,4 +145,4 @@ Allowed decisions are `accepted`, `accepted_with_note`, `fix_next_scene`, and `n
 
 Append one entry after every reviewed generation; never overwrite earlier attempts. `kind` is `initial` for attempt 1 and `repair` for retries. `repair_applied` records the concrete change that produced a retry and is `null` for the initial generation. The top-level `decision` and `next_action` reflect the latest attempt.
 
-A scene may contain at most four attempts without fresh user authorization: one initial generation and three repair retries. If attempt 4 remains `needs_fix`, set `next_action` to `await_user`.
+A scene may contain at most three attempts without fresh user authorization: one initial generation and two repair retries. If attempt 3 remains `needs_fix`, set `next_action` to `await_user`.

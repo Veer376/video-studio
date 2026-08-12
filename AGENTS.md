@@ -24,4 +24,4 @@
 - Use `reference_scene_id` only when a predecessor's final frame must be the literal opening anchor. Inspect that exact frame before producing the dependent scene.
 - A successful generation or playable MP4 is not an accepted scene. Validate media streams, review observable evidence, and persist the review decision.
 - Do not claim dialogue or audio correctness from still frames.
-- When review returns `needs_fix`, diagnose and retry autonomously no more than three times for that scene. Append every attempt, diagnosis, and repair action to its review JSON. If the third retry still returns `needs_fix`, stop and ask the user before generating again.
+- When review returns `needs_fix`, diagnose and retry autonomously no more than two times for that scene. Append every attempt, diagnosis, and repair action to its review JSON. If the second retry still returns `needs_fix`, stop and ask the user before generating again.
