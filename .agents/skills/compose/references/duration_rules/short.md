@@ -6,7 +6,7 @@ Treat `visual.aspect_ratio: "9:16"` with `target_duration_seconds <= 180` as pro
 
 Generate three structurally distinct blueprints using this contract:
 
-`SHORT — First-second hook: <first spoken words> Hook mechanism: <reversal, consequence, impossible contrast, in-medias-res, or identity challenge> Specific question created: <one question> Payoff: <how the script answers it> Core conflict: <one conflict> Turn: <one revelation> Closing: <resolution, echo, or necessary action> Estimated spoken words: <count at or below the drafting ceiling> Tone signature: <tone>`
+`SHORT — First-second hook: <first spoken words> Hook promise words: <count through the understandable promise> Hook mechanism: <reversal, consequence, impossible contrast, in-medias-res, or identity challenge> Specific question created: <one question> Payoff: <how the script answers it> Core conflict: <one conflict> Turn: <one revelation> Closing: <resolution, echo, or necessary action> Estimated spoken words: <count at or below the drafting ceiling> Tone signature: <tone>`
 
 Choose hook mechanisms by truthful fit. Do not force all stories into the same pattern.
 
@@ -18,7 +18,7 @@ The hook must:
 
 - Begin with the first spoken word; place no greeting, biography, date, or setup before it.
 - Put specific tension, contrast, consequence, or an unresolved event into the first second.
-- Complete its understandable promise within roughly three seconds.
+- Complete its understandable promise within the first eight spoken words (roughly three to four seconds at the drafting rate). The sentence may continue after the promise lands; never damage natural syntax to hit the count.
 - Make sense without prior context and create one specific question.
 - Connect directly to a payoff delivered by this script.
 - Stay faithful to verified research when available and otherwise remain within the user-provided premise. Never manufacture stakes or certainty.
@@ -55,6 +55,7 @@ This is a conservative drafting ceiling, not proof of rendered duration. Count e
 Draft the narration, run this check, and only then persist it to `script.md`:
 
 - The first spoken words pass the hook rules.
+- The blueprint's hook-promise count matches the persisted opening, and the understandable promise lands within eight spoken words.
 - The script contains only one story loop.
 - Every sentence has a narrative job.
 - The hook's exact promise is satisfied.

@@ -19,17 +19,17 @@ Run this stage when:
 
 Conduct the intake as a natural, friendly conversation. Acknowledge each answer before moving to the next group.
 
-**Short Video Optimization**: If the user starts the conversation by requesting a "Short" or "vertical video", automatically set `visual.aspect_ratio` to `"9:16"` and skip **Q4**. Still ask **Q5** because a YouTube Short may run anywhere up to three minutes and duration is a creative choice.
+Before asking questions, read `kathamind/config.json`. Use its non-empty `audience` value for `brief.audience`; do not ask the user for an audience. If the value is missing or invalid, report the configuration error instead of inventing a replacement.
+
+**Short Video Optimization**: If the user starts the conversation by requesting a "Short" or "vertical video", automatically set `visual.aspect_ratio` to `"9:16"` and skip **Q3**. Still ask **Q4** because a YouTube Short may run anywhere up to three minutes and duration is a creative choice.
 
 ### Group 1 — The Idea
 > **Q1.** What is this video about? Give me the core idea — it can be a theme, a story concept, a life lesson, a character, or even just a feeling.
 > **Q2.** What tone should it have? *(warm storytelling / motivational / devotional / educational / poetic — or describe it in your own words)*
-> **Q3.** Who is the audience? *(general adults / children / spiritual seekers / students — or describe)*
 
-### Group 2 — Format, Language & Length
-> **Q4.** What is the video format or aspect ratio? *(e.g., Long-form 16:9 (recommended) / Short 9:16 (vertical Shorts))*
-> **Q5.** How long should the video be? *(e.g., 45 seconds, 90 seconds, or up to 3 minutes for a Short; 10–12 minutes for long-form)*
-> **Q6.** What language? *(Hindi / English / Hinglish)*
+### Group 2 — Format & Length
+> **Q3.** What is the video format or aspect ratio? *(e.g., Long-form 16:9 (recommended) / Short 9:16 (vertical Shorts))*
+> **Q4.** How long should the video be? *(e.g., 45 seconds, 90 seconds, or up to 3 minutes for a Short; 10–12 minutes for long-form)*
 
 ---
 
@@ -69,7 +69,7 @@ Follow these steps in exact order:
   "brief": {
     "topic": "Motivational story of Lord Krishna offering life wisdom",
     "tone": "motivational",
-    "audience": "general adults",
+    "audience": "<from kathamind/config.json>",
     "target_duration_seconds": 600
   },
   "voice": {
@@ -87,6 +87,6 @@ Follow these steps in exact order:
 
 ## Hard Rules
 
-- Default language if skipped: `hi-IN`.
+- Always write `voice.language: "hi-IN"`; do not ask the user for language during intake.
 - Default aspect ratio if skipped: `16:9`. If vertical or Short is specified, set `visual.aspect_ratio` to `9:16`.
 - Never generate story content, images, or audio during this stage. This stage only asks questions and writes `session.json`.

@@ -636,7 +636,13 @@ def main():
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
 
+    model_name = session.get("visual", {}).get("model") or os.environ.get("CLOUDFLARE_IMAGE_MODEL") or args.model
+    if not model_name.startswith("@cf/") and "/" not in model_name:
+        if "flux" in model_name:
+            model_name = f"@cf/black-forest-labs/{model_name}"
+
     print(f"→ Illustration phase: {args.phase} (Resolution: {width}x{height})")
+    print(f"  Model: {model_name}")
     print(f"  Global Design: {style_prompt}")
 
     # Validate and prepare prompts before spending any generation credits.
@@ -699,7 +705,7 @@ def main():
                     )
                     generate_image(
                         credentials=credentials,
-                        model=args.model,
+                        model=model_name,
                         prompt=build_character_prompt(task.key, character, style_prompt),
                         width=width,
                         height=height,
@@ -806,7 +812,7 @@ def main():
                     print(f"  {scene_id}: {mapping}")
                 generate_image(
                     credentials=credentials,
-                    model=args.model,
+                    model=model_name,
                     prompt=prompts[scene_id],
                     width=width,
                     height=height,

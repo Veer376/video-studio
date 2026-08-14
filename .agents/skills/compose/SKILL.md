@@ -64,6 +64,8 @@ Write one 2–3 sentence description that summarizes the video's promise without
 
 `TEMPLATE — Macro Loop (0:00-0:15): <Hook + Anti-hook pair> Micro Loops: <Tension teasers at ~60s intervals> Middle arc: <How the story builds and connects to modern life — two sentences> Turn: <The emotional pivot or revelation — one sentence> Closing: <The final call to action or resolution — one sentence> Tone signature: <e.g., Rising inspiration, quiet contemplation, dramatic epic>`
 
+Match the requested form. When the brief asks for a story, every blueprint must identify a narrative carrier, a concrete situation, an observable action or choice, and the resulting change. A teaching illustrated only by explanation is an explainer, not a story.
+
 **Wait for the user's explicit selection before proceeding to Round 2.**
 
 ---
@@ -118,4 +120,5 @@ If the user provides feedback on a completed script:
 - **Blockquotes are visual-only:** Lines in `>` are NOT spoken. They are rendered on screen as styled text.
 - **Pure Prose:** No scene splits, image prompts, or metadata brackets in `script.md`.
 - **Short gate:** Do not write or approve a Short that fails `references/duration_rules/short.md`.
+- **Story gate:** When a story was requested, do not approve a script unless a listener can identify who experiences what, what they do or choose, and what visibly or emotionally changes.
 - **Update status:** Update `session.json` to `"compose_complete"` only after the applicable duration-mode rules pass.

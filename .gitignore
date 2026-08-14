@@ -9,7 +9,8 @@ library
 .env
 .env.*
 branding
-kathamind
+kathamind/*
+!kathamind/config.json
 
 output/
 *.egg-info/
