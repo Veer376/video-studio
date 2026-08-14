@@ -1,12 +1,11 @@
 # Manifest Contract and Fidelity Gate
 
-Preserve top-level fields and every scene's `id` and `text`. Add or update only:
+Preserve top-level fields and every scene's `id` and `text`. After an approved design is persisted in `session.json`.
 
 - top-level `characters`
 - scene `referenced_characters`
 - scene `image_prompt`
 - scene `reference_scene_id`
-- scene `image_path`
 
 Remove legacy `reference_weight`. Do not erase valid timing, image paths, or unrelated production fields during a revision.
 
@@ -18,8 +17,7 @@ Remove legacy `reference_weight`. Do not erase valid timing, image paths, or unr
   "text": "नरेंद्र भागने लगे, तो बंदर और भी तेज़ पीछे दौड़े!",
   "referenced_characters": ["swami_vivekananda"],
   "image_prompt": "Swami Vivekananda — running down a narrow stone lane while rhesus macaques chase within a few steps behind him — late-19th-century temple passage, wet flagstones, one wooden staff, no modern signs — overcast morning light — vertical wide tracking shot",
-  "reference_scene_id": "scene-003",
-  "image_path": null
+  "reference_scene_id": "scene-003"
 }
 ```
 
@@ -41,7 +39,7 @@ Reject and correct a scene if any answer is no:
 
 - Narration fidelity outranks beauty, symbolism, and shot variety.
 - Character keys are lowercase `snake_case`.
-- Never duplicate `visual_style` or stable character descriptions in `image_prompt`.
+- Never duplicate `visual.style_prompt` or stable character descriptions in `image_prompt`.
 - Never add unsupported decorative writing.
 - Preserve later session status during corrections.
 - State which existing scene images require forced regeneration.

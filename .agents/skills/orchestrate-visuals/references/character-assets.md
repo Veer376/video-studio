@@ -6,7 +6,7 @@ Register only recurring main characters or subjects that need stable identity ac
 
 Use lowercase `snake_case` keys. Use the common display name as `canonical_name`.
 
-Write `prompt` as a concise stable visual identity description only. Exclude scene-dependent action, emotion, lighting, camera language, and `visual.style`.
+Write `prompt` as a concise stable visual identity description only. Exclude scene-dependent action, emotion, lighting, camera language, and `visual.style_prompt`.
 
 - Historical or spiritual figures: use only details supported by project evidence or a stable documented visual record appropriate to the depicted period. Do not infer exact age, clothing, headwear, location, or date from identity alone.
 - Fictional humans: use story details; make one restrained consistent choice where a visible trait is necessary but unspecified.
@@ -19,7 +19,7 @@ Before proposing a new asset, search repository-root `assets/characters/`. Inspe
 Judge each candidate against:
 
 - correct subject identity and stable traits
-- compatibility with `visual.style`
+- compatibility with the approved `visual.style_prompt`
 - suitability for the target aspect ratio and readable subject framing
 - sufficient quality, clean visibility, and no unwanted text or extra subjects
 - truthful treatment: illustration versus photograph, naturalistic versus anthropomorphic, and correct period/state

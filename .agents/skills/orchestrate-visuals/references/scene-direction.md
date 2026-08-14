@@ -29,7 +29,7 @@ For each scene identify the exact primary beat, required visible subjects and pr
 
 ## Write the Prompt
 
-Production prepends `visual_style` and appends non-null character prompts. Do not duplicate either.
+Production prepends the approved `session.json visual.style_prompt` and appends non-null character prompts. Do not duplicate either.
 
 ```text
 [Canonical subject(s)] — [exact visible action and interaction] — [continuity-critical environment, era, props, and state] — [motivated lighting] — [camera framing and composition]

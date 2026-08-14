@@ -56,7 +56,8 @@ Every piece of content has an owner. Before adding anything, verify it doesn't a
 
 | Content Type | Owner |
 |---|---|
-| Render style / visual quality (3D, 2D, cinematic) | `image-story` intake → `session.json visual.style` |
+| Aspect ratio | `image-story` intake → `session.json visual.aspect_ratio` |
+| Visual design recommendation and approval | `orchestrate-visuals` → `session.json visual.style_id` and `visual.style_prompt` |
 | Story idea, tone, audience | `image-story` intake → `session.json brief` |
 | Scene splitting and skeleton schema | `image-story` split stage |
 | Character anthropomorphization, prompt craft, framing | `orchestrate-visuals` |
@@ -72,3 +73,5 @@ If the proposed addition belongs to another owner — reject and redirect.
 2. **No "while we're here" edits.** Do not fix adjacent issues in the same edit unless they share the exact same root cause.
 3. **Semantic changes must move toward generalization, never away from it.** If the edit makes the skill narrower or more project-specific, it is wrong by definition.
 4. **Fewer words is better.** A skill that is shorter and does less is more durable than one that is longer and does more. Prefer removing content over adding it.
+5. **Encode the current contract, not its decision history.** Do not record rejected fields, abandoned alternatives, prior discussions, or unnecessary prohibitions. State the accepted structure positively. Add a negative rule only when it prevents a plausible recurring failure that remains ambiguous from the current contract.
+6. **Apply the deletion test.** If removing an instruction leaves the current workflow equally clear and safe, remove it.

@@ -31,7 +31,11 @@ def write_project(project_dir: Path, scenes: list[dict]) -> None:
         json.dumps(
             {
                 "session": {"status": "storyboard_complete"},
-                "visual": {"aspect_ratio": "16:9"},
+                "visual": {
+                    "aspect_ratio": "16:9",
+                    "style_id": "oil_painting",
+                    "style_prompt": "painted style",
+                },
             }
         ),
         encoding="utf-8",
@@ -39,7 +43,6 @@ def write_project(project_dir: Path, scenes: list[dict]) -> None:
     (project_dir / "scenes.json").write_text(
         json.dumps(
             {
-                "visual_style": "painted style",
                 "characters": {
                     "hero": {
                         "canonical_name": "Hero",
@@ -55,6 +58,35 @@ def write_project(project_dir: Path, scenes: list[dict]) -> None:
 
 
 class CloudflareImageGenTests(unittest.TestCase):
+    def test_style_prompt_comes_from_session(self) -> None:
+        style = image_gen.resolve_style_prompt(
+            {
+                "visual": {
+                    "style_id": "oil_painting",
+                    "style_prompt": "approved session style",
+                }
+            },
+            {"visual_style": "stale copied style"},
+        )
+
+        self.assertEqual("approved session style", style)
+
+    def test_missing_style_prompt_fails_without_default(self) -> None:
+        with self.assertRaisesRegex(ValueError, "run orchestrate-visuals"):
+            image_gen.resolve_style_prompt(
+                {"visual": {"aspect_ratio": "9:16"}},
+                {"scenes": []},
+            )
+
+    def test_legacy_scene_visual_style_still_resumes(self) -> None:
+        self.assertEqual(
+            "legacy style",
+            image_gen.resolve_style_prompt(
+                {"visual": {"aspect_ratio": "9:16"}},
+                {"visual_style": "legacy style"},
+            ),
+        )
+
     def test_prepare_reference_image_is_real_png_under_512(self) -> None:
         with TemporaryDirectory() as tmp:
             source = Path(tmp) / "scene-001.png"
@@ -463,7 +495,11 @@ class CloudflareImageGenTests(unittest.TestCase):
                 json.dumps(
                     {
                         "session": {"status": "storyboard_complete"},
-                        "visual": {"aspect_ratio": "9:16"},
+                        "visual": {
+                            "aspect_ratio": "9:16",
+                            "style_id": "oil_painting",
+                            "style_prompt": "painted style",
+                        },
                     }
                 ),
                 encoding="utf-8",
@@ -472,7 +508,6 @@ class CloudflareImageGenTests(unittest.TestCase):
             manifest_path.write_text(
                 json.dumps(
                     {
-                        "visual_style": "painted style",
                         "characters": {
                             "hero": {
                                 "canonical_name": "Hero",

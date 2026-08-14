@@ -15,3 +15,7 @@ output/
 *.egg-info/
 .venv/
 research
+!research/
+research/*
+!research/shorts-growth/
+!research/shorts-growth/**

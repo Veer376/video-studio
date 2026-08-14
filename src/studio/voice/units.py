@@ -19,11 +19,49 @@ from studio.voice.voice import (
 
 MAX_UNIT_WORDS = 80
 MANIFEST_VERSION = 1
+VOICE_DIRECTIONS_VERSION = 1
+_AUDIO_TAG_PATTERN = re.compile(r"\[[^\]]+\]")
 
 
 def clean_spoken_text(text: str) -> str:
-    """Remove Markdown syntax that must not be spoken and normalize whitespace."""
+    """Preserve Gemini audio tags while normalizing Markdown syntax and whitespace."""
     return re.sub(r"\s+", " ", text.replace(">", " ")).strip()
+
+
+def strip_audio_tags(text: str) -> str:
+    """Return the exact spoken prose used for direction validation."""
+    return re.sub(r"\s+", " ", _AUDIO_TAG_PATTERN.sub("", text)).strip()
+
+
+def load_scene_tts_texts(project_dir: Path, scenes: list[dict]) -> dict[str, str]:
+    """Load optional per-scene tagged TTS text without polluting scene narration."""
+    clean_texts = {str(scene.get("id")): clean_spoken_text(scene.get("text", "")) for scene in scenes}
+    directions_path = project_dir / "audio" / "directions.json"
+    if not directions_path.exists():
+        return clean_texts
+
+    data = read_json(directions_path)
+    if data.get("version") != VOICE_DIRECTIONS_VERSION:
+        raise ValueError(f"Unsupported voice directions version in {directions_path}")
+    entries = data.get("scenes")
+    if not isinstance(entries, dict):
+        raise ValueError(f"{directions_path} must contain a scenes object")
+
+    unknown = sorted(set(entries) - set(clean_texts))
+    if unknown:
+        raise ValueError(f"{directions_path} has unknown scene IDs: {', '.join(unknown)}")
+
+    resolved = dict(clean_texts)
+    for scene_id, tagged_text in entries.items():
+        if not isinstance(tagged_text, str) or not tagged_text.strip():
+            raise ValueError(f"{directions_path} has empty TTS text for {scene_id}")
+        if strip_audio_tags(tagged_text) != clean_texts[scene_id]:
+            raise ValueError(
+                f"{directions_path} changes spoken narration for {scene_id}; "
+                "it may add only bracketed audio tags"
+            )
+        resolved[scene_id] = clean_spoken_text(tagged_text)
+    return resolved
 
 
 def group_scenes(scenes: list[dict], max_words: int = MAX_UNIT_WORDS) -> list[list[dict]]:
@@ -81,6 +119,7 @@ def generate_narration_units(
     scenes = list(read_json(scenes_path).get("scenes") or [])
     if not scenes:
         raise RuntimeError("scenes.json contains no scenes")
+    tts_texts = load_scene_tts_texts(project_dir, scenes)
 
     load_env()
     keys: list[str] | None = None
@@ -101,7 +140,7 @@ def generate_narration_units(
     for index, group in enumerate(groups, start=1):
         unit_id = f"unit-{index:03d}"
         audio_path = narration_dir / f"{unit_id}.wav"
-        text = clean_spoken_text(" ".join(scene.get("text", "") for scene in group))
+        text = clean_spoken_text(" ".join(tts_texts[str(scene.get("id"))] for scene in group))
         input_hash = _input_hash(text, model, voice)
         previous = old_units.get(unit_id, {})
         reusable = (

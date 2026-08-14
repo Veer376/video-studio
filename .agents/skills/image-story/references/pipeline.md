@@ -14,6 +14,8 @@ The default production flow is:
 voice -> illustrate -> render
 ```
 
+If `audio/directions.json` exists, voice reads its per-scene Gemini audio tags. It validates that removing tags leaves the exact clean `scenes.json.text`; alignment and subtitles always use the clean scene text.
+
 ## Naming Contract
 
 - `image-story`: master skill and workflow owner.

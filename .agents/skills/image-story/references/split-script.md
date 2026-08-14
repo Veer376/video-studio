@@ -16,7 +16,7 @@ Run this stage when:
 ## Step 1 — Read All Inputs
 
 Read the following files before doing anything:
-1. `library/<project_name>/session.json` → extract `project_name`, `visual.style`
+1. `library/<project_name>/session.json` → extract `project_name`
 2. `library/<project_name>/script.md` → extract the full narration body
 
 **Extracting the narration body from `script.md`:**
@@ -79,7 +79,6 @@ Write the skeleton manifest to `library/<project_name>/scenes.json`.
 ```json
 {
   "project_name": "<from session.json>",
-  "visual_style": "<session.json visual.style string>",
   "total_words": 400,
   "scene_count": 20,
   "scenes": [
@@ -93,8 +92,6 @@ Write the skeleton manifest to `library/<project_name>/scenes.json`.
 
 **Field rules:**
 - `text`: The exact narration prose for this scene. No modifications, except ensuring that all quote and quote-continuation scenes MUST begin with the `> ` prefix.
-- `visual_style`: Store the raw string from `session.json visual.style`. If it is a nested object, extract only the string value.
-
 > [!CAUTION]
 > Do **not** add any other fields. Do not add `narration`, `subtitle`, `audio_path`, `duration_seconds`, `motion`, `transition`, or `voice_direction`. These fields are either redundant with `text` or belong to the render pipeline — not this manifest.
 
@@ -111,6 +108,6 @@ Update `session.json`:
 
 - **Do not split mid-sentence or at commas.** Ever.
 - **Do not write image prompts.** That belongs to the standalone `orchestrate-visuals` skill.
+- **Do not put voice tags in `scenes.json`.**
 - **Scene count is dynamically determined** based on script length (~18 words per scene), with a minimum of 2 scenes.
-- **`visual_style` must be a plain string**, not a nested JSON object.
 - **Multi-scene quotes MUST preserve `> ` on all continuation scenes.** Never drop `> ` from subsequent quote scenes.

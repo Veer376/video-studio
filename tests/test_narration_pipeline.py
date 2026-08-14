@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from studio.alignment.units import align_narration_units
 from studio.transcription.units import transcribe_units, validate_transcription
-from studio.voice.units import generate_narration_units, group_scenes
+from studio.voice.units import generate_narration_units, group_scenes, load_scene_tts_texts
 
 
 def _write_one_second_wav(path: Path) -> None:
@@ -73,6 +73,40 @@ class NarrationPipelineTests(unittest.TestCase):
             self.assertTrue((project_dir / "audio/narration/manifest.json").exists())
             self.assertTrue((project_dir / "audio/narration.wav").exists())
             self.assertEqual(2, mock_tts.call_count)
+
+    def test_directions_keep_scenes_clean_but_supply_tagged_tts_text(self):
+        with TemporaryDirectory() as tmp:
+            project_dir = Path(tmp)
+            _project(project_dir)
+            (project_dir / "audio").mkdir()
+            (project_dir / "audio/directions.json").write_text(
+                json.dumps({
+                    "version": 1,
+                    "scenes": {"scene-001": "[firm] पहला सुंदर दृश्य"},
+                }),
+                encoding="utf-8",
+            )
+            scenes = json.loads((project_dir / "scenes.json").read_text())["scenes"]
+            texts = load_scene_tts_texts(project_dir, scenes)
+            self.assertEqual("[firm] पहला सुंदर दृश्य", texts["scene-001"])
+            self.assertEqual("दूसरा सरल दृश्य", texts["scene-002"])
+            self.assertEqual("पहला सुंदर दृश्य", scenes[0]["text"])
+
+    def test_directions_cannot_change_spoken_narration(self):
+        with TemporaryDirectory() as tmp:
+            project_dir = Path(tmp)
+            _project(project_dir)
+            (project_dir / "audio").mkdir()
+            (project_dir / "audio/directions.json").write_text(
+                json.dumps({
+                    "version": 1,
+                    "scenes": {"scene-001": "[firm] बदल दिया"},
+                }),
+                encoding="utf-8",
+            )
+            scenes = json.loads((project_dir / "scenes.json").read_text())["scenes"]
+            with self.assertRaisesRegex(ValueError, "changes spoken narration"):
+                load_scene_tts_texts(project_dir, scenes)
 
     @patch("studio.transcription.units.load_openai_key", return_value="openai-key")
     @patch("studio.transcription.units.load_groq_keys", return_value=["groq-key"])

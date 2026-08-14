@@ -199,13 +199,13 @@ def character_prompt(character_key: str, character: dict) -> str | None:
     return value.strip()
 
 
-def build_character_prompt(character_key: str, character: dict, visual_style: str) -> str:
+def build_character_prompt(character_key: str, character: dict, style_prompt: str) -> str:
     canonical = str(character.get("canonical_name") or character_key).strip()
     description = character_prompt(character_key, character)
     if description is None:
         raise ValueError(f"character {character_key!r} has no generation prompt")
     return (
-        f"{visual_style} — Canonical identity reference for {canonical}: {description} — "
+        f"{style_prompt} — Canonical identity reference for {canonical}: {description} — "
         "show this subject alone, with the complete identifying silhouette visible, in a "
         "neutral pose or natural resting state against a simple unobtrusive background, "
         "even readable lighting, no narrative action, no text, no additional characters"
@@ -280,23 +280,53 @@ def scene_reference_id(scene: dict) -> str | None:
     return str(legacy[0]) if legacy else None
 
 
-def strip_duplicated_style(image_prompt: str, visual_style: str) -> str:
+def strip_duplicated_style(image_prompt: str, style_prompt: str) -> str:
     """Remove a legacy style prefix because production adds it exactly once."""
     prompt = image_prompt.strip()
     for separator in (" — ", ", ", " - ", ": "):
-        prefix = f"{visual_style.strip()}{separator}"
+        prefix = f"{style_prompt.strip()}{separator}"
         if prompt.startswith(prefix):
             return prompt[len(prefix):].strip()
     return prompt
 
 
-def assemble_scene_prompt(scene: dict, characters: dict, visual_style: str) -> str:
+def resolve_style_prompt(session: dict, scenes_data: dict) -> str:
+    """Load the approved session design, with read-only legacy compatibility."""
+    visual = session.get("visual") or {}
+    if not isinstance(visual, dict):
+        raise ValueError("session.visual must be an object")
+
+    style_prompt = visual.get("style_prompt")
+    if style_prompt is not None:
+        style_id = visual.get("style_id")
+        if not isinstance(style_id, str) or not style_id.strip():
+            raise ValueError("session.visual.style_id is required with style_prompt")
+        if not isinstance(style_prompt, str) or not style_prompt.strip():
+            raise ValueError("session.visual.style_prompt must be a non-empty string")
+        return style_prompt.strip()
+
+    legacy_style = visual.get("style")
+    if isinstance(legacy_style, dict):
+        legacy_style = legacy_style.get("style")
+    if not isinstance(legacy_style, str) or not legacy_style.strip():
+        legacy_style = scenes_data.get("visual_style")
+        if isinstance(legacy_style, dict):
+            legacy_style = legacy_style.get("style")
+    if isinstance(legacy_style, str) and legacy_style.strip():
+        return legacy_style.strip()
+
+    raise ValueError(
+        "approved visual design is missing; run orchestrate-visuals before illustration"
+    )
+
+
+def assemble_scene_prompt(scene: dict, characters: dict, style_prompt: str) -> str:
     raw_prompt = scene.get("image_prompt")
     if not isinstance(raw_prompt, str) or not raw_prompt.strip():
         raise ValueError(f"{scene.get('id', '<unknown>')}.image_prompt is missing")
 
-    image_prompt = strip_duplicated_style(raw_prompt, visual_style)
-    full_prompt = f"{visual_style} — {image_prompt}"
+    image_prompt = strip_duplicated_style(raw_prompt, style_prompt)
+    full_prompt = f"{style_prompt} — {image_prompt}"
     ref_chars = scene.get("referenced_characters") or scene.get("characters") or []
     if not isinstance(ref_chars, list):
         raise ValueError(f"{scene.get('id', '<unknown>')}.referenced_characters must be a list")
@@ -600,12 +630,14 @@ def main():
     else:
         width, height = IMAGE_WIDTH, IMAGE_HEIGHT
 
-    visual_style = scenes_data.get("visual_style", "premium cinematic digital painting, vivid colors")
-    if isinstance(visual_style, dict):
-        visual_style = visual_style.get("style", "premium cinematic digital painting, vivid colors")
+    try:
+        style_prompt = resolve_style_prompt(session, scenes_data)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     print(f"→ Illustration phase: {args.phase} (Resolution: {width}x{height})")
-    print(f"  Global Style: {visual_style}")
+    print(f"  Global Design: {style_prompt}")
 
     # Validate and prepare prompts before spending any generation credits.
     scenes = scenes_data.get("scenes", [])
@@ -624,7 +656,7 @@ def main():
             character_prompt(key, character)
         scene_by_id = validate_reference_graph(scenes)
         prompts = {
-            scene["id"]: assemble_scene_prompt(scene, characters, visual_style)
+            scene["id"]: assemble_scene_prompt(scene, characters, style_prompt)
             for scene in scenes
         }
     except ValueError as exc:
@@ -668,7 +700,7 @@ def main():
                     generate_image(
                         credentials=credentials,
                         model=args.model,
-                        prompt=build_character_prompt(task.key, character, visual_style),
+                        prompt=build_character_prompt(task.key, character, style_prompt),
                         width=width,
                         height=height,
                         out_path=task.output_path,

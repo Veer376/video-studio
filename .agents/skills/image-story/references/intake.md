@@ -31,9 +31,6 @@ Conduct the intake as a natural, friendly conversation. Acknowledge each answer 
 > **Q5.** How long should the video be? *(e.g., 45 seconds, 90 seconds, or up to 3 minutes for a Short; 10–12 minutes for long-form)*
 > **Q6.** What language? *(Hindi / English / Hinglish)*
 
-### Group 3 — Visual Style (Optional)
-> **Q7.** Any specific visual style? *(e.g., ancient India, modern urban, nature documentary, abstract watercolour)* — or press Enter to use the cinematic digital painting default.
-
 ---
 
 ## Derived Values
@@ -79,7 +76,6 @@ Follow these steps in exact order:
     "language": "hi-IN"
   },
   "visual": {
-    "style": "premium cinematic digital painting, vivid colors, mystical lighting, ancient India",
     "aspect_ratio": "16:9"
   }
 }
@@ -93,6 +89,4 @@ Follow these steps in exact order:
 
 - Default language if skipped: `hi-IN`.
 - Default aspect ratio if skipped: `16:9`. If vertical or Short is specified, set `visual.aspect_ratio` to `9:16`.
-- The default production flow uses 30fps, Cloudflare images, Gemini TTS, and subtitles. Resolution matches the aspect ratio (`1920x1080` for `16:9`, `1080x1920` for `9:16`). Do not write those defaults into `session.json`.
-- Keep `voice` lean for now: only write `voice.language`.
 - Never generate story content, images, or audio during this stage. This stage only asks questions and writes `session.json`.
