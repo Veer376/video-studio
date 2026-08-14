@@ -1,0 +1,4 @@
+interface:
+  display_name: "Split Script"
+  short_description: "Create semantic visual beats from narration"
+  default_prompt: "Use $split-script to divide an approved narration into lossless, visually coherent scene beats."
