@@ -30,7 +30,7 @@ The composer and visual orchestrator need more than facts. They need:
 
 ## Source Tool
 
-Use the globally available `tavily` skill for Tavily-backed search, extraction, site exploration, and deep research. Read its `SKILL.md` and follow its current commands, authentication, and execution paths. This reference owns the research questions, evidence standards, and project output; it does not duplicate provider mechanics or assume a repository-local Tavily path.
+Use the globally available `tavily` skill for Tavily-backed search, extraction, site exploration, and deep research. Read its `SKILL.md` and follow its current commands, authentication, and execution paths. This reference owns the research questions, evidence standards, and project output; it does not duplicate provider mechanics or assume a repository-local Tavily path. Available tools `tavily_research`, `tavily_search`, `tavily_extract` etc..
 
 ---
 
