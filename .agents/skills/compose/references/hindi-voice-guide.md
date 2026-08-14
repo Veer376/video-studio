@@ -88,10 +88,10 @@ A quote should never appear in the first 30 seconds unless it IS the hook.
 
 ---
 
-## 6. The 80/20 Truth/Fiction Blend
+## 6. Truth and Fiction Boundary
 
-- **80% Verified Truth:** Core message grounded in facts from `research.md`.
-- **20% Plausible Fiction:** Sensory imagination — what the air felt like, sweat on palms, heavy silence between words. Cinematic texture.
+- For factual projects, ground the core message in active verified research. Use plausible sensory invention only when it cannot change the documented action, motive, attribution, or outcome.
+- Without project research, remain within the user-provided premise and do not present invented details as historical, scientific, scriptural, or biographical fact.
 
 ---
 

@@ -16,16 +16,18 @@ Read before writing:
 1. `library/<project_name>/session.json` for `visual.aspect_ratio`, `voice.language`, and any previously approved visual design by user.
 2. `library/<project_name>/scenes.json` for every scene and existing production state
 3. `library/<project_name>/script.md` for the full arc, recurring subjects, setting, and props
-4. project `research.md` only when identity or period claims require its evidence
+4. project `research.md`, when it exists, for evidence relevant to identity, period, setting, objects, physical actions, emotional beats, opening contradiction, or payoff; treat it as evidence, not a completed visual plan
 
 For first-pass orchestration, expect `session.status: "split_complete"` and missing or null scene prompts. For revisions, preserve later status and valid production fields.
 
 ## Workflow
 
-1. Read [references/visual-design.md](references/visual-design.md). Recommend a catalog design, obtain explicit user approval, and persist it before directing characters or scenes.
-2. Read [references/character-assets.md](references/character-assets.md). Register recurring subjects, inspect reusable root assets, and choose reuse, adaptation, or new generation semantics.
-3. Read [references/scene-direction.md](references/scene-direction.md). Build the continuity ledger and direct one narration-faithful still per scene.
-4. Read [references/manifest-contract.md](references/manifest-contract.md). Apply the schema, run the fidelity gate, and write `scenes.json` safely.
+1. When `visual.aspect_ratio` is `9:16` and `brief.target_duration_seconds` is at most 180, read [references/short-form-direction.md](references/short-form-direction.md) before choosing the design or directing scenes.
+2. Read [references/visual-design.md](references/visual-design.md). Recommend a catalog design, obtain explicit user approval, and persist it before directing characters or scenes.
+3. Read [references/character-assets.md](references/character-assets.md). Register recurring subjects, inspect reusable root assets, and choose reuse, adaptation, or new generation semantics.
+4. Read [references/scene-direction.md](references/scene-direction.md). Build the continuity ledger and direct one narration-faithful still per scene.
+5. If a material, historical, spatial, or cinematic question remains unresolved, read [references/reference-exploration.md](references/reference-exploration.md) and perform only the exploration needed to answer it.
+6. Read [references/manifest-contract.md](references/manifest-contract.md). Apply the schema, run the fidelity gate, and write `scenes.json` safely.
 
 On first-pass completion, update `session.status` from `split_complete` to `storyboard_complete`. On correction, preserve later status and identify which scene images require forced regeneration.
 

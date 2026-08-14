@@ -18,12 +18,13 @@ Read from the selected project folder:
 
 ```text
 library/<project_name>/session.json
-library/<project_name>/research.md
 library/<project_name>/script.md
 library/<project_name>/scenes.json
 library/<project_name>/output/final-video.mp4
 library/<project_name>/images/
 ```
+
+Also read `library/<project_name>/research.md` when it exists. Packaging must remain grounded in the final script either way.
 
 If `output/final-video.mp4` is missing, flag user.
 

@@ -1,9 +1,7 @@
-# Long-Form (8–12 Min) 3-Layer Narrative Rule
+# Long-Form Narrative Rule
 
-When `target_duration_seconds` >= 480 seconds, structure the script into a 3-Layer Narrative Architecture (~1300–1600 words):
+Apply when `target_duration_seconds >= 480`. Derive the drafting range from the target duration and the selected voice's measured words per second. When no measurement exists, estimate at 2 spoken words per second with a ±10% drafting range; rendered runtime remains the final check.
 
-1. **Layer 1 — Core Parable (0:00–3:30):** The primary narrative hook.
-2. **Layer 2 — Real-World / Historical Parallel (3:30–7:00):** A secondary real incident, historical event, or scientific study.
-3. **Layer 3 — Philosophical Synthesis & Action Protocol (7:00–10:00):** Wisdom application and a concrete 3-step action ritual.
+Choose the structure that fits the material: a single-event drama, biography, mythic episode, parable, essay, or synthesis. Scale context, developments, reversals, and retention turns with the target duration. Do not require a secondary historical example, scientific parallel, action ritual, or fixed three-layer architecture unless the selected blueprint needs it.
 
-Never force word-padding or fluff; expand narrative scope using this 3-Layer structure to maintain high-retention value.
+Expand through meaningful conflict, consequence, interpretation, and change. Never pad the script to reach the target.

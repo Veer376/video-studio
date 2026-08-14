@@ -1,20 +1,22 @@
 ---
 name: compose
-description: Generate or revise narration scripts from completed story research through blueprint approval and script writing. Use when session.json has research_complete, research.md exists, and script.md is missing or the user requests a rewrite. Routes vertical Shorts, standard scripts, and long-form scripts of 480 seconds or longer to distinct duration rules.
+description: Generate or revise narration scripts from an approved project brief and optional research through blueprint approval and script writing. Use when session.json exists and script.md is missing, or the user requests a rewrite. Routes vertical Shorts, standard scripts, and long-form scripts of 480 seconds or longer to distinct duration rules.
 ---
 
 # Compose Skill
 
-This skill is a **screenwriter and storyteller**. Its job is to translate raw research findings into an emotionally resonant narration script through a structured two-round process.
+This skill is a **screenwriter and storyteller**. Its job is to develop the approved brief into an emotionally resonant narration script, using research as evidence when available, through a structured two-round process.
 
 ---
 
 ## Inputs
 
-Read these files before presenting blueprints:
+Read before presenting blueprints:
 
 - `library/<project_name>/session.json`
-- `library/<project_name>/research.md`
+- `library/<project_name>/research.md` when it exists
+
+When `research.md` is absent, work from the persisted brief and user-provided premise. If the requested direction depends on unsupported attributed quotations, dates, historical details, scientific claims, or factual certainty, recommend focused research before writing.
 
 Read `brief.target_duration_seconds` and `visual.aspect_ratio`, then select exactly one mode:
 
@@ -28,10 +30,13 @@ Do not infer mode from filename or a platform label alone. A contemporary YouTub
 
 ## Research Selection
 
-Not all research belongs in the script. When selecting from `research.md`, apply this filter:
-1. Does it serve the emotional arc?
-2. Does it surprise the listener?
-3. Does it deepen the core conflict?
+Establish the video's central promise and conflict from the approved brief before selecting supporting research. Treat `research.md` as an evidence pool, never as an outline or inclusion checklist.
+
+Select a research item only when:
+
+1. it is necessary to understand or verify the approved story direction
+2. it materially strengthens the central conflict, turn, emotional arc or payoff
+3. it fits without displacing clearer or more important material
 
 If a fact is interesting but doesn't serve the story, cut it.
 

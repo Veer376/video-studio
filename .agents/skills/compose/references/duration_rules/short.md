@@ -21,7 +21,8 @@ The hook must:
 - Complete its understandable promise within roughly three seconds.
 - Make sense without prior context and create one specific question.
 - Connect directly to a payoff delivered by this script.
-- Stay faithful to `research.md`; never manufacture stakes or certainty.
+- Stay faithful to verified research when available and otherwise remain within the user-provided premise. Never manufacture stakes or certainty.
+- Treat research as optional evidence rather than a checklist. Use a verified quotation when it earns its limited runtime through authority, emotion, conflict, or payoff.
 
 Reject generic wisdom, vague questions, and hooks that could introduce any unrelated story.
 

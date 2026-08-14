@@ -17,7 +17,7 @@ Read only the reference required for the current stage:
 | Stage | When it is needed | Read |
 |---|---|---|
 | Intake | No `session.json`, or the user starts a new project | `references/intake.md` |
-| Research | `session.json` exists but project `research.md` does not, or the user requests re-research | `references/research.md` |
+| Research | The user chooses research before composition, or requests re-research | `references/research.md`; for Short mode also read `references/research-short.md` |
 | Split | Approved `script.md` exists but `scenes.json` does not, or the user requests a re-split | `references/split-script.md` |
 | Production | Run, resume, inspect, retry, voice, illustrate, render, or verify output | `references/pipeline.md` |
 | Package | Create YouTube titles, description, hashtags, metadata, or thumbnails | `references/package-youtube.md` |
@@ -30,9 +30,9 @@ Do not load unrelated references.
 Inspect project artifacts before acting:
 
 ```text
-session.json missing                  -> Intake reference
-research.md missing                   -> Research reference
-script.md missing                     -> compose skill
+session.json missing                              -> Intake reference
+script.md and research.md both missing            -> Ask: research first, or compose from the brief
+script.md missing                                 -> compose skill
 scenes.json missing                   -> Split reference
 image prompts missing                 -> orchestrate-visuals skill
 production artifacts incomplete       -> Production reference
@@ -48,7 +48,7 @@ Respect approval gates owned by specialist skills. Do not perform Compose or Orc
 Each project lives under `library/<project_name>/`:
 
 ```text
-session.json -> research.md -> script.md -> scenes.json
+session.json -> optional research.md -> script.md -> scenes.json
              -> audio/ + assets/characters/ + images/ + output/final-video.mp4
              -> youtube/metadata.json + thumbnails/ + upload.json
 ```
@@ -66,7 +66,8 @@ story-video stage render library/<project_name>
 ## Hard Rules
 
 - Resume from filesystem artifacts; do not trust `session.json` alone.
-- Never skip required upstream artifacts or specialist approval gates.
+- When both research and script are absent, use `ask_question` or a similar user-input tool when available to offer optional research before Compose. Recommend research for externally verifiable claims. Do not persist a routing flag.
+- Never bypass specialist approval gates.
 - Keep all project outputs inside `library/<project_name>/`.
 - Never cast media timings to integers.
 - Run production code through `story-video`; run YouTube operations through the standalone `youtube` skill.
