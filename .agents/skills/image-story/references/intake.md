@@ -21,15 +21,17 @@ Conduct the intake as a natural, friendly conversation. Acknowledge each answer 
 
 Before asking questions, read `kathamind/config.json`. Use its non-empty `audience` value for `brief.audience`; do not ask the user for an audience. If the value is missing or invalid, report the configuration error instead of inventing a replacement.
 
-**Short Video Optimization**: If the user starts the conversation by requesting a "Short" or "vertical video", automatically set `visual.aspect_ratio` to `"9:16"` and skip **Q3**. Still ask **Q4** because a YouTube Short may run anywhere up to three minutes and duration is a creative choice.
+**Short Format & Duration Coupling**: YouTube Shorts run up to 3 minutes (180 seconds) and require `9:16` vertical format.
+- If the user requests a "Short", "vertical video", or specifies a duration `<= 180` seconds (e.g., 45s, 60s, 2–3 mins): automatically set `visual.aspect_ratio: "9:16"` and skip **Q3**. Still ask **Q4** because a YouTube Short may run anywhere up to 3 minutes and duration is a creative choice.
+- If the user requests long-form or a duration `> 180` seconds (e.g., 5–12 mins): set `visual.aspect_ratio: "16:9"`.
 
 ### Group 1 — The Idea
 > **Q1.** What is this video about? Give me the core idea — it can be a theme, a story concept, a life lesson, a character, or even just a feeling.
 > **Q2.** What tone should it have? *(warm storytelling / motivational / devotional / educational / poetic — or describe it in your own words)*
 
 ### Group 2 — Format & Length
-> **Q3.** What is the video format or aspect ratio? *(e.g., Long-form 16:9 (recommended) / Short 9:16 (vertical Shorts))*
-> **Q4.** How long should the video be? *(e.g., 45 seconds, 90 seconds, or up to 3 minutes for a Short; 10–12 minutes for long-form)*
+> **Q3.** What is the video format or aspect ratio? *(e.g., Short 9:16 (vertical Shorts, up to 3 min) / Long-form 16:9 (horizontal, 3+ min))*
+> **Q4.** How long should the video be? *(e.g., 45 seconds, 90 seconds, or up to 3 minutes for a Short; 3–12 minutes for long-form)*
 
 ---
 
@@ -88,5 +90,5 @@ Follow these steps in exact order:
 ## Hard Rules
 
 - Always write `voice.language: "hi-IN"`; do not ask the user for language during intake.
-- Default aspect ratio if skipped: `16:9`. If vertical or Short is specified, set `visual.aspect_ratio` to `9:16`.
+- Aspect ratio defaults: If `target_duration_seconds <= 180` (or Short requested), `visual.aspect_ratio` MUST be `"9:16"`. If `target_duration_seconds > 180`, `visual.aspect_ratio` MUST be `"16:9"`.
 - Never generate story content, images, or audio during this stage. This stage only asks questions and writes `session.json`.

@@ -1,6 +1,6 @@
 # Short-Form Visual Direction
 
-Apply this reference only when `session.json` has `visual.aspect_ratio: "9:16"` and `brief.target_duration_seconds <= 180`. It augments the normal scene-direction rules; it does not change narration, scene boundaries, timing, or the approved global design.
+Apply this reference only when `session.json` has `visual.aspect_ratio: "9:16"` or `brief.target_duration_seconds <= 180`. It augments the normal scene-direction rules; it does not change narration, scene boundaries, timing, or the approved global design.
 
 ## Build the Visual Arc
 

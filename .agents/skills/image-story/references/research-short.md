@@ -1,6 +1,6 @@
 # Short Research Scope
 
-Apply this reference only when `session.json` has `visual.aspect_ratio: "9:16"` and `brief.target_duration_seconds <= 180`. It narrows research effort; it does not change the `research.md` output structure or lower verification standards.
+Apply this reference only when `session.json` has `visual.aspect_ratio: "9:16"` or `brief.target_duration_seconds <= 180`. It narrows research effort; it does not change the `research.md` output structure or lower verification standards.
 
 ## Research One Complete Unit
 

@@ -20,11 +20,11 @@ When `research.md` is absent, work from the persisted brief and user-provided pr
 
 Read `brief.target_duration_seconds` and `visual.aspect_ratio`, then select exactly one mode:
 
-- **Short:** `visual.aspect_ratio` is `9:16` and `target_duration_seconds <= 180`. Read `references/duration_rules/short.md`. Its drafting gate is mandatory.
-- **Standard:** `< 480` seconds and not Short mode. Preserve natural pacing; treat the target as approximate.
+- **Short:** `target_duration_seconds <= 180` or `visual.aspect_ratio` is `9:16`. Read `references/duration_rules/short.md`. Its drafting gate is mandatory. (If `session.json` has `target_duration_seconds <= 180` but `visual.aspect_ratio` was mistakenly set to `16:9`, correct `visual.aspect_ratio` to `"9:16"` in `session.json`).
+- **Standard:** `181` to `479` seconds and `visual.aspect_ratio` is `16:9`. Preserve natural pacing; treat the target as approximate.
 - **Long:** `>= 480` seconds. Read `references/duration_rules/long.md`; treat the target as approximate.
 
-Do not infer mode from filename or a platform label alone. A contemporary YouTube Short must be square or vertical and no longer than three minutes; this pipeline's Short format is `9:16`.
+Do not infer mode from filename or a platform label alone. A contemporary YouTube Short must be vertical and no longer than three minutes; this pipeline's Short format is `9:16`.
 
 ---
 

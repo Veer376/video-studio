@@ -43,7 +43,7 @@ Parse `library/<project_name>/session.json`. Extract:
 - `brief.audience` — who is watching
 - `brief.target_duration_seconds` — rough scope for how much material is useful
 
-If `visual.aspect_ratio` is `9:16` and `brief.target_duration_seconds <= 180`, also read `references/research-short.md` and let its scope rules override the general search breadth below.
+If `visual.aspect_ratio` is `9:16` or `brief.target_duration_seconds <= 180`, also read `references/research-short.md` and let its scope rules override the general search breadth below.
 
 If the user says this research follows discovery, or if `.agents/skills/discovery/research.md` exists and is relevant, read it as optional directional context. Use its selected idea, shortlisted angle, demand signals, sources, and "Next research needed" notes to focus the project research. Do not overwrite discovery's scratchpad.
 

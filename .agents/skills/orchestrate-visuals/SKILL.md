@@ -22,7 +22,7 @@ For first-pass orchestration, expect `session.status: "split_complete"` and miss
 
 ## Workflow
 
-1. When `visual.aspect_ratio` is `9:16` and `brief.target_duration_seconds` is at most 180, read [references/short-form-direction.md](references/short-form-direction.md) before choosing the design or directing scenes.
+1. When `visual.aspect_ratio` is `9:16` or `brief.target_duration_seconds <= 180`, read [references/short-form-direction.md](references/short-form-direction.md) before choosing the design or directing scenes.
 2. Read [references/visual-design.md](references/visual-design.md). Recommend a catalog design, obtain explicit user approval, and persist it before directing characters or scenes.
 3. Read [references/character-assets.md](references/character-assets.md). Register recurring subjects, inspect reusable root assets, and choose reuse, adaptation, or new generation semantics.
 4. Read [references/scene-direction.md](references/scene-direction.md). Build the continuity ledger and direct one narration-faithful still per scene.
