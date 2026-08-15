@@ -63,6 +63,7 @@ Count the total words in the cleaned narration body. This is `total_words`.
    - Cut at the highest scoring boundary.
    - **Hard Rule:** Never cut mid-sentence. Never cut at commas (`,`). If no sentence boundary exists in the search window, allow the scene to extend up to 30 words to reach the next full sentence end.
    - **Quote Continuity Rule:** If a quote block (lines marked by `>`) is split across multiple scenes, **EVERY continuation scene** of that quote MUST also begin with the `> ` prefix so downstream renderers activate quote vignette styling continuously.
+   - **Quote Exit Boundary:** End the final quote scene at the quote block's last spoken token. Begin following narrator prose in a new scene without `>`. A `>` marker controls quote rendering through the end of its scene, so quoted and post-quote narration must never share one scene.
 
 4. Assign sequential IDs to the resulting chunks: `scene-001`, `scene-002`, etc.
 
@@ -111,3 +112,4 @@ Update `session.json`:
 - **Do not put voice tags in `scenes.json`.**
 - **Scene count is dynamically determined** based on script length (~18 words per scene), with a minimum of 2 scenes.
 - **Multi-scene quotes MUST preserve `> ` on all continuation scenes.** Never drop `> ` from subsequent quote scenes.
+- **The end of a quote block is a mandatory scene boundary.** Never append narrator prose after quoted text in the same scene.

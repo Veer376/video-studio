@@ -39,6 +39,17 @@ def quote_state_tokens(text: str) -> list[tuple[str, bool]]:
     return tokens
 
 
+def exits_quote_scope(text: str) -> bool:
+    """Return whether a scene resumes unquoted prose after quoted prose."""
+    seen_quote = False
+    for _, quoted in quote_state_tokens(text):
+        if quoted:
+            seen_quote = True
+        elif seen_quote:
+            return True
+    return False
+
+
 def extract_narration(script_text: str) -> str:
     lines = script_text.splitlines()
     try:
@@ -109,6 +120,11 @@ def validate(script_path: Path, scenes_path: Path) -> list[str]:
             continue
         if AUDIO_TAG.search(text):
             errors.append(f"{expected_id} contains a bracketed performance direction")
+        if exits_quote_scope(text):
+            errors.append(
+                f"{expected_id} resumes narrator prose after a quote; "
+                "end the scene at the quote boundary"
+            )
         word_count = len(strip_control_markers(text).split())
         if len(scenes) > 1 and word_count < 3:
             errors.append(f"{expected_id} has {word_count} words; minimum is 3")

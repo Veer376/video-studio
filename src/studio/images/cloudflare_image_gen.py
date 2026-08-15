@@ -548,7 +548,7 @@ def generate_image(
 
                 save_response_image(response_data, resp_content_type, out_path)
                 
-                print(f"✓ Image saved: {out_path.name}")
+                print(f"✓ Image saved: {out_path.name} (model: {model})")
                 return
 
         except urllib.error.HTTPError as exc:
@@ -641,6 +641,10 @@ def main():
         if "flux" in model_name:
             model_name = f"@cf/black-forest-labs/{model_name}"
 
+    if session.get("visual", {}).get("model") != model_name:
+        session.setdefault("visual", {})["model"] = model_name
+        session_path.write_text(json.dumps(session, indent=2, ensure_ascii=False), encoding="utf-8")
+
     print(f"→ Illustration phase: {args.phase} (Resolution: {width}x{height})")
     print(f"  Model: {model_name}")
     print(f"  Global Design: {style_prompt}")
@@ -692,6 +696,7 @@ def main():
 
             def character_worker(task: CharacterTask) -> bool:
                 character = characters[task.key]
+                print(f"  → Generating character asset: {task.key} (model: {model_name})")
                 try:
                     references = (
                         [
@@ -809,7 +814,9 @@ def main():
                 references = scene_reference_images(project_dir, scene, characters)
                 if references:
                     mapping = ", ".join(reference.role for reference in references)
-                    print(f"  {scene_id}: {mapping}")
+                    print(f"  {scene_id}: {mapping} (model: {model_name})")
+                else:
+                    print(f"  {scene_id}: generating image (model: {model_name})")
                 generate_image(
                     credentials=credentials,
                     model=model_name,

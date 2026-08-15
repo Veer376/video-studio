@@ -27,7 +27,7 @@ Do not add prompts, characters, image paths, references, timings, audio fields, 
 - Do not rewrite, summarize, correct, duplicate, omit, or reorder spoken prose or punctuation.
 - Boundary whitespace may normalize to a single space.
 - Repeated leading `> ` markers for quote continuation are control markers and do not count as duplicated prose.
-- Preserve every quoted/unquoted transition. A scene may cross that transition only when the corresponding line break and `>` state remain explicit; never let a leading quote marker absorb later unquoted narration.
+- Preserve every quoted/unquoted transition. A scene may enter a quote after an attribution, but the end of a quote block is a mandatory scene boundary; later narrator prose starts in a new scene without `>`.
 - `total_words` counts non-whitespace narration tokens after removing performance and quote-control markers.
 - IDs are contiguous: `scene-001`, `scene-002`, and so on.
 

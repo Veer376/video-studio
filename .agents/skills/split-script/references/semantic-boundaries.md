@@ -57,7 +57,7 @@ Keep an immediate question and answer about the same object in one tableau when 
 
 Keep short quotations intact. Split a long quotation only at a complete rhetorical clause or change of claim. Preserve and repeat the current `> ` display marker for quote continuations.
 
-Keep an attribution such as “X says” with the quotation it introduces. Preserve the quoted-to-unquoted transition before later narration; do not let a quote marker extend across the narrator's conclusion.
+Keep an attribution such as “X says” with the quotation it introduces. Treat the end of a quoted source block as a mandatory scene boundary: following narrator prose begins in a new unmarked scene. A scene may enter a quote after its attribution, but it must never leave the quote before that scene ends.
 
 ### Abstract narration
 
