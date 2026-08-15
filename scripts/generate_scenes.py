@@ -1,4 +1,4 @@
-"""Generate canonical Omni Flash videos from a story's scenes.json."""
+"""Generate reviewed Omni Flash attempt candidates and promote selected attempts."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
@@ -14,8 +15,30 @@ from typing import Any
 
 try:
     from .main import create_client, generate_video
+    from .review_contract import (
+        MAX_ATTEMPTS,
+        ReviewContractError,
+        attempt_path,
+        project_relative,
+        review_path,
+        sha256_file,
+        validate_canonical_binding,
+        validate_review,
+        write_review_atomic,
+    )
 except ImportError:  # Direct execution: python3 scripts/generate_scenes.py
     from main import create_client, generate_video
+    from review_contract import (
+        MAX_ATTEMPTS,
+        ReviewContractError,
+        attempt_path,
+        project_relative,
+        review_path,
+        sha256_file,
+        validate_canonical_binding,
+        validate_review,
+        write_review_atomic,
+    )
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -63,7 +86,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--regenerate",
         action="store_true",
-        help="Replace an existing scene video after its replacement passes validation",
+        help="Generate even when a canonical video or this attempt candidate exists",
+    )
+    parser.add_argument(
+        "--attempt",
+        type=int,
+        default=1,
+        help=f"Attempt number from 1 to {MAX_ATTEMPTS} (default: 1)",
+    )
+    parser.add_argument(
+        "--promote-attempt",
+        type=int,
+        default=None,
+        help="Promote this reviewed attempt to the canonical scene path",
     )
     parser.add_argument(
         "--backend",
@@ -124,6 +159,72 @@ def scene_output_path(scene: dict[str, Any], project_root: Path) -> Path:
     if not isinstance(configured, str) or not configured:
         raise ConfigError(f"Scene {scene.get('id')!r} has no output_path")
     return resolve_path(project_root, configured)
+
+
+def scene_attempt_path(config_path: Path, scene_id: str, attempt: int) -> Path:
+    try:
+        return attempt_path(config_path, scene_id, attempt)
+    except ReviewContractError as exc:
+        raise ConfigError(str(exc)) from exc
+
+
+def validate_promotion_review(
+    config_path: Path,
+    scene_id: str,
+    attempt: int,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, Any]:
+    try:
+        review, selected_candidate = validate_review(
+            config_path, scene_id, project_root
+        )
+    except ReviewContractError as exc:
+        raise ConfigError(str(exc)) from exc
+    if review["selected_attempt"] != attempt:
+        raise ConfigError(
+            f"Review for {scene_id} selects attempt "
+            f"{review['selected_attempt']!r}, not {attempt}"
+        )
+    if selected_candidate != scene_attempt_path(config_path, scene_id, attempt):
+        raise ConfigError(f"Review for {scene_id} selects a mismatched candidate")
+    return review
+
+
+def promote_attempt(
+    config_path: Path,
+    scene: dict[str, Any],
+    attempt: int,
+    project_root: Path,
+) -> tuple[Path, Path]:
+    scene_id = scene["id"]
+    candidate = scene_attempt_path(config_path, scene_id, attempt)
+    if not candidate.is_file():
+        raise ConfigError(f"Attempt candidate does not exist: {candidate}")
+    review = validate_promotion_review(config_path, scene_id, attempt, project_root)
+    verify_video(candidate)
+
+    canonical = scene_output_path(scene, project_root)
+    canonical.parent.mkdir(parents=True, exist_ok=True)
+    staged = canonical.with_suffix(".promoting.mp4")
+    original_review = dict(review)
+    try:
+        shutil.copy2(candidate, staged)
+        verify_video(staged)
+        candidate_hash = sha256_file(candidate)
+        if sha256_file(staged) != candidate_hash:
+            raise RuntimeError("Staged canonical video differs from selected attempt")
+        review["promoted_attempt"] = attempt
+        review["canonical_path"] = project_relative(canonical, project_root)
+        review["canonical_sha256"] = candidate_hash
+        write_review_atomic(review_path(config_path, scene_id), review)
+        os.replace(staged, canonical)
+        validate_canonical_binding(review, canonical, project_root)
+    except Exception:
+        write_review_atomic(review_path(config_path, scene_id), original_review)
+        raise
+    finally:
+        staged.unlink(missing_ok=True)
+    return candidate, canonical
 
 
 def scene_first_frame_path(
@@ -220,7 +321,10 @@ def compile_scene(
         next_image_number += 1
 
     compiled_prompt = "\n".join([*declarations, prompt]) if declarations else prompt
-    task = "reference_to_video" if images else "text_to_video"
+    if first_frame is not None and len(images) == 1:
+        task = "image_to_video"
+    else:
+        task = "reference_to_video" if images else "text_to_video"
     return CompiledScene(compiled_prompt, images, task, handle_order)
 
 
@@ -296,27 +400,65 @@ def run(args: argparse.Namespace) -> int:
         raise ConfigError("Every scene must have a non-empty string id")
     if len(scene_ids) != len(set(scene_ids)):
         raise ConfigError("Scene IDs must be unique")
+    if not 1 <= args.attempt <= MAX_ATTEMPTS:
+        raise ConfigError(f"--attempt must be between 1 and {MAX_ATTEMPTS}")
+    if args.promote_attempt is not None and not 1 <= args.promote_attempt <= MAX_ATTEMPTS:
+        raise ConfigError(
+            f"--promote-attempt must be between 1 and {MAX_ATTEMPTS}"
+        )
+    if args.promote_attempt is not None and args.regenerate:
+        raise ConfigError("--promote-attempt cannot be combined with --regenerate")
     unknown_requested = set(args.scene) - set(scene_ids)
     if unknown_requested:
         raise ConfigError(f"Unknown --scene IDs: {sorted(unknown_requested)}")
+
+    scenes_by_id = {scene["id"]: scene for scene in scenes}
+
+    selected_scenes = [scene for scene in scenes if scene_is_selected(scene, args)]
+    if args.promote_attempt is not None:
+        for scene in selected_scenes:
+            scene_id = scene["id"]
+            candidate = scene_attempt_path(config_path, scene_id, args.promote_attempt)
+            canonical = scene_output_path(scene, project_root)
+            if args.dry_run:
+                validate_promotion_review(
+                    config_path, scene_id, args.promote_attempt, project_root
+                )
+                if not candidate.is_file():
+                    raise ConfigError(f"Attempt candidate does not exist: {candidate}")
+                verify_video(candidate)
+                print(f"PROMOTE {scene_id}: {candidate} -> {canonical}")
+                continue
+            source, destination = promote_attempt(
+                config_path, scene, args.promote_attempt, project_root
+            )
+            print(f"PROMOTED {scene_id}: {source} -> {destination}")
+        return 0
 
     characters_file = config.get("characters_file", "characters.json")
     if not isinstance(characters_file, str):
         raise ConfigError("characters_file must be a path string")
     characters = load_characters(resolve_path(project_root, characters_file), project_root)
-    scenes_by_id = {scene["id"]: scene for scene in scenes}
 
     client = None
     generated_count = 0
-    for scene in scenes:
-        if not scene_is_selected(scene, args):
-            continue
+    for scene in selected_scenes:
 
         scene_id = scene["id"]
         output_path = scene_output_path(scene, project_root)
         if output_path.is_file() and not args.regenerate:
             verify_video(output_path)
             print(f"KEEP {scene_id}: {output_path}")
+            continue
+        attempt_path = scene_attempt_path(config_path, scene_id, args.attempt)
+        if attempt_path.is_file():
+            if args.regenerate:
+                raise ConfigError(
+                    f"Attempt candidate already exists and is immutable: {attempt_path}. "
+                    "Use the next attempt number."
+                )
+            verify_video(attempt_path)
+            print(f"KEEP ATTEMPT {scene_id}: {attempt_path}")
             continue
 
         reference_scene_id = scene.get("reference_scene_id")
@@ -332,6 +474,18 @@ def run(args: argparse.Namespace) -> int:
             if not reference_video.is_file():
                 print(f"BLOCKED {scene_id}: missing {reference_video}")
                 continue
+            try:
+                predecessor_review, _ = validate_review(
+                    config_path, reference_scene_id, project_root
+                )
+                validate_canonical_binding(
+                    predecessor_review, reference_video, project_root
+                )
+            except ReviewContractError as exc:
+                raise ConfigError(
+                    f"Scene {scene_id} predecessor {reference_scene_id} is not a "
+                    f"reviewed promoted canonical: {exc}"
+                ) from exc
             verify_video(reference_video)
 
         curated_first_frame = scene_first_frame_path(scene, project_root)
@@ -345,9 +499,8 @@ def run(args: argparse.Namespace) -> int:
             print(f"WAIT {scene_id}: {exc}")
             continue
 
-        action = "REPLACE" if output_path.is_file() else "CREATE"
         print(
-            f"PLAN {scene_id}: {action} {output_path}, "
+            f"PLAN {scene_id}: ATTEMPT {args.attempt} -> {attempt_path}, "
             f"{len(preflight.images)} image input(s), task={preflight.task}, "
             f"handles={preflight.handle_order}"
         )
@@ -358,8 +511,8 @@ def run(args: argparse.Namespace) -> int:
             client, backend_label = create_client(args.backend, args.gcp_project)
             print(f"Using {backend_label}")
 
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        partial_path = output_path.with_suffix(".partial.mp4")
+        attempt_path.parent.mkdir(parents=True, exist_ok=True)
+        partial_path = attempt_path.with_suffix(".partial.mp4")
         try:
             with tempfile.TemporaryDirectory(prefix=f"{scene_id}-continuity-") as temp_dir:
                 first_frame: Path | None = None
@@ -381,13 +534,13 @@ def run(args: argparse.Namespace) -> int:
                     model=config.get("model", "gemini-omni-flash-preview"),
                 )
             verify_video(partial_path)
-            os.replace(partial_path, output_path)
+            os.replace(partial_path, attempt_path)
         except Exception as exc:
             partial_path.unlink(missing_ok=True)
             raise RuntimeError(f"Generation failed for {scene_id}: {exc}") from exc
 
         generated_count += 1
-        print(f"SAVED {scene_id}: {byte_count:,} bytes -> {output_path}")
+        print(f"SAVED ATTEMPT {scene_id}: {byte_count:,} bytes -> {attempt_path}")
 
     if args.dry_run:
         print("Dry run complete; Gemini was not called.")

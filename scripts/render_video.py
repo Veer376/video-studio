@@ -11,9 +11,24 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+try:
+    from .review_contract import (
+        ReviewContractError,
+        validate_canonical_binding,
+        validate_review,
+    )
+except ImportError:  # Direct execution: python3 scripts/render_video.py
+    from review_contract import (
+        ReviewContractError,
+        validate_canonical_binding,
+        validate_review,
+    )
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = PROJECT_ROOT / "stories" / "aloo-flood-rescue" / "scenes.json"
+
+
 class RenderError(RuntimeError):
     """Raised when the final render cannot be assembled safely."""
 
@@ -69,6 +84,21 @@ def load_scenes(config_path: Path) -> list[dict[str, Any]]:
     return scenes
 
 
+def validate_scene_review(
+    config_path: Path,
+    scene_id: str,
+    canonical: Path | None = None,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, Any]:
+    try:
+        review, _ = validate_review(config_path, scene_id, project_root)
+        if canonical is not None:
+            validate_canonical_binding(review, canonical, project_root)
+    except ReviewContractError as exc:
+        raise RenderError(str(exc)) from exc
+    return review
+
+
 def media_info(path: Path) -> tuple[float, int, int, float]:
     result = run([
         "ffprobe", "-v", "error",
@@ -107,6 +137,7 @@ def render(args: argparse.Namespace) -> None:
         path = resolve_path(scene["output_path"])
         if not path.is_file():
             raise RenderError(f"Missing canonical scene video: {path}")
+        validate_scene_review(config_path, scene["id"], path)
         _, scene_width, scene_height, scene_fps = media_info(path)
         if not width:
             width, height, fps = scene_width, scene_height, scene_fps
