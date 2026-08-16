@@ -10,8 +10,6 @@ wheels/
 # Virtual environments
 .venv
 
-# Generated story media
-stories/*/videos/*.mp4
-stories/*/videos/*.partial.mp4
-stories/*/temp/contact_sheets/*
-stories/*/temp/partial/*
+# Stories directory
+stories/
+

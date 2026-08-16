@@ -5,16 +5,18 @@ Use this reference only after the relevant clip briefs are approved.
 ## Prepare the scene
 
 1. Read the approved clip brief, adjacent clips, creative contract, character map, and existing scene records.
-2. Register only recurring consistency-critical characters. Describe one-off figures directly in the prompt.
-3. Use `reference_scene_id` only when the predecessor's final composition should become the literal opening frame.
-4. If continuity is requested, inspect the predecessor's exact final frame before prompt creation.
+2. Identify the recurring consistency-critical characters required by the selected clips. For each one, verify that `characters.json` contains a valid reference path and that the image exists.
+3. If a required recurring reference is missing, create the character image from the approved story description, inspect it for the intended identity and design, save it under project `assets/characters/` when reusable across stories or under the selected story's `assets/` when story-specific, and register it in `characters.json`. Ask the user only when a missing design choice would materially change the character. Do not begin prompt creation until every required recurring reference is ready.
+4. Use `reference_scene_id` only when the predecessor's final composition should become the literal opening frame.
+5. If continuity is requested, inspect the predecessor's exact final frame before prompt creation.
 
 ## Create and persist the prompt
 
-1. Invoke `omni-flash-prompt-writer` independently with the approved clip brief, verified reference inputs, exact dialogue and audio requirements, and continuity evidence.
-2. Keep project `@handles` in the authoring prompt. The runner resolves them to ordered `<IMAGE_REF_N>` inputs.
-3. Present the prompt before or alongside persistence. In an authorized batch, persist prompts in scene order and report the completed range.
-4. Store the final prompt and scene references in `scenes.json`; do not create an extended prompt.
+1. Before invoking `omni-flash-prompt-writer`, identify which of the following risks apply to the current clip: multiple recurring characters in frame, spatial geometry that must be stable (facing direction, position), complex motion or contact, Hindi dialogue, or deliberate cuts with character continuity. Record the applicable risks and the mitigation you will use (e.g., exact character count, `No scene cuts`, first-frame lock). Pass these risks and mitigations explicitly in the invocation brief.
+2. Proceed prompt creation independently with the approved clip brief, verified reference inputs, exact dialogue and audio requirements, continuity evidence, and the recorded risk mitigations.
+3. Keep project `@handles` in the authoring prompt. The runner resolves them to ordered `<IMAGE_REF_N>` inputs.
+4. Author and persist prompts strictly one scene at a time. Never draft or persist multiple scene prompts in a single pass.
+5. Store the final prompt and scene references in `scenes.json`; do not create an extended prompt.
 
 ## Continuity policy
 
@@ -29,6 +31,7 @@ These are recovery policies, not guarantees of model consistency.
 ## Generate
 
 1. Run the generator in dry-run mode first.
-2. Generate the user-selected scene, part, or missing range. Existing valid canonical videos are skipped by default.
-3. A scene with a missing `reference_scene_id` output remains blocked until its predecessor exists.
-4. After generation, hand every new clip to the review phase before generating a dependent clip.
+2. Generate the current scene with `--scene <scene-id> --attempt <number>`. The runner writes `temp/partial/<scene-id>-attempt-<number>.mp4`; it does not change the canonical video.
+3. Review the candidate and persist its attempt entry before deciding whether to retry or promote it.
+4. Set `selected_attempt` in the review, then use `--promote-attempt <number>` to copy only that reviewed candidate to the scene's canonical `output_path`.
+5. Existing valid canonical videos are skipped unless regeneration is explicitly authorized. Regeneration still creates a candidate and leaves the current canonical file untouched until promotion.

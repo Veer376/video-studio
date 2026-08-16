@@ -1,6 +1,6 @@
 # Video Project
 
-A Gemini Omni Flash production workspace for planning a story as short clips, generating one canonical video per scene, reviewing the results, and joining accepted clips with FFmpeg.
+A Gemini Omni Flash production workspace for planning a story as short clips, reviewing attempt candidates, selecting one canonical video per scene, and joining the selected clips with FFmpeg.
 
 The project-local `produce-omni-story` skill orchestrates the workflow. It delegates every Omni prompt, prompt revision, and prompt diagnosis to the shared `omni-flash-prompt-writer` skill; this repository does not duplicate model-specific prompt rules.
 
@@ -39,11 +39,11 @@ Rough discussion is not stored as `rough_brief`. There is no stored `extended_pr
 1. Create or update the selected story's creative contract, parts, and clip briefs in `story.md`.
 2. Choose the working scope: complete story, one part, or one clip.
 3. Create every clip prompt independently with `omni-flash-prompt-writer` and persist it in `scenes.json`.
-4. Generate the selected missing clips. Existing valid canonical videos are skipped by default.
-5. Validate each new MP4, review its visual and audio evidence, and persist the decision under `reviews/`.
-6. Repair only diagnosed material defects, then render the requested canonical clips.
+4. Generate each selected clip as an attempt candidate under `temp/partial/`. Existing valid canonical videos are skipped by default.
+5. Validate each candidate, review its visual and audio evidence, and append the attempt under `reviews/`.
+6. Promote the reviewed selected attempt to the canonical `videos/` path. Repair only diagnosed material defects, then render the canonical clips.
 
-A dependent scene is produced only after its referenced predecessor exists and its exact final frame has been inspected.
+A dependent scene is produced only after its predecessor's reviewed selection has been promoted, its canonical hash has been verified, and its exact final frame has been inspected.
 
 ## Scene references
 
@@ -69,19 +69,28 @@ python3 scripts/generate_scenes.py --part part_01
 python3 scripts/generate_scenes.py --scene s001
 ```
 
-Generate all missing scenes:
+Generate attempt 1 for all missing scenes:
 
 ```bash
 python3 scripts/generate_scenes.py
 ```
 
-Replace one scene only after regeneration is explicitly authorized:
+Generate a diagnosed retry without changing the existing canonical clip:
 
 ```bash
-python3 scripts/generate_scenes.py --scene s001 --regenerate
+python3 scripts/generate_scenes.py --scene s001 --attempt 2 --regenerate
 ```
 
-The runner writes a partial file, verifies its video and audio streams, and promotes it only after validation succeeds.
+The runner stores attempts as `temp/partial/<scene-id>-attempt-<number>.mp4`. After reviewing a candidate, persist its review with `selected_attempt`, then promote it:
+
+```bash
+python3 scripts/generate_scenes.py --scene s001 --promote-attempt 2 --dry-run
+python3 scripts/generate_scenes.py --scene s001 --promote-attempt 2
+```
+
+Promotion requires complete attempt evidence, a media-valid selected candidate, and a promotable review decision. It records the canonical SHA-256 in the review so dependent scenes and the renderer can reject stale or externally replaced videos. `best_available` is promotable only when its review records explicit autonomous execution.
+
+Each scene receives one initial attempt and at most two diagnosed retries. Interactive work stops if all three fail. When the user explicitly requests autonomous continuation, the agent compares the media-valid candidates, records the strongest failed attempt as `best_available` with its unresolved defects, promotes it, and continues. It still stops when no media-valid candidate exists.
 
 ## Render
 
@@ -98,7 +107,7 @@ python3 scripts/render_video.py \
   --output stories/<story-slug>/output/final-video.mp4
 ```
 
-The renderer validates every canonical input and the completed output with `ffprobe`.
+The renderer requires a renderable persisted review for every canonical scene and validates every input and the completed output with `ffprobe`.
 
 Add optional timed text in a separate pass without changing the canonical scene renderer:
 

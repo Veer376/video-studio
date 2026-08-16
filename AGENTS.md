@@ -1,12 +1,12 @@
-# Project instructions
+# Video pipeline instructions
 
 ## Required workflow
 
 - Use the project-local `produce-omni-story` skill for story planning, scene production, clip review, repair, and final rendering in this repository.
-- **Non-negotiable prompt gate:** Before drafting, revising, or diagnosing any Gemini Omni Flash prompt—even a rough draft—open and read the current shared `omni-flash-prompt-writer/SKILL.md` completely in that task. Then apply it independently to every prompt.
+- **Prompt production (subagent available)**: Use the subagent to generate the Omni Flash prompt from the refined scene. Give it a detailed description of the scene and what's happening.
+- **Prompt production (no subagent)**: Before drafting, revising, or diagnosing any Gemini Omni Flash prompt — even a rough draft — open and read omni-flash-prompt-writer/SKILL.md in full. Apply it independently to every prompt.
 - Treat prompt creation as an isolated model-specific pass. Use the selected story brief, scene facts, assets, and inspected continuity evidence as content inputs, but derive prompt structure, capability assumptions, and diagnostic rules only from the freshly read skill. Never rely on remembered skill content, earlier chat advice about Omni, or an old prompt's pattern.
 - If `omni-flash-prompt-writer/SKILL.md` cannot be opened and read completely, stop prompt work and report the blocker. Never guess or create a fallback prompt.
-- Do not use `omni-flash-prompt-writer` for still-image character design or API implementation.
 - This project supports Gemini Omni Flash only. Do not generalize its contracts to unrelated video models.
 
 ## Required context and ownership
@@ -18,10 +18,13 @@
 
 ## Hard production rules
 
+- Process scenes sequentially. Draft, generate, review, and promote scene N before drafting scene N+1.
 - Use project-relative paths. Reuse project-level assets instead of copying them into every story.
 - Register only recurring characters whose visual identity must remain consistent. Describe one-off figures and flexible story elements directly in scene prompts.
 - Keep project `@handles` in `scenes.json`; resolve them to ordered Gemini image references only at request time. Do not store an `extended_prompt`.
 - Use `reference_scene_id` only when a predecessor's final frame must be the literal opening anchor. Inspect that exact frame before producing the dependent scene.
+- Generate every attempt under the selected story's `temp/partial/` directory. Promote only the reviewed selected attempt to the canonical `videos/` path; never generate or retry directly over a canonical clip.
 - A successful generation or playable MP4 is not an accepted scene. Validate media streams, review observable evidence, and persist the review decision.
 - Do not claim dialogue or audio correctness from still frames.
-- When review returns `needs_fix`, diagnose and retry autonomously no more than two times for that scene. Append every attempt, diagnosis, and repair action to its review JSON. If the second retry still returns `needs_fix`, stop and ask the user before generating again.
+- When review returns `needs_fix`, diagnose and retry no more than two times for that scene, producing three total attempts. Append every attempt, diagnosis, repair action, and evidence path to its review JSON.
+- If all three attempts remain `needs_fix`, stop in interactive work. In explicitly autonomous work, compare every media-valid attempt against the clip contract, select and record one `best_available` attempt, promote it, report its unresolved defects, and continue. Stop only when no media-valid candidate exists.

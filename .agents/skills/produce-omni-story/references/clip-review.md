@@ -8,9 +8,9 @@ Use this reference after every generated, edited, or regenerated clip.
 2. Extract the exact first frame, exact final frame, and a one-frame-per-second contact sheet for a 10-second clip.
 3. Inspect the contact sheet for temporal coverage and the full-resolution frames for faces, hands, props, text, blocking, and continuity.
 4. If a possible defect occurs between baseline samples, extract denser full-resolution frames around that timestamp.
-5. If dialogue or sound matters, inspect or transcribe the audio separately. Mark it unverified if no audio evidence is available.
+5. If dialogue or voiceover is specified in the clip contract, transcribe or directly verify the audio track. A clip with unverified dialogue cannot be marked `accepted` or `accepted_with_note`; mark it `needs_fix` with reason `audio_unverified` if no audio evidence is available.
 
-Store contact sheets under the selected story's `temp/contact_sheets/` directory.
+Store attempt-specific contact sheets under the selected story's `temp/contact_sheets/` directory and record their paths with the attempt.
 
 ## Compare with the contract
 
@@ -36,7 +36,7 @@ Choose the decision by first asking whether the current clip is usable as part o
 
 Never use `fix_next_scene` to excuse a defect that already breaks the current clip. A small inconsistency isolated to the final frame is `fix_next_scene` only when the clip otherwise remains usable and that frame may be used for continuity.
 
-Persist the decision at `reviews/<scene-id>.json` using the artifact contract.
+Persist the decision and candidate evidence at `reviews/<scene-id>.json` using the artifact contract. Attempt-level decisions remain one of the four decisions above; `best_available` is a final autonomous selection state, not a way to relabel a failed attempt as accepted.
 
 ## Bounded repair
 
@@ -50,4 +50,12 @@ For `needs_fix`, diagnose before spending another generation:
 
 The original generation is attempt 1. The agent may make at most two repair retries, producing attempts 2 through 3. Every retry must address the recorded diagnosis with a concrete change; never repeat an unchanged repair request. After each retry, validate and review the new result and append the attempt to the same review JSON.
 
-Stop retrying immediately when the decision becomes `accepted`, `accepted_with_note`, or `fix_next_scene`. If attempt 3 still returns `needs_fix`, set `next_action` to `await_user` and stop until the user explicitly authorizes further work.
+Stop retrying immediately when the decision becomes `accepted`, `accepted_with_note`, or `fix_next_scene`. Set `selected_attempt` to that attempt and promote it.
+
+If attempt 3 still returns `needs_fix`:
+
+- in interactive execution, set `next_action` to `await_user` and stop;
+- in explicitly autonomous execution, compare all media-valid attempts using their contact sheets, dense frames where needed, exact final frames, and available audio evidence. Prioritize the required story beat and ending state, character identity and count, required action and dialogue, downstream continuity, then remaining presentation defects. Select the strongest attempt without inventing a numeric score, set the top-level decision to `best_available`, record `selected_attempt`, `selection_reason`, and `unresolved_findings`, promote it, and continue;
+- if no attempt has valid video and audio streams, set `next_action` to `await_user` and stop even in autonomous execution.
+
+Never describe `best_available` as accepted. If its final frame would propagate a defect, create and inspect a curated continuity frame or avoid `reference_scene_id` before continuing.

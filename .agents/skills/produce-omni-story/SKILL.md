@@ -21,7 +21,9 @@ If the user has not specified the working scope, ask once whether to work on:
 - one part; or
 - one clip.
 
-Use the chosen scope for the current task until the user changes it. Do not persist it in story files; ask again in a later task if the scope is unavailable. A batch scope permits batch planning and generation, but continuity-dependent clips still pass review in order.
+Use the chosen scope until changed. Working scope defines the target boundary, but scene production is strictly sequential: prompt, generate, review, and promote one scene at a time.
+
+In autonomous execution, advance through the sequential scene pipeline to completion without pausing for routine confirmations. In interactive execution, confirm after each scene. Record autonomous fallback selections in review JSON, not in `story.md`.
 
 ## Phase routing
 
@@ -36,10 +38,10 @@ Use the chosen scope for the current task until the user changes it. Do not pers
 - `story.md` owns story intent. `scenes.json` owns final authoring prompts. `characters.json` owns recurring-character reference paths.
 - Before drafting or revising any part, reread the selected `story.md` creative contract and story-writing instructions.
 - Use project-relative paths. Reuse project-level assets; do not copy them into every story.
-- Preserve one canonical MP4 per scene. Replace it only through the bounded repair policy or explicit user authorization, and only after the replacement passes validation and review.
+- Preserve every generation as an attempt candidate under `temp/partial/`. Promote exactly one reviewed selected attempt to the canonical scene path; never generate or retry directly over a canonical clip.
 - A successful generation or playable file is not an accepted scene.
 - Inspect a predecessor's exact final frame before generating any clip that uses it for continuity.
-- A `needs_fix` decision permits at most two diagnosed repair retries for that scene. Log and review every attempt; if the second retry still returns `needs_fix`, stop and ask the user before any further generation.
+- A `needs_fix` decision permits at most two diagnosed repair retries, producing three total attempts. Log and review every attempt. After the third failure, interactive execution stops; explicitly autonomous execution selects the best media-valid attempt as `best_available`, promotes it with unresolved defects recorded, and continues. Stop autonomous execution only when no media-valid attempt exists.
 - Do not claim dialogue or audio correctness from still frames.
 
 ## Completion

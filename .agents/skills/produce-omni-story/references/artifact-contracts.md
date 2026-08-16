@@ -126,10 +126,14 @@ Save one report at `reviews/<scene-id>.json`:
 {
   "scene_id": "s001",
   "decision": "needs_fix",
+  "execution_mode": "interactive",
+  "selected_attempt": null,
   "attempts": [
     {
       "attempt": 1,
       "kind": "initial",
+      "candidate_path": "stories/<story-slug>/temp/partial/s001-attempt-1.mp4",
+      "contact_sheet_path": "stories/<story-slug>/temp/contact_sheets/s001-attempt-1.png",
       "media_valid": true,
       "decision": "needs_fix",
       "findings": ["00:04 character disappears through an unintended snap"],
@@ -141,8 +145,10 @@ Save one report at `reviews/<scene-id>.json`:
 }
 ```
 
-Allowed decisions are `accepted`, `accepted_with_note`, `fix_next_scene`, and `needs_fix`.
+Attempt decisions are `accepted`, `accepted_with_note`, `fix_next_scene`, and `needs_fix`. The top-level decision may additionally be `best_available` only after three failed attempts and autonomous comparison of every media-valid candidate.
 
-Append one entry after every reviewed generation; never overwrite earlier attempts. `kind` is `initial` for attempt 1 and `repair` for retries. `repair_applied` records the concrete change that produced a retry and is `null` for the initial generation. The top-level `decision` and `next_action` reflect the latest attempt.
+Append one entry after every reviewed generation; never overwrite earlier attempts. `kind` is `initial` for attempt 1 and `repair` for retries. `repair_applied` records the concrete change that produced a retry and is `null` for the initial generation. Record the project-relative candidate and contact-sheet paths for every attempt. The top-level `decision` and `next_action` reflect the current scene resolution.
 
-A scene may contain at most three attempts without fresh user authorization: one initial generation and two repair retries. If attempt 3 remains `needs_fix`, set `next_action` to `await_user`.
+A scene may contain at most three attempts without fresh user authorization: one initial generation and two repair retries. A promotable review must identify `selected_attempt`. For `best_available`, it must also contain `execution_mode: "autonomous"`, a concrete `selection_reason`, and `unresolved_findings`. If attempt 3 remains `needs_fix` in interactive execution, set `next_action` to `await_user`. If no media-valid attempt exists, always stop.
+
+Promotion writes `promoted_attempt`, `canonical_path`, and `canonical_sha256` into the review. Dependent-scene generation and final rendering must verify that the canonical file matches this hash; file existence alone does not prove promotion.
