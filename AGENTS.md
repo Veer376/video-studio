@@ -2,7 +2,7 @@
 
 ## Required workflow
 
-- Use the project-local `produce-omni-story` skill for story planning, scene production, clip review, repair, and final rendering in this repository.
+- Use the project-local `produce-story` skill for story planning, scene production, clip review, repair, and final rendering in this repository.
 - **Prompt production (subagent available)**: Use the subagent to generate the Omni Flash prompt from the refined scene. Give it a detailed description of the scene and what it depicts. When fixing a scene prompt, use the same subagent that produced the original prompt. Ask it to verify the contact sheet and notes, then produce a corrected prompt following `omni-flash-prompt-writer/SKILL.md`.
 - **Prompt production (no subagent)**: Before drafting, revising, or diagnosing any Gemini Omni Flash prompt — even a rough draft — open and read `omni-flash-prompt-writer/SKILL.md` in full. Apply it independently to every prompt.
 - Treat prompt creation as an isolated model-specific pass. Use the selected story brief, scene facts, assets, and inspected continuity evidence as content inputs, but derive prompt structure, capability assumptions, and diagnostic rules only from the freshly read skill. Never rely on remembered skill content, earlier chat advice about Omni, or an old prompt's pattern.
@@ -33,3 +33,4 @@
 ## Temp
 - there is no narration verification script in the project, skip narration verification for now.
 - if a subagent is used for scene fixes, ask it at the end of its work: if you think `omni-flash-prompt-writer/SKILL.md` needs an update, write the proposed change to `subagent/fixes.md`.
+- For the image creation for characters or for any other use, use /flow skill.

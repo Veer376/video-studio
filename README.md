@@ -2,7 +2,7 @@
 
 A Gemini Omni Flash production workspace for planning a story as short clips, reviewing attempt candidates, selecting one canonical video per scene, and joining the selected clips with FFmpeg.
 
-The project-local `produce-omni-story` skill orchestrates the workflow. It delegates every Omni prompt, prompt revision, and prompt diagnosis to the shared `omni-flash-prompt-writer` skill; this repository does not duplicate model-specific prompt rules.
+The project-local `produce-story` skill orchestrates the workflow. It delegates every Omni prompt, prompt revision, and prompt diagnosis to the shared `omni-flash-prompt-writer` skill; this repository does not duplicate model-specific prompt rules.
 
 ## Project layout
 

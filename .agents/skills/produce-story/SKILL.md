@@ -1,5 +1,5 @@
 ---
-name: produce-omni-story
+name: produce-story
 description: "Plan, prompt, generate, review, repair, and render Gemini Omni Flash stories that use the video-project story-directory structure. Use for end-to-end story production or when continuing a story by whole story, part, or clip. Do not use for isolated prompt-only requests, still-image character design, or unrelated video models."
 ---
 
