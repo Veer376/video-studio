@@ -1,10 +1,10 @@
-# Video pipeline instructions
+# Video Pipeline Instructions
 
 ## Required workflow
 
 - Use the project-local `produce-omni-story` skill for story planning, scene production, clip review, repair, and final rendering in this repository.
-- **Prompt production (subagent available)**: Use the subagent to generate the Omni Flash prompt from the refined scene. Give it a detailed description of the scene and what's happening.
-- **Prompt production (no subagent)**: Before drafting, revising, or diagnosing any Gemini Omni Flash prompt — even a rough draft — open and read omni-flash-prompt-writer/SKILL.md in full. Apply it independently to every prompt.
+- **Prompt production (subagent available)**: Use the subagent to generate the Omni Flash prompt from the refined scene. Give it a detailed description of the scene and what it depicts. When fixing a scene prompt, use the same subagent that produced the original prompt. Ask it to verify the contact sheet and notes, then produce a corrected prompt following `omni-flash-prompt-writer/SKILL.md`.
+- **Prompt production (no subagent)**: Before drafting, revising, or diagnosing any Gemini Omni Flash prompt — even a rough draft — open and read `omni-flash-prompt-writer/SKILL.md` in full. Apply it independently to every prompt.
 - Treat prompt creation as an isolated model-specific pass. Use the selected story brief, scene facts, assets, and inspected continuity evidence as content inputs, but derive prompt structure, capability assumptions, and diagnostic rules only from the freshly read skill. Never rely on remembered skill content, earlier chat advice about Omni, or an old prompt's pattern.
 - If `omni-flash-prompt-writer/SKILL.md` cannot be opened and read completely, stop prompt work and report the blocker. Never guess or create a fallback prompt.
 - This project supports Gemini Omni Flash only. Do not generalize its contracts to unrelated video models.
@@ -28,3 +28,8 @@
 - Do not claim dialogue or audio correctness from still frames.
 - When review returns `needs_fix`, diagnose and retry no more than two times for that scene, producing three total attempts. Append every attempt, diagnosis, repair action, and evidence path to its review JSON.
 - If all three attempts remain `needs_fix`, stop in interactive work. In explicitly autonomous work, compare every media-valid attempt against the clip contract, select and record one `best_available` attempt, promote it, report its unresolved defects, and continue. Stop only when no media-valid candidate exists.
+
+
+## Temp
+- there is no narration verification script in the project, skip narration verification for now.
+- if a subagent is used for scene fixes, ask it at the end of its work: if you think `omni-flash-prompt-writer/SKILL.md` needs an update, write the proposed change to `subagent/fixes.md`.
