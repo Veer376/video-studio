@@ -10,7 +10,7 @@ Orchestrate the complete story workflow without duplicating model-specific promp
 ## Required context
 
 1. Locate the project root and read `README.md` and `AGENTS.md` completely.
-2. Select the story under `stories/<story-slug>/` and read its `story.md`, `characters.json`, and `scenes.json` completely before changing or generating clips.
+2. Select the story under `stories/<story-slug>/` and read the project-root `characters.json` (global registry), the story's `characters.json` (story-specific additions), `story.md`, and `scenes.json` completely before changing or generating clips. Resolve any `@handle` by checking the story registry first, then the global registry.
 3. For a new story, follow [references/artifact-contracts.md](references/artifact-contracts.md) to initialize its files and directories.
 
 ## Working scope
@@ -35,7 +35,7 @@ In autonomous execution, advance through the sequential scene pipeline to comple
 ## Hard boundaries
 
 - Invoke `omni-flash-prompt-writer` independently for every Omni prompt, revision, or prompt diagnosis. Do not reproduce or guess its model rules.
-- `story.md` owns story intent. `scenes.json` owns final authoring prompts. `characters.json` owns recurring-character reference paths.
+- `story.md` owns story intent. `scenes.json` owns final authoring prompts. The project-root `characters.json` owns recurring-character identity (profile and description); the story-level `characters.json` owns story-specific characters and reference paths.
 - Before drafting or revising any part, reread the selected `story.md` creative contract and story-writing instructions.
 - Use project-relative paths. Reuse project-level assets; do not copy them into every story.
 - Preserve every generation as an attempt candidate under `temp/partial/`. Promote exactly one reviewed selected attempt to the canonical scene path; never generate or retry directly over a canonical clip.

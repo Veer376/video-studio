@@ -3,17 +3,20 @@
 ## Story directory
 
 ```text
-stories/<story-slug>/
-  story.md
-  characters.json
-  scenes.json
-  assets/
-  videos/
-  temp/continuity_frames/
-  temp/contact_sheets/
-  temp/partial/
-  reviews/
-  output/final-video.mp4
+<project-root>/
+  characters.json          ← global character registry (source of truth for identity)
+  assets/characters/       ← character reference images
+  stories/<story-slug>/
+    story.md
+    characters.json        ← story-specific characters only; empty array when all are global
+    scenes.json
+    assets/
+    videos/
+    temp/continuity_frames/
+    temp/contact_sheets/
+    temp/partial/
+    reviews/
+    output/final-video.mp4
 ```
 
 Reusable characters and reusable visual assets remain under the project-level `assets/` directory.
@@ -92,15 +95,35 @@ Before creating or revising any part, reread the current creative contract and s
 
 ## Character entry
 
+### Two-tier character registry
+
+Character identity is split across two files:
+
+**Global registry** (`characters.json` at project root) — source of truth for all reusable characters. Contains the full entry:
+
 ```json
 {
   "handle": "@name",
   "name": "Display Name",
-  "reference_path": "assets/characters/name.png"
+  "reference_path": "assets/characters/name.png",
+  "profile": "Age, height reference, voice reference, 3-4 behavior traits (no clothing/head details as they exist in reference image)",
+  "description": "Relational context: who this character is, how they relate to others, their role and motivation"
 }
 ```
 
-Register only recurring characters whose appearance must remain consistent across clips.
+**Story registry** (`stories/<slug>/characters.json`) — story-specific characters only. Uses the same full schema. For stories where all characters are global, this file holds an empty array:
+
+```json
+{
+  "characters": []
+}
+```
+
+Story-level entries for script compatibility (when a global character's `reference_path` must be confirmed for a specific story) may contain only `handle`, `name`, and `reference_path`.
+
+**Resolution rule:** for any `@handle`, check the story registry first, then fall back to the global registry. If an entry exists in both, the story entry wins (allows per-story overrides).
+
+Register only recurring characters whose appearance must remain consistent across clips. Describe one-off or incidental figures directly in the scene prompt.
 
 ## Scene entry
 

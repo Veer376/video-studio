@@ -1,0 +1,67 @@
+{
+  "characters": [
+    {
+      "handle": "@chhotu",
+      "name": "Chhotu",
+      "reference_path": "assets/characters/chhotu.jpeg",
+      "profile": "Age: 10-year-old child; Height: waist-height to an adult; Voice: high-pitched, rapid-fire, breathless child's voice with rural Hindi lilt; Behavior: fearless, impulsive, hyper-optimistic, genius inventor",
+      "description": "Young inventor and mission leader; Motu's inseparable best friend; Aloo and Gajar's son; acts before he thinks and never doubts himself"
+    },
+    {
+      "handle": "@motu",
+      "name": "Motu",
+      "reference_path": "assets/characters/motu.png",
+      "profile": "Age: 11-year-old child; Height: stocky chubby child build, slightly taller than Chhotu, chest-height to an adult; Voice: playful, punchy boy's voice with slow rolling rustic Hindi delivery; Behavior: fiercely loyal, strong kid mechanic, protective best friend, earthy humor",
+      "description": "Kid mechanic and Chhotu's loyal best friend; dependable muscle, playful companion, and comic relief"
+    },
+    {
+      "handle": "@aloo",
+      "name": "Aloo",
+      "reference_path": "assets/characters/aloo.jpeg",
+      "profile": "Age: 42-year-old adult man; Height: full adult standing height; Voice: steady, warm protective baritone in rural Hindi; Behavior: emotionally protective, hardworking farmer, anxious parent, deeply loving",
+      "description": "Chhotu's father; Gajar's husband; protective village farmer who cares deeply for Chhotu and Motu"
+    },
+    {
+      "handle": "@gajar",
+      "name": "Gajar",
+      "reference_path": "assets/characters/gajar.jpeg",
+      "profile": "Age: 40-year-old adult woman; Height: full adult standing height; Voice: calm, warm reassuring alto voice in rural Hindi; Behavior: practical, emotionally grounding, maternal, resourceful problem-solver",
+      "description": "Chhotu's mother; Aloo's wife; family's practical grounding voice who treats Motu like family"
+    },
+    {
+      "handle": "@cow",
+      "name": "Do-Zubaan Gaay",
+      "reference_path": "assets/characters/cow.jpeg",
+      "profile": "Age: young cartoon calf; Height: quadruped, child-shoulder height; Voice: comedic dual voices (one urgent, one silly) alternating from its single mouth; Behavior: argues with itself, eccentric oracle, easily startled, loyal",
+      "description": "Village comedic oracle (Two-Tongued Cow); gives contradictory prophecies that argue with each other from the same mouth"
+    },
+    {
+      "handle": "@dadi",
+      "name": "Dadi",
+      "reference_path": "assets/characters/dadi.png",
+      "profile": "Age: 70-year-old elderly woman; Height: small-statured, shorter than adult chest; Voice: soft, gentle quavering maternal voice in slow loving Hindi; Behavior: deeply affectionate, spiritual, encouraging, family anchor",
+      "description": "Chhotu's paternal grandmother; family spiritual elder and blessing-giver; keeper of the sacred copper urn"
+    },
+    {
+      "handle": "@sahukar",
+      "name": "Sahukar",
+      "reference_path": "assets/characters/sahukar.png",
+      "profile": "Age: 48-year-old middle-aged man; Height: full adult height, portly build; Voice: nasal, pompous, mocking arrogant voice with merchant cadence; Behavior: greedy, haughty, cowardly when challenged, condescending",
+      "description": "Village moneylender and story antagonist; motivated purely by land acquisition and greed"
+    },
+    {
+      "handle": "@guard",
+      "name": "Tamatar Guard",
+      "reference_path": "assets/characters/tamatar_guard.png",
+      "profile": "Age: 35-year-old adult man; Height: full adult standing height; Voice: crisp, officious cheerful baritone with authoritative rhythm; Behavior: rule-loving, supportive, whistle-happy, proud station master",
+      "description": "Rampur's railway station master; sympathetic to Chhotu and Motu, formally endorses their mission"
+    },
+    {
+      "handle": "@jadui_bargad",
+      "name": "Jadui Bargad",
+      "reference_path": "assets/characters/jadui_bargad.png",
+      "profile": "Age: 500-year-old tree elder; Height: colossal stationary banyan tree; Voice: deep, resonant ancient booming voice echoing like wind; Behavior: mystical, patient, all-knowing, solemn folkloric guide",
+      "description": "Village's ancient mystical oracle; keeper of the Sharad Purnima legend; stationary at the village square"
+    }
+  ]
+}

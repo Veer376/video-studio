@@ -5,7 +5,7 @@ Use this reference only after the relevant clip briefs are approved.
 ## Prepare the scene
 
 1. Read the approved clip brief, adjacent clips, creative contract, character map, and existing scene records.
-2. Identify the recurring consistency-critical characters required by the selected clips. For each one, verify that `characters.json` contains a valid reference path and that the image exists.
+2. Identify the recurring consistency-critical characters required by the selected clips. For each one, resolve its full entry from the character registry: check the story-level `characters.json` first, then fall back to the project-root `characters.json`. Verify a valid `reference_path` exists and the image is present.
 3. If a required recurring reference is missing, create the character image from the approved story description, inspect it for the intended identity and design, save it under project `assets/characters/` when reusable across stories or under the selected story's `assets/` when story-specific, and register it in `characters.json`. Ask the user only when a missing design choice would materially change the character. Do not begin prompt creation until every required recurring reference is ready.
 4. Use `reference_scene_id` only when the predecessor's final composition should become the literal opening frame.
 5. If continuity is requested, inspect the predecessor's exact final frame before prompt creation.
