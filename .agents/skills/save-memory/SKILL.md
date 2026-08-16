@@ -1,6 +1,6 @@
 ---
 name: save-memory
-description: Save a high-value insight, research finding, creative decision, YouTube strategy, or production rule into the project's long-term semantic memory. Always delegates to the global /memory skill. Index is `youtube-studio`, namespace is `kahani-ka-chakkar`. ONLY invoke when the user explicitly asks, or the agent proposes and the user confirms. Never save autonomously without explicit user approval.
+description: Save a high-value insight, research finding, creative decision, YouTube strategy, or production rule into the project's long-term semantic memory. Always delegates to the global /memory skill. Index is `youtube-studio`, namespace is `kahani-ka-chakkar`. ONLY save with user approval.
 ---
 
 # Save Memory (`/save-memory`)
