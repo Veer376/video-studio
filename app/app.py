@@ -130,6 +130,13 @@ class CommandDeckAPI:
         )
         thread.start()
 
+    def launch_render_studio(self):
+        python_bin = sys.executable
+        studio_script = str(WORKSPACE_ROOT / "app" / "render_studio.py")
+        subprocess.Popen([python_bin, studio_script], cwd=str(WORKSPACE_ROOT))
+        self.log("🎬 Launched Video Render Studio & Sequencer (pywebview).", "success")
+
+
     def get_tasks(self) -> List[Dict[str, Any]]:
         db.init_db()
         tasks = db.list_tasks()

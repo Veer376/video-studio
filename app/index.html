@@ -102,6 +102,25 @@
           <span class="text-xs text-gray-500">Click any card to execute script</span>
         </div>
 
+        <!-- Featured Banner: Video Render Studio (PyWebView Sequencer) -->
+        <div class="bg-gradient-to-r from-surface-800 via-surface-800 to-accent-950/40 border border-brand-500/30 hover:border-brand-500/60 rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-brand-500/5 transition-all">
+          <div class="flex items-center space-x-3.5">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-brand-600 via-emerald-500 to-accent-500 flex items-center justify-center shadow-lg shadow-brand-500/20 shrink-0">
+              <i data-lucide="clapperboard" class="w-5 h-5 text-black"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-extrabold text-sm text-white">Video Render Studio & Sequencer</h3>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 font-bold border border-brand-500/30">PyWebView GUI</span>
+              </div>
+              <p class="text-xs text-gray-400 mt-0.5">Visual timeline editor: browse videos, trim in/out points, insert breaks, and render directly to /output.</p>
+            </div>
+          </div>
+          <button onclick="launchRenderStudio()" class="px-4 py-2 bg-gradient-to-r from-brand-500 to-accent-500 hover:from-brand-400 hover:to-accent-400 text-black font-bold text-xs rounded-xl shadow-lg shadow-brand-500/20 flex items-center gap-1.5 shrink-0 transition-transform active:scale-95">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Launch Studio
+          </button>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           
           <!-- Tool Card 1: Add Watermark -->
@@ -315,6 +334,15 @@
       setExecuting(false);
     }
 
+
+    async function launchRenderStudio() {
+      appendLog(`🎬 Launching Video Render Studio & Sequencer GUI...`, 'header');
+      if (window.pywebview) {
+        await window.pywebview.api.launch_render_studio();
+      } else {
+        appendLog(`[Simulation] Would launch python3 app/render_studio.py`);
+      }
+    }
 
     async function runSeoScout() {
       appendLog(`🔍 Starting YouTube SEO Scout Multi-Vector Sweeps...`, 'header');

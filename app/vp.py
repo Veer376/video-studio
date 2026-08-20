@@ -135,11 +135,12 @@ def interactive_menu() -> None:
   {YELLOW}{BOLD}[3]{RESET} 🔍 {BOLD}Run SEO Scout{RESET}         {DIM}75+ multi-vector search trends{RESET}
   {CYAN}{BOLD}[4]{RESET} ⏱️  {BOLD}Local Scheduler{RESET}       {DIM}List and inspect scheduled tasks{RESET}
   {GREEN}{BOLD}[5]{RESET} 🚀 {BOLD}Open Desktop Deck{RESET}     {DIM}Launch pywebview floating window{RESET}
+  {MAGENTA}{BOLD}[6]{RESET} 🎛️  {BOLD}Render Studio GUI{RESET}     {DIM}Visual trimmer, breaks & multi-clip exporter{RESET}
   {DIM}[q] ❌ Exit{RESET}
 """)
 
         try:
-            choice = input(f"{BOLD}{CYAN}➜ Enter choice [1-5, q]: {RESET}").strip().lower()
+            choice = input(f"{BOLD}{CYAN}➜ Enter choice [1-6, q]: {RESET}").strip().lower()
         except (KeyboardInterrupt, EOFError):
             print("\nExiting.")
             break
@@ -159,6 +160,10 @@ def interactive_menu() -> None:
             deck_app = WORKSPACE_ROOT / "app" / "app.py"
             subprocess.Popen([sys.executable, str(deck_app)])
             print(f"{GREEN}Launched Video Deck window in background.{RESET}")
+        elif choice == "6":
+            studio_app = WORKSPACE_ROOT / "app" / "render_studio.py"
+            subprocess.Popen([sys.executable, str(studio_app)])
+            print(f"{MAGENTA}Launched Video Render Studio & Sequencer GUI in background.{RESET}")
         else:
             print(f"{RED}Invalid selection '{choice}'.{RESET}")
 
