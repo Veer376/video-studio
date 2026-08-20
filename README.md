@@ -1,105 +1,95 @@
 # Video Project
 
-A Gemini Omni Flash production workspace for planning a story as short clips, reviewing attempt candidates, selecting one canonical video per scene, and joining the selected clips with FFmpeg.
+An agent-assisted workspace for creating story videos with Gemini Omni Flash. It turns a story idea into short generated scenes, reviews each candidate, keeps one canonical clip per scene, and renders the approved sequence with FFmpeg.
 
-The project-local `produce-story` skill orchestrates the workflow. It delegates every Omni prompt, prompt revision, and prompt diagnosis to the shared `omni-flash-prompt-writer` skill; this repository does not duplicate model-specific prompt rules.
+The repository also holds reusable visual assets, standalone execution prompts, channel resources, and small command interfaces around the production scripts.
 
-## Project layout
+## How it works
 
 ```text
-assets/characters/                    reusable character references
-stories/<story-slug>/story.md         creative contract, parts, and clip briefs
-stories/<story-slug>/characters.json  recurring character references
-stories/<story-slug>/scenes.json      final authoring prompts and scene inputs
-stories/<story-slug>/assets/          story-specific assets
-stories/<story-slug>/videos/          canonical scene MP4s
-stories/<story-slug>/temp/            continuity frames and review evidence
-stories/<story-slug>/reviews/         review decision per scene
-stories/<story-slug>/output/          final renders
-youtube/                               branding, thumbnails, and promotion assets
-scripts/                               generation and rendering entry points
+idea or script
+    → story plan and recurring assets
+    → scene prompts and references
+    → generated clip attempts
+    → evidence-based review and selection
+    → canonical scene videos
+    → final render and publishing assets
 ```
 
-Reusable assets remain at project level. Story directories contain only story-specific assets and production state.
+Gemini Omni Flash prompt creation is delegated to the shared `omni-flash-prompt-writer` skill. The project-local `produce-story` skill coordinates planning, generation, review, repair, and rendering without duplicating model-specific prompting rules.
 
-The current story is [`stories/aloo-flood-rescue/story.md`](stories/aloo-flood-rescue/story.md).
+## Project structure
 
-## Sources of truth
+```text
+.agents/skills/       project-local agent workflows and utilities
+app/                  desktop and terminal command interfaces
+assets/               reusable characters, locations, and vehicles
+prompts/              standalone prompts for optional or ad-hoc workflows
+scripts/              maintained generation, review, and rendering utilities
+stories/              self-contained story projects and their production state
+temp/                 non-canonical scratch files and test artifacts
+kahanikachakkar/       Kahani Ka Chakkar channel resources
+kathamind/             Katha Mind channel resources
+youtube/               shared publishing-asset conventions
+AGENTS.md              repository-wide agent rules
+GEMINI.md              Gemini entry point to the repository rules
+```
 
-- `story.md` owns story-specific creative intent, pacing, structure, and clip briefs.
-- `characters.json` maps only recurring, consistency-critical `@handles` to reusable reference images.
-- `scenes.json` owns the final authoring prompts and generation inputs.
-- `reviews/<scene-id>.json` owns the observable review decision for one generated scene.
-- Each scene's `output_path` is its only canonical video.
+Reusable assets stay at project level. Files needed only by one story stay inside that story. Temporary experiments are not production state.
 
-Rough discussion is not stored as `rough_brief`. There is no stored `extended_prompt`, dialogue metadata, take system, or render manifest.
+## Story structure
 
-## Workflow
+Each directory under `stories/<story-slug>/` may contain:
 
-1. Create or update the selected story's creative contract, parts, and clip briefs in `story.md`.
-2. Choose the working scope: complete story, one part, or one clip.
-3. Create every clip prompt independently with `omni-flash-prompt-writer` and persist it in `scenes.json`.
-4. Generate each selected clip as an attempt candidate under `temp/partial/`. Existing valid canonical videos are skipped by default.
-5. Validate each candidate, review its visual and audio evidence, and append the attempt under `reviews/`.
-6. Promote the reviewed selected attempt to the canonical `videos/` path. Repair only diagnosed material defects, then render the canonical clips.
+```text
+story.md         creative direction, story parts, and scene briefs
+characters.json recurring character handles and reference images
+scenes.json     final scene prompts and generation inputs
+assets/         story-specific visual assets
+temp/partial/   generated attempt candidates
+temp/           continuity frames, contact sheets, and other review evidence
+reviews/        persisted scene decisions and attempt history
+videos/         selected canonical scene clips
+output/         final renders and delivery assets
+```
 
-A dependent scene is produced only after its predecessor's reviewed selection has been promoted, its canonical hash has been verified, and its exact final frame has been inspected.
+The core sources of truth are:
 
-## Scene references
+- `story.md` for creative intent and progression.
+- `characters.json` for recurring, consistency-critical references.
+- `scenes.json` for executable scene inputs.
+- `reviews/<scene-id>.json` for review and selection state.
+- `videos/` for the canonical clips used by the renderer.
 
-Project `@handles` are authoring syntax, not Gemini API parameters. Before an API call, the runner resolves handles in first-appearance order to the corresponding character images and replaces them with `<IMAGE_REF_N>` tags. Other `reference_images` may represent objects, locations, styles, or other visual guidance.
+## Main tools
 
-`reference_scene_id` means that the previous scene's final frame is the literal opening anchor for the current scene. The runner extracts it and binds it as `<FIRST_FRAME>`. An inspected corrected still may be supplied with `first_frame_path` when carrying the raw final frame forward would propagate a visible defect.
+- `produce-story`: runs the story-production workflow at whole-story, part, or clip scope.
+- `create-prompt`: clarifies and saves one standalone prompt without executing it.
+- `scripts/generate_scenes.py`: generates candidates and promotes reviewed selections.
+- `scripts/render_video.py`: joins canonical scene clips into a final video.
+- `scripts/render_text.py`, `scripts/apply_watermark.py`, and `scripts/add_loop.py`: optional post-production passes.
+- `app/`: provides local command interfaces over maintained project utilities.
 
-The project relies on the current `omni-flash-prompt-writer` skill and official Google documentation for model capabilities. Do not infer new API behavior from this README.
+Operational rules, retry limits, continuity handling, and review decisions are defined in `AGENTS.md` and the project-local skills.
 
-## Generate scenes
+## Basic usage
 
-Preview the default story without using generation quota:
+Preview generation without consuming quota:
 
 ```bash
-python3 scripts/generate_scenes.py --dry-run
+python3 scripts/generate_scenes.py \
+  --config stories/<story-slug>/scenes.json \
+  --dry-run
 ```
 
-Select another story or a smaller scope:
+Generate scenes for a story:
 
 ```bash
-python3 scripts/generate_scenes.py --config stories/<story-slug>/scenes.json --dry-run
-python3 scripts/generate_scenes.py --part part_01
-python3 scripts/generate_scenes.py --scene s001
+python3 scripts/generate_scenes.py \
+  --config stories/<story-slug>/scenes.json
 ```
 
-Generate attempt 1 for all missing scenes:
-
-```bash
-python3 scripts/generate_scenes.py
-```
-
-Generate a diagnosed retry without changing the existing canonical clip:
-
-```bash
-python3 scripts/generate_scenes.py --scene s001 --attempt 2 --regenerate
-```
-
-The runner stores attempts as `temp/partial/<scene-id>-attempt-<number>.mp4`. After reviewing a candidate, persist its review with `selected_attempt`, then promote it:
-
-```bash
-python3 scripts/generate_scenes.py --scene s001 --promote-attempt 2 --dry-run
-python3 scripts/generate_scenes.py --scene s001 --promote-attempt 2
-```
-
-Promotion requires complete attempt evidence, a media-valid selected candidate, and a promotable review decision. It records the canonical SHA-256 in the review so dependent scenes and the renderer can reject stale or externally replaced videos. `best_available` is promotable only when its review records explicit autonomous execution.
-
-Each scene receives one initial attempt and at most two diagnosed retries. Interactive work stops if all three fail. When the user explicitly requests autonomous continuation, the agent compares the media-valid candidates, records the strongest failed attempt as `best_available` with its unresolved defects, promotes it, and continues. It still stops when no media-valid candidate exists.
-
-## Render
-
-```bash
-python3 scripts/render_video.py --dry-run
-python3 scripts/render_video.py
-```
-
-The default output is `stories/aloo-flood-rescue/output/final-video.mp4`. Select another configuration or output when needed:
+Render its canonical clips:
 
 ```bash
 python3 scripts/render_video.py \
@@ -107,34 +97,4 @@ python3 scripts/render_video.py \
   --output stories/<story-slug>/output/final-video.mp4
 ```
 
-The renderer requires a renderable persisted review for every canonical scene and validates every input and the completed output with `ffprobe`.
-
-Add optional timed text in a separate pass without changing the canonical scene renderer:
-
-```bash
-python3 scripts/render_text.py \
-  --input stories/<story-slug>/output/final-video.mp4 \
-  --output stories/<story-slug>/output/final-video-with-text.mp4 \
-  --text "One Hour Before..." \
-  --start 21 \
-  --duration 3
-```
-
-## Authentication and isolated tests
-
-Generation uses Google Cloud Application Default Credentials when available, otherwise `GEMINI_API_KEY`. Credentials are never copied into this repository.
-
-Use `scripts/main.py` only for isolated single-prompt experiments:
-
-```bash
-python3 scripts/main.py \
-  --prompt "10-second single continuous shot ..." \
-  --output tests/videos/example.mp4 \
-  --aspect-ratio 16:9
-```
-
-Run the automated tests with:
-
-```bash
-python3 -m unittest discover -s tests -v
-```
+Generation uses Google Cloud Application Default Credentials when available, otherwise `GEMINI_API_KEY`. Credentials must not be copied into the repository.

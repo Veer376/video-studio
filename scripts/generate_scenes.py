@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Generate reviewed Omni Flash attempt candidates and promote selected attempts."""
 
 from __future__ import annotations

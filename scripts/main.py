@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Generate one Gemini Omni Flash video through the Interactions API."""
 
 from __future__ import annotations
