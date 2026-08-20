@@ -51,7 +51,40 @@ story-video stage illustrate library/<project_name> --illustration-phase charact
 story-video stage illustrate library/<project_name> --illustration-phase scenes
 ```
 
-The character phase creates missing canonical assets under project `assets/characters/`. A `root:assets/...` character with `prompt: null` is reused directly; with a non-null prompt it is adapted into a project-local asset and the manifest is updated after success. The scene phase uses canonical assets plus a compatible prior scene when available. Cloudflare receives at most four references; production owns that allocation.
+The character phase creates missing canonical assets under project `assets/characters/`. A `root:assets/...` character with `prompt: null` is reused directly; with a non-null prompt it is adapted into a project-local asset and the manifest is updated after success. The scene phase uses canonical assets plus a compatible prior scene when available. The configured provider receives at most four ordered references; production owns that allocation.
+
+Repository defaults live in `kathamind/config.json` under `production`:
+
+```json
+{
+  "_comment": "image_provider: cloudflare|google; subtitles/zoom: true|false; short overrides render settings for Shorts",
+  "image_provider": "cloudflare",
+  "image_model": "@cf/black-forest-labs/flux-2-klein-4b",
+  "subtitles": false,
+  "zoom": true,
+  "short": {
+    "subtitles": true
+  }
+}
+```
+
+Supported image providers are `cloudflare` and `google`. The `short` object overrides `subtitles` and `zoom` for `9:16` projects targeting at most 180 seconds; otherwise the base values apply. Provider and model are never stored in `session.json`.
+
+An outer pipeline invocation may temporarily override its internal stages:
+
+```bash
+story-video run library/<project_name> \
+  --image-provider google \
+  --image-model gemini-3.1-flash-image \
+  --subtitles \
+  --no-zoom \
+  --force-stage illustrate \
+  --force-stage render
+```
+
+Without these flags, `kathamind/config.json` supplies the defaults. Overrides do not mutate project state. If the affected stage is already complete or has cached artifacts, use `--force` or the matching `--force-stage`; the pipeline rejects an override that would otherwise be ignored. After editing repository defaults, force each affected stage because cached artifacts are not automatically invalidated.
+
+For Google, set `image_provider` to `google`, set `image_model` to `gemini-3.1-flash-image`, and configure Application Default Credentials plus `GOOGLE_CLOUD_PROJECT` before illustration.
 
 Retry missing image generation only:
 

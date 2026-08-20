@@ -1,3 +1,13 @@
 {
-  "audience": "Hindi-speaking adults interested in practical spiritual, philosophical, and motivational stories"
+  "audience": "Hindi-speaking adults interested in practical spiritual, philosophical, and motivational stories",
+  "production": {
+    "_comment": "Options: image_provider is cloudflare or google; image_model is a Cloudflare @cf/... ID or Google gemini-3.1-flash-image, gemini-3-pro-image, or gemini-2.5-flash-image; subtitles and zoom are true or false; short may override subtitles and zoom.",
+    "image_provider": "cloudflare",
+    "image_model": "@cf/black-forest-labs/flux-2-klein-4b",
+    "subtitles": false,
+    "zoom": true,
+    "short": {
+      "subtitles": false
+    }
+  }
 }

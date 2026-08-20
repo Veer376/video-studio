@@ -1,32 +1,20 @@
-"""
-Generate scene images through Cloudflare Workers AI with dependency-aware continuity.
-
-Usage:
-    python3 generate_images.py --project-dir library/2026-08-01_krishna-motivation
-"""
+"""Provider-neutral character and scene illustration orchestration."""
 import argparse
-import base64
-import io
 import json
 import os
-import ssl
 import sys
-import time
-import uuid
-import urllib.error
-import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 
 from PIL import Image
 
+from studio.core.config import load_production_config
 from studio.core.paths import is_root_asset_locator, resolve_asset_locator
+from studio.images.providers import cloudflare, google
 
 IMAGE_WIDTH = 1920
 IMAGE_HEIGHT = 1080
-# Cloudflare documents reference inputs as smaller than 512x512.
-REFERENCE_MAX_DIMENSION = 511
 MAX_REFERENCE_IMAGES = 4
 
 
@@ -51,99 +39,6 @@ def load_env():
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
-
-
-def load_cloudflare_credentials() -> list[tuple[str, str]]:
-    """
-    Collect all Cloudflare (account_id, api_token) pairs from environment variables.
-    Supports: CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN,
-    CLOUDFLARE_ACCOUNT_ID_1 + CLOUDFLARE_API_TOKEN_1, ..., _N
-    (also tolerates common typos like CLOURFLARE_ACCOUNT_ID_2).
-    """
-    pairs = []
-    seen = set()
-
-    def _get(key_names: list[str]) -> str:
-        for k in key_names:
-            v = os.environ.get(k, "").strip().strip('"').strip("'")
-            if v:
-                return v
-        return ""
-
-    def _add(acc: str, tok: str) -> None:
-        if acc and tok and (acc, tok) not in seen:
-            pairs.append((acc, tok))
-            seen.add((acc, tok))
-
-    # Base pair
-    acc_base = _get(["CLOUDFLARE_ACCOUNT_ID", "CLOURFLARE_ACCOUNT_ID"])
-    tok_base = _get(["CLOUDFLARE_API_TOKEN", "CLOURFLARE_API_TOKEN"])
-    _add(acc_base, tok_base)
-
-    # Numbered variants: 1...N
-    idx = 1
-    while True:
-        acc = _get([f"CLOUDFLARE_ACCOUNT_ID_{idx}", f"CLOURFLARE_ACCOUNT_ID_{idx}"])
-        tok = _get([f"CLOUDFLARE_API_TOKEN_{idx}", f"CLOURFLARE_API_TOKEN_{idx}"])
-        if not acc and not tok:
-            if idx > 10:
-                break
-            idx += 1
-            continue
-        _add(acc, tok)
-        idx += 1
-
-    return pairs
-
-
-def build_multipart(
-    fields: dict[str, str | int | float],
-    files: dict[str, tuple[str, bytes, str]],
-) -> tuple[bytes, str]:
-    boundary = f"----story-video-{uuid.uuid4().hex}"
-    body: list[bytes] = []
-
-    for key, value in fields.items():
-        body.extend(
-            [
-                f"--{boundary}".encode("utf-8"),
-                f'Content-Disposition: form-data; name="{key}"'.encode("utf-8"),
-                b"",
-                str(value).encode("utf-8"),
-            ]
-        )
-
-    for key, (filename, content, content_type) in files.items():
-        body.extend(
-            [
-                f"--{boundary}".encode("utf-8"),
-                (
-                    f'Content-Disposition: form-data; name="{key}"; '
-                    f'filename="{filename}"'
-                ).encode("utf-8"),
-                f"Content-Type: {content_type}".encode("utf-8"),
-                b"",
-                content,
-            ]
-        )
-
-    body.extend([f"--{boundary}--".encode("utf-8"), b""])
-    return b"\r\n".join(body), f"multipart/form-data; boundary={boundary}"
-
-
-def prepare_reference_image(path: Path) -> bytes:
-    """Return a real PNG reference no larger than Cloudflare's 512px input limit."""
-    with Image.open(path) as image:
-        image.load()
-        if image.mode not in ("RGB", "RGBA"):
-            image = image.convert("RGBA" if "A" in image.getbands() else "RGB")
-        image.thumbnail(
-            (REFERENCE_MAX_DIMENSION, REFERENCE_MAX_DIMENSION),
-            Image.Resampling.LANCZOS,
-        )
-        output = io.BytesIO()
-        image.save(output, format="PNG", optimize=True)
-        return output.getvalue()
 
 
 def is_valid_image(path: Path) -> bool:
@@ -248,28 +143,6 @@ def plan_character_tasks(
             )
         tasks.append(CharacterTask(key, source_or_output, None))
     return tasks
-
-
-def save_response_image(response_data: bytes, content_type: str, out_path: Path) -> None:
-    """Decode Cloudflare output and atomically save bytes matching the .png suffix."""
-    image_bytes = response_data
-    if "application/json" in content_type:
-        data = json.loads(response_data.decode("utf-8"))
-        try:
-            image_bytes = base64.b64decode(data["result"]["image"])
-        except (KeyError, TypeError, ValueError) as exc:
-            raise RuntimeError(f"Unexpected Cloudflare JSON response structure: {data}") from exc
-
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    partial = out_path.with_suffix(f"{out_path.suffix}.partial")
-    try:
-        with Image.open(io.BytesIO(image_bytes)) as image:
-            image.load()
-            image.save(partial, format="PNG")
-        partial.replace(out_path)
-    finally:
-        if partial.exists():
-            partial.unlink()
 
 
 def scene_reference_id(scene: dict) -> str | None:
@@ -422,25 +295,6 @@ def scene_reference_images(
     return references
 
 
-def reference_instruction(references: list[ReferenceImage]) -> str:
-    mappings = "; ".join(
-        f"input image {index} is {reference.role}"
-        for index, reference in enumerate(references)
-    )
-    instruction = (
-        f"Reference mapping: {mappings}. Preserve the referenced character identities, "
-        "clothing, props, environment, and art style where applicable. Use a previous-scene "
-        "reference only for continuity. Follow the current scene description for action, "
-        "expression, camera, and composition."
-    )
-    if any(reference.role.startswith("source identity of ") for reference in references):
-        instruction += (
-            " Treat a source identity reference as identity evidence only; do not preserve "
-            "its medium, aspect ratio, background, lighting, or composition."
-        )
-    return instruction
-
-
 def validate_reference_graph(scenes: list[dict]) -> dict[str, dict]:
     scene_by_id: dict[str, dict] = {}
     positions: dict[str, int] = {}
@@ -464,124 +318,12 @@ def validate_reference_graph(scenes: list[dict]) -> dict[str, dict]:
     return scene_by_id
 
 
-def generate_image(
-    credentials: list[tuple[str, str]],
-    model: str,
-    prompt: str,
-    width: int,
-    height: int,
-    out_path: Path,
-    reference_images: list[ReferenceImage] | None = None,
-) -> None:
-    if not credentials:
-        raise RuntimeError("No Cloudflare credentials provided")
-
-    references = list(reference_images or [])
-    if len(references) > MAX_REFERENCE_IMAGES:
-        raise ValueError(
-            f"Cloudflare supports at most {MAX_REFERENCE_IMAGES} reference images"
-        )
-    for reference in references:
-        if not is_valid_image(reference.path):
-            raise ValueError(f"reference image is missing or invalid: {reference.path}")
-
-    # Determine if the model requires multipart/form-data or has reference images.
-    has_ref = bool(references)
-    is_flux_2 = "flux-2-" in model
-    if has_ref and not is_flux_2:
-        raise ValueError(f"reference images are not configured for model {model}")
-    is_multipart = is_flux_2
-
-    if is_multipart:
-        fields: dict[str, str | int | float] = {
-            "prompt": prompt,
-            "width": width,
-            "height": height,
-        }
-        files: dict[str, tuple[str, bytes, str]] = {}
-        if has_ref:
-            fields["prompt"] = f"{reference_instruction(references)} {prompt}"
-            for index, reference in enumerate(references):
-                files[f"input_image_{index}"] = (
-                    f"reference-{index}.png",
-                    prepare_reference_image(reference.path),
-                    "image/png",
-                )
-        data_bytes, content_type = build_multipart(fields, files)
-    else:
-        payload = {
-            "prompt": prompt,
-            "width": width,
-            "height": height,
-        }
-        data_bytes = json.dumps(payload).encode("utf-8")
-        content_type = "application/json"
-
-    try:
-        ctx = ssl._create_unverified_context()
-    except Exception:
-        ctx = ssl.create_default_context()
-
-    n_creds = len(credentials)
-    max_attempts = n_creds * 3
-
-    for attempt in range(1, max_attempts + 1):
-        cred_idx = (attempt - 1) % n_creds
-        account_id, api_token = credentials[cred_idx]
-        url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{model}"
-
-        req = urllib.request.Request(
-            url,
-            data=data_bytes,
-            headers={
-                "Authorization": f"Bearer {api_token}",
-                "Content-Type": content_type,
-                "User-Agent": "story-video-maker/0.1"
-            },
-            method="POST"
-        )
-
-        try:
-            with urllib.request.urlopen(req, timeout=120, context=ctx) as response:
-                resp_content_type = response.headers.get("Content-Type", "")
-                response_data = response.read()
-
-                save_response_image(response_data, resp_content_type, out_path)
-                
-                print(f"✓ Image saved: {out_path.name} (model: {model})")
-                return
-
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")[:500]
-            is_quota_error = exc.code == 429 or "4006" in detail or "daily free allocation" in detail or "used up your daily free allocation" in detail
-            if is_quota_error and n_creds > 1:
-                next_cred_idx = (cred_idx + 1) % n_creds
-                print(
-                    f"  Warning: Cloudflare HTTP {exc.code} quota limit on account key[{cred_idx + 1}/{n_creds}] ({account_id[:8]}...). "
-                    f"Rotating to key[{next_cred_idx + 1}]...",
-                    file=sys.stderr
-                )
-                time.sleep(1.0)
-                continue
-            elif exc.code in (429, 500, 503, 504) and attempt < max_attempts:
-                wait = 3.0 * attempt
-                print(f"  Cloudflare HTTP {exc.code} (attempt {attempt}/{max_attempts}). Retrying in {wait}s...", file=sys.stderr)
-                time.sleep(wait)
-            else:
-                raise RuntimeError(f"Cloudflare HTTP {exc.code}: {detail}") from exc
-        except urllib.error.URLError as exc:
-            if attempt < max_attempts:
-                print(f"  Cloudflare network error (attempt {attempt}/{max_attempts}). Retrying...", file=sys.stderr)
-                time.sleep(3.0)
-            else:
-                raise RuntimeError(f"Cloudflare network error: {exc.reason}") from exc
-
-
 def main():
-    parser = argparse.ArgumentParser(description="Generate canonical characters and scene images using Cloudflare Workers AI")
+    parser = argparse.ArgumentParser(description="Generate canonical characters and scene images")
     parser.add_argument("--project-dir", required=True, help="Path to the project directory")
     parser.add_argument("--force", action="store_true", help="Re-generate even if image already exists")
-    parser.add_argument("--model", default="@cf/black-forest-labs/flux-2-klein-4b", help="Cloudflare AI model to use")
+    parser.add_argument("--provider", choices=("cloudflare", "google"), help="Override configured image provider")
+    parser.add_argument("--model", help="Override configured image model")
     parser.add_argument("--concurrency", type=int, default=2, help="Number of parallel generation threads")
     parser.add_argument(
         "--phase",
@@ -594,21 +336,23 @@ def main():
         parser.error("--concurrency must be at least 1")
 
     load_env()
-    credentials = load_cloudflare_credentials()
+    credentials = cloudflare.load_credentials()
     credentials_reported = False
+    google_client = None
 
-    def require_credentials() -> None:
-        nonlocal credentials_reported
-        if not credentials:
-            print(
-                "ERROR: No Cloudflare ACCOUNT_ID / API_TOKEN credentials found in "
-                "~/.config/projects/.env",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        if not credentials_reported:
-            print(f"  Loaded {len(credentials)} Cloudflare account credential pair(s).")
-            credentials_reported = True
+    def require_provider() -> None:
+        nonlocal credentials_reported, google_client
+        if provider_name == "cloudflare":
+            if not credentials:
+                raise RuntimeError(
+                    "No Cloudflare ACCOUNT_ID / API_TOKEN credentials found in "
+                    "~/.config/projects/.env"
+                )
+            if not credentials_reported:
+                print(f"  Loaded {len(credentials)} Cloudflare account credential pair(s).")
+                credentials_reported = True
+        elif google_client is None:
+            google_client = google.create_client()
 
     project_dir = Path(args.project_dir)
     session_path = project_dir / "session.json"
@@ -624,6 +368,26 @@ def main():
     session = json.loads(session_path.read_text(encoding="utf-8"))
     scenes_data = json.loads(scenes_path.read_text(encoding="utf-8"))
 
+    try:
+        production = load_production_config(
+            session,
+            provider=args.provider,
+            model=args.model,
+        )
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
+    provider_name = production.image_provider
+    model_name = production.image_model
+    if provider_name == "cloudflare":
+        model_name = cloudflare.normalize_model(model_name)
+    else:
+        try:
+            model_name = google.normalize_model(model_name)
+        except ValueError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            sys.exit(1)
+
     aspect_ratio = session.get("visual", {}).get("aspect_ratio", "16:9")
     if aspect_ratio == "9:16":
         width, height = 1080, 1920
@@ -636,18 +400,38 @@ def main():
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    model_name = session.get("visual", {}).get("model") or os.environ.get("CLOUDFLARE_IMAGE_MODEL") or args.model
-    if not model_name.startswith("@cf/") and "/" not in model_name:
-        if "flux" in model_name:
-            model_name = f"@cf/black-forest-labs/{model_name}"
-
-    if session.get("visual", {}).get("model") != model_name:
-        session.setdefault("visual", {})["model"] = model_name
-        session_path.write_text(json.dumps(session, indent=2, ensure_ascii=False), encoding="utf-8")
-
     print(f"→ Illustration phase: {args.phase} (Resolution: {width}x{height})")
+    print(f"  Provider: {provider_name}")
     print(f"  Model: {model_name}")
     print(f"  Global Design: {style_prompt}")
+
+    def generate_with_provider(
+        *,
+        prompt: str,
+        out_path: Path,
+        reference_images: list[ReferenceImage],
+    ) -> None:
+        if provider_name == "cloudflare":
+            cloudflare.generate_image(
+                credentials=credentials,
+                model=model_name,
+                prompt=prompt,
+                width=width,
+                height=height,
+                out_path=out_path,
+                reference_images=reference_images,
+            )
+            return
+        if google_client is None:
+            raise RuntimeError("Google image provider was not initialized")
+        google.generate_image(
+            client=google_client,
+            model=model_name,
+            prompt=prompt,
+            aspect_ratio=aspect_ratio,
+            out_path=out_path,
+            reference_images=reference_images,
+        )
 
     # Validate and prepare prompts before spending any generation credits.
     scenes = scenes_data.get("scenes", [])
@@ -688,7 +472,11 @@ def main():
             sys.exit(1)
         character_failures: set[str] = set()
         if character_tasks:
-            require_credentials()
+            try:
+                require_provider()
+            except RuntimeError as exc:
+                print(f"ERROR: {exc}", file=sys.stderr)
+                sys.exit(1)
             print(
                 f"→ Generating {len(character_tasks)} canonical character asset(s) "
                 f"(max workers: {args.concurrency})"
@@ -708,12 +496,8 @@ def main():
                         if task.source_path
                         else []
                     )
-                    generate_image(
-                        credentials=credentials,
-                        model=model_name,
+                    generate_with_provider(
                         prompt=build_character_prompt(task.key, character, style_prompt),
-                        width=width,
-                        height=height,
                         out_path=task.output_path,
                         reference_images=references,
                     )
@@ -798,7 +582,11 @@ def main():
     if not pending:
         print("✓ All images already exist. Nothing to generate.")
     else:
-        require_credentials()
+        try:
+            require_provider()
+        except RuntimeError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            sys.exit(1)
         print(
             f"→ Generating {len(pending)} images with dependency-aware concurrency "
             f"(max workers: {args.concurrency})"
@@ -817,12 +605,8 @@ def main():
                     print(f"  {scene_id}: {mapping} (model: {model_name})")
                 else:
                     print(f"  {scene_id}: generating image (model: {model_name})")
-                generate_image(
-                    credentials=credentials,
-                    model=model_name,
+                generate_with_provider(
                     prompt=prompts[scene_id],
-                    width=width,
-                    height=height,
                     out_path=out_path,
                     reference_images=references,
                 )
@@ -902,23 +686,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-"""
-MODELS:
-
-Complete Official Catalog: Cloudflare Image Models (Grounded Real-World Neuron Pricing)
-
-1 👑	FLUX.2 [dev]	         @cf/black-forest-labs/flux-2-dev	multipart/form-data	~2,500 – 3,500 neurons	           3 to 4 Images / Day
-2 🎨	FLUX.1 [schnell] 12B	 @cf/black-forest-labs/flux-1-schnell	application/json	~1,000 – 1,200 neurons	       8 to 10 Images / Day
-3 ⚡	FLUX.2 [klein] 4B	         @cf/black-forest-labs/flux-2-klein-4b	multipart/form-data	~500 – 800 neurons	           12 to 20 Images / Day
-4 ✨	Leonardo Phoenix 1.0	    @cf/leonardo/phoenix-1.0	application/json	~800 – 1,500 neurons	                 6 to 12 Images / Day
-5 🖌️	Leonardo Lucid Origin	  @cf/leonardo/lucid-origin	application/json	~800 – 1,500 neurons	                   6 to 12 Images / Day
-6 ⚡	SDXL-Lightning	             @cf/bytedance/stable-diffusion-xl-lightning	application/json	~150 – 250 neurons	  40 to 65 Images / Day
-7 🎭	DreamShaper 8 LCM	     @cf/lykon/dreamshaper-8-lcm	application/json	~100 – 200 neurons	                  50 to 100 Images / Day
-8 🖼️	SDXL Base 1.0	          @cf/stabilityai/stable-diffusion-xl-base-1.0	application/json	~300 – 600 neurons	   15 to 30 Images / Day
-9 🛠️	DreamShaper 8 Inpainting  @cf/lykon/dreamshaper-8-inpainting	application/json	~200 – 400 neurons	           25 to 50 Images / Day
-10 🛠️	SD 1.5 Inpainting	      @cf/runwayml/stable-diffusion-v1-5-inpainting	application/json	~150 – 300 neurons	   30 to 60 Images / Day
-11 🔄	SD 1.5 Img2Img	         @cf/stabilityai/stable-diffusion-v1-5-img2img	application/json	~100 – 200 neurons	  50 to 100 Images / Day
-"""

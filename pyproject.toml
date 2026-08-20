@@ -3,7 +3,7 @@ name = "story-video-maker"
 version = "0.1.0"
 description = "Deterministic renderer for narrated image-based story videos."
 requires-python = ">=3.11"
-dependencies = ["pillow>=10"]
+dependencies = ["google-genai>=2.16", "pillow>=10"]
 
 [project.scripts]
 story-video = "studio.pipeline_cli:main"

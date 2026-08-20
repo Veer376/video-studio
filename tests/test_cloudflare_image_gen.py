@@ -11,7 +11,8 @@ from unittest.mock import patch
 from PIL import Image
 
 from studio.core import paths as studio_paths
-from studio.images import cloudflare_image_gen as image_gen
+from studio.images import illustrate as image_gen
+from studio.images.providers import cloudflare
 
 
 def image_bytes(*, size: tuple[int, int], image_format: str = "JPEG") -> bytes:
@@ -58,6 +59,26 @@ def write_project(project_dir: Path, scenes: list[dict]) -> None:
 
 
 class CloudflareImageGenTests(unittest.TestCase):
+    def test_standalone_cli_refuses_existing_output_before_auth(self) -> None:
+        with TemporaryDirectory() as tmp:
+            output = Path(tmp) / "image.png"
+            output.write_bytes(image_bytes(size=(8, 8), image_format="PNG"))
+            with (
+                patch.object(cloudflare, "load_credentials") as load_credentials,
+                self.assertRaises(SystemExit),
+            ):
+                cloudflare.main(
+                    [
+                        "--model",
+                        "flux-2-klein-4b",
+                        "--prompt",
+                        "a quiet forest",
+                        "--output",
+                        str(output),
+                    ]
+                )
+        load_credentials.assert_not_called()
+
     def test_style_prompt_comes_from_session(self) -> None:
         style = image_gen.resolve_style_prompt(
             {
@@ -92,7 +113,7 @@ class CloudflareImageGenTests(unittest.TestCase):
             source = Path(tmp) / "scene-001.png"
             source.write_bytes(image_bytes(size=(1920, 1072), image_format="JPEG"))
 
-            prepared = image_gen.prepare_reference_image(source)
+            prepared = cloudflare._prepare_reference(source)
 
         self.assertTrue(prepared.startswith(b"\x89PNG\r\n\x1a\n"))
         with Image.open(io.BytesIO(prepared)) as image:
@@ -125,8 +146,8 @@ class CloudflareImageGenTests(unittest.TestCase):
                 captured["content_type"] = request.headers["Content-type"]
                 return Response()
 
-            with patch.object(image_gen.urllib.request, "urlopen", side_effect=fake_urlopen):
-                image_gen.generate_image(
+            with patch.object(cloudflare.urllib.request, "urlopen", side_effect=fake_urlopen):
+                cloudflare.generate_image(
                     credentials=[("account", "token")],
                     model="@cf/black-forest-labs/flux-2-klein-4b",
                     prompt="Hero runs through rain",
@@ -150,7 +171,7 @@ class CloudflareImageGenTests(unittest.TestCase):
                 self.assertEqual("PNG", image.format)
 
     def test_source_identity_instruction_drops_source_medium_and_composition(self) -> None:
-        instruction = image_gen.reference_instruction(
+        instruction = cloudflare._reference_instruction(
             [image_gen.ReferenceImage(Path("source.jpg"), "source identity of Hero")]
         )
         self.assertIn("identity evidence only", instruction)
@@ -214,12 +235,12 @@ class CloudflareImageGenTests(unittest.TestCase):
             with (
                 patch.object(image_gen, "load_env"),
                 patch.object(
-                    image_gen,
-                    "load_cloudflare_credentials",
+                    cloudflare,
+                    "load_credentials",
                     return_value=[("a", "t")],
                 ),
                 patch.object(
-                    image_gen,
+                    cloudflare,
                     "generate_image",
                     side_effect=fake_generate_image,
                 ),
@@ -295,12 +316,12 @@ class CloudflareImageGenTests(unittest.TestCase):
             with (
                 patch.object(image_gen, "load_env"),
                 patch.object(
-                    image_gen,
-                    "load_cloudflare_credentials",
+                    cloudflare,
+                    "load_credentials",
                     return_value=[("a", "t")],
                 ),
                 patch.object(
-                    image_gen,
+                    cloudflare,
                     "generate_image",
                     side_effect=fail_parent,
                 ),
@@ -316,7 +337,7 @@ class CloudflareImageGenTests(unittest.TestCase):
             reference = Path(tmp) / "scene-001.png"
             reference.write_bytes(image_bytes(size=(32, 32), image_format="PNG"))
             with self.assertRaisesRegex(ValueError, "reference images are not configured"):
-                image_gen.generate_image(
+                cloudflare.generate_image(
                     credentials=[("account", "token")],
                     model="@cf/black-forest-labs/flux-1-schnell",
                     prompt="Hero runs",
@@ -410,8 +431,8 @@ class CloudflareImageGenTests(unittest.TestCase):
             for _ in range(2):
                 with (
                     patch.object(image_gen, "load_env"),
-                    patch.object(image_gen, "load_cloudflare_credentials", return_value=[("a", "t")]),
-                    patch.object(image_gen, "generate_image", side_effect=fake_generate_image),
+                    patch.object(cloudflare, "load_credentials", return_value=[("a", "t")]),
+                    patch.object(cloudflare, "generate_image", side_effect=fake_generate_image),
                     patch.object(sys, "argv", argv),
                 ):
                     image_gen.main()
@@ -432,7 +453,7 @@ class CloudflareImageGenTests(unittest.TestCase):
                 path.write_bytes(image_bytes(size=(32, 32), image_format="PNG"))
                 references.append(image_gen.ReferenceImage(path, str(index)))
             with self.assertRaisesRegex(ValueError, "at most 4"):
-                image_gen.generate_image(
+                cloudflare.generate_image(
                     credentials=[("a", "t")],
                     model="@cf/black-forest-labs/flux-2-klein-4b",
                     prompt="scene",
@@ -555,12 +576,12 @@ class CloudflareImageGenTests(unittest.TestCase):
                     patch.object(studio_paths, "project_root", return_value=repository),
                     patch.object(image_gen, "load_env"),
                     patch.object(
-                        image_gen,
-                        "load_cloudflare_credentials",
+                        cloudflare,
+                        "load_credentials",
                         return_value=[("a", "t")],
                     ),
                     patch.object(
-                        image_gen,
+                        cloudflare,
                         "generate_image",
                         side_effect=fake_generate_image,
                     ),
