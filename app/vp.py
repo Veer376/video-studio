@@ -97,12 +97,6 @@ def action_render_story(story_name: str = "chanakya-helena-sacrifice") -> int:
     return run_command_streaming(cmd, WORKSPACE_ROOT, f"Render Story ({story_name})")
 
 
-def action_vertical_short() -> int:
-    script = WORKSPACE_ROOT / "scripts" / "create_vertical_short.py"
-    cmd = [sys.executable, str(script)]
-    return run_command_streaming(cmd, WORKSPACE_ROOT, "Create Vertical Short (9:16)")
-
-
 def action_seo_scout(niche: str = "Indian Melodrama Stories") -> int:
     if SEO_SCOUT_CLI.exists():
         cmd = [sys.executable, str(SEO_SCOUT_CLI), "--niche", niche]
@@ -138,15 +132,14 @@ def interactive_menu() -> None:
 
   {GREEN}{BOLD}[1]{RESET} 💧 {BOLD}Apply Watermark{RESET}       {DIM}Add logo/overlay to latest video{RESET}
   {MAGENTA}{BOLD}[2]{RESET} 🎬 {BOLD}Render Story Video{RESET}    {DIM}Stitch scenes for chanakya story{RESET}
-  {BLUE}{BOLD}[3]{RESET} 📱 {BOLD}Create Vertical Short{RESET} {DIM}Auto-crop to 9:16 vertical ratio{RESET}
-  {YELLOW}{BOLD}[4]{RESET} 🔍 {BOLD}Run SEO Scout{RESET}         {DIM}75+ multi-vector search trends{RESET}
-  {CYAN}{BOLD}[5]{RESET} ⏱️  {BOLD}Local Scheduler{RESET}       {DIM}List and inspect scheduled tasks{RESET}
-  {GREEN}{BOLD}[6]{RESET} 🚀 {BOLD}Open Desktop Deck{RESET}     {DIM}Launch pywebview floating window{RESET}
+  {YELLOW}{BOLD}[3]{RESET} 🔍 {BOLD}Run SEO Scout{RESET}         {DIM}75+ multi-vector search trends{RESET}
+  {CYAN}{BOLD}[4]{RESET} ⏱️  {BOLD}Local Scheduler{RESET}       {DIM}List and inspect scheduled tasks{RESET}
+  {GREEN}{BOLD}[5]{RESET} 🚀 {BOLD}Open Desktop Deck{RESET}     {DIM}Launch pywebview floating window{RESET}
   {DIM}[q] ❌ Exit{RESET}
 """)
 
         try:
-            choice = input(f"{BOLD}{CYAN}➜ Enter choice [1-6, q]: {RESET}").strip().lower()
+            choice = input(f"{BOLD}{CYAN}➜ Enter choice [1-5, q]: {RESET}").strip().lower()
         except (KeyboardInterrupt, EOFError):
             print("\nExiting.")
             break
@@ -159,13 +152,11 @@ def interactive_menu() -> None:
         elif choice == "2":
             action_render_story()
         elif choice == "3":
-            action_vertical_short()
-        elif choice == "4":
             action_seo_scout()
-        elif choice == "5":
+        elif choice == "4":
             action_scheduler("list")
-        elif choice == "6":
-            deck_app = WORKSPACE_ROOT / "deck" / "app.py"
+        elif choice == "5":
+            deck_app = WORKSPACE_ROOT / "app" / "app.py"
             subprocess.Popen([sys.executable, str(deck_app)])
             print(f"{GREEN}Launched Video Deck window in background.{RESET}")
         else:
@@ -196,9 +187,6 @@ def main() -> None:
     p_rend = subparsers.add_parser("render", help="Render full story video")
     p_rend.add_argument("--story", "-s", default="chanakya-helena-sacrifice", help="Story name")
 
-    # short
-    subparsers.add_parser("short", help="Generate 9:16 vertical short")
-
     # scout
     p_scout = subparsers.add_parser("scout", help="Run YouTube SEO demand scout")
     p_scout.add_argument("--niche", "-n", default="Indian Melodrama Stories", help="Niche or topic")
@@ -220,14 +208,12 @@ def main() -> None:
         code = action_watermark(args.input)
     elif args.command == "render":
         code = action_render_story(args.story)
-    elif args.command == "short":
-        code = action_vertical_short()
     elif args.command == "scout":
         code = action_seo_scout(args.niche)
     elif args.command == "tasks":
         code = action_scheduler("list")
     elif args.command == "deck":
-        deck_app = WORKSPACE_ROOT / "deck" / "app.py"
+        deck_app = WORKSPACE_ROOT / "app" / "app.py"
         subprocess.Popen([sys.executable, str(deck_app)])
         print(f"{GREEN}Launched Video Deck.{RESET}")
         code = 0
