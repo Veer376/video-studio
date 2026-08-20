@@ -5,15 +5,15 @@ Use this reference only after the relevant clip briefs are approved.
 ## Prepare the scene
 
 1. Read the approved clip brief, adjacent clips, creative contract, character map, and existing scene records.
-2. Identify the recurring consistency-critical characters required by the selected clips. For each one, resolve its full entry from the character registry: check the story-level `characters.json` first, then fall back to the project-root `characters.json`. Verify a valid `reference_path` exists and the image is present.
-3. If a required recurring reference is missing, create the character image from the approved story description following the 4-panel turnaround sheet standard in `assets/characters/README.md`, inspect it for the intended identity and design, save it under project `assets/characters/` when reusable across stories or under the selected story's `assets/` when story-specific, and register it in `characters.json`. Ask the user only when a missing design choice would materially change the character. Do not begin prompt creation until every required recurring reference is ready.
-4. Use `reference_scene_id` only when the predecessor's final composition should become the literal opening frame.
-5. If continuity is requested, inspect the predecessor's exact final frame before prompt creation.
+2. Identify the recurring consistency-critical characters required by the selected clip and make each one ready by following [character-readiness.md](character-readiness.md).
+3. Use `reference_scene_id` only when the predecessor's final composition should become the literal opening frame.
+4. If continuity is requested, inspect the predecessor's exact final frame before prompt creation.
+5. Invoke the project-local `direct-video-scene` skill with the approved clip brief, creative contract, adjacent scene states, ready characters, and inspected continuity evidence. Use its directed-scene contract as the creative input to prompt production.
 
 ## Create and persist the prompt
 
-1. Before invoking `omni-flash-prompt-writer`, identify which of the following risks apply to the current clip: multiple recurring characters in frame, spatial geometry that must be stable (facing direction, position), complex motion or contact, Hindi dialogue, or deliberate cuts with character continuity. Record the applicable risks and the mitigation you will use (e.g., exact character count, `No scene cuts`, first-frame lock). Pass these risks and mitigations explicitly in the invocation brief.
-2. Proceed prompt creation independently with the approved clip brief, verified reference inputs, exact dialogue and audio requirements, continuity evidence, and the recorded risk mitigations.
+1. Before invoking `compile-omni-scene`, identify which of the following risks apply to the current clip: multiple recurring characters in frame, spatial geometry that must be stable (facing direction, position), complex motion or contact, Hindi dialogue, or deliberate cuts with character continuity. Record the applicable risks and the mitigation you will use (e.g., exact character count, `No scene cuts`, first-frame lock). Pass these risks and mitigations explicitly in the invocation brief.
+2. Proceed prompt creation independently with the directed-scene contract, approved clip brief, verified reference inputs, exact dialogue and audio requirements, continuity evidence, and the recorded risk mitigations.
 3. Keep project `@handles` in the authoring prompt. The runner resolves them to ordered `<IMAGE_REF_N>` inputs.
 4. Author and persist prompts strictly one scene at a time. Never draft or persist multiple scene prompts in a single pass.
 5. Store the final prompt and scene references in `scenes.json`; do not create an extended prompt.

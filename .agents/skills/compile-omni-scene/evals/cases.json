@@ -1,0 +1,176 @@
+{
+  "skill": "compile-omni-scene",
+  "version": "2026-08-20",
+  "trigger_cases": [
+    {
+      "input": "Write an Omni Flash prompt for a ten-second product reveal.",
+      "should_trigger": true
+    },
+    {
+      "input": "Gemini Omni keeps making my silent character talk. Fix the prompt.",
+      "should_trigger": true
+    },
+    {
+      "input": "Use this image as the first frame in Omni.",
+      "should_trigger": true
+    },
+    {
+      "input": "Write a short Omni edit prompt that changes only the jacket.",
+      "should_trigger": true
+    },
+    {
+      "input": "Write a Veo 3 extension prompt.",
+      "should_trigger": false
+    },
+    {
+      "input": "Turn this into a Seedance 2.0 prompt.",
+      "should_trigger": false
+    },
+    {
+      "input": "Create a Nano Banana still-image prompt.",
+      "should_trigger": false
+    },
+    {
+      "input": "Help me call Qwen Omni through Python.",
+      "should_trigger": false
+    },
+    {
+      "input": "Render the video and upload it.",
+      "should_trigger": false
+    }
+  ],
+  "prompt_cases": [
+    {
+      "id": "project_authoring_handles",
+      "input": "Compile this approved project scene: @mira crosses the platform while @ravi follows. Both are registered subjects; the runner will use Flow or Gemini API.",
+      "assertions": [
+        "preserves @mira and @ravi",
+        "does not emit FIRST_FRAME or IMAGE_REF tags",
+        "does not include Flow media IDs",
+        "does not include task or aspect-ratio request configuration"
+      ]
+    },
+    {
+      "id": "ambient_only_cat",
+      "input": "A cat watches rain at a window. It must not speak and there should be no music or cuts.",
+      "assertions": [
+        "targets ten seconds",
+        "uses one continuous shot",
+        "contains No scene cuts",
+        "defines natural ambience",
+        "contains No dialogue, No voiceover, and No music",
+        "does not claim a silent audio track"
+      ]
+    },
+    {
+      "id": "sole_speaker",
+      "input": "Two people sit at a table. Only Asha says 'We made it' in the middle; Ravi listens.",
+      "assertions": [
+        "identifies Asha as the only speaker",
+        "quotes the exact line",
+        "assigns a time window",
+        "describes Ravi as silent",
+        "contains No other voices"
+      ]
+    },
+    {
+      "id": "voiceover_not_character",
+      "input": "A child watches a TV while an off-screen narrator speaks. The child must not mouth any words.",
+      "assertions": [
+        "identifies the off-screen narrator as the sole speech source",
+        "prohibits character dialogue",
+        "keeps the child visibly silent",
+        "does not add intelligible television speech without exact wording"
+      ]
+    },
+    {
+      "id": "timed_product_sequence",
+      "input": "Create a three-shot ten-second luxury watch reveal with a stable final hero frame and no speech.",
+      "assertions": [
+        "uses non-overlapping ranges covering zero through ten seconds",
+        "makes cuts deliberate",
+        "does not contain No scene cuts",
+        "reserves a stable final product view",
+        "prohibits dialogue and voiceover"
+      ]
+    },
+    {
+      "id": "api_first_frame_and_reference",
+      "input": "For the Gemini API, Image1 is the exact starting frame and Image2 is only the cyclist identity reference.",
+      "assertions": [
+        "uses FIRST_FRAME for Image1",
+        "uses IMAGE_REF_0 for Image2",
+        "states both roles in natural language",
+        "does not use Flow-only asset syntax"
+      ]
+    },
+    {
+      "id": "visual_edit_preserve_audio",
+      "input": "In this Omni video, make only the red umbrella black. Keep the original dialogue.",
+      "assertions": [
+        "uses one surgical delta",
+        "protects original dialogue and audio",
+        "ends with Keep everything else the same",
+        "does not re-describe the scene"
+      ]
+    },
+    {
+      "id": "unsupported_api_voice_edit",
+      "input": "Through the Gemini Omni API, use this MP3 as a voice reference and replace the actor's current dialogue.",
+      "assertions": [
+        "returns a capability warning instead of a prompt",
+        "states that uploaded audio references and voice editing are unsupported in the current public API",
+        "offers only a verified surface or external-audio alternative"
+      ]
+    },
+    {
+      "id": "hindi_dialogue",
+      "input": "Asha should say exactly 'हम घर पहुँच गए।' in Hindi. Nobody else speaks.",
+      "assertions": [
+        "uses an English directing wrapper",
+        "identifies Hindi India",
+        "preserves the exact Devanagari line",
+        "prohibits English speech and other voices",
+        "does not promise language adherence"
+      ]
+    },
+    {
+      "id": "critical_text",
+      "input": "The sign must read exactly 'OPEN 24 HOURS'.",
+      "assertions": [
+        "quotes the exact sign text",
+        "keeps the text event simple",
+        "does not claim perfect spelling",
+        "mentions verification only if explanation is allowed"
+      ]
+    },
+    {
+      "id": "avatar_99_percent",
+      "input": "My Flow Omni Avatar generation dies at 99 percent even after I rewrite the prompt. Make the prompt more detailed.",
+      "assertions": [
+        "classifies the symptom as a likely platform or input failure",
+        "does not expand the prompt",
+        "suggests a verified input fallback or later retry",
+        "warns against repeated paid attempts"
+      ]
+    },
+    {
+      "id": "literal_silence",
+      "input": "I need a completely silent Omni clip with no audio stream.",
+      "assertions": [
+        "uses the best-effort full-silence prompt contract",
+        "explains that prompting cannot guarantee an absent audio stream",
+        "states that post-generation audio stripping is required"
+      ]
+    },
+    {
+      "id": "conflicting_prompt_repair",
+      "input": "Repair this: locked-off wide shot, then cut to a close-up, no scene cuts, total silence with loud birds.",
+      "assertions": [
+        "resolves locked-off versus cut architecture",
+        "resolves silence versus bird ambience",
+        "does not preserve the contradictions"
+      ]
+    }
+  ]
+}

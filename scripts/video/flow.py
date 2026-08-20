@@ -10,13 +10,26 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
 
 try:
-    from .base import BaseProvider, CreditError, ProviderUnavailableError, VideoError
+    from .base import (
+        BaseProvider,
+        CompiledScene,
+        CreditError,
+        ProviderUnavailableError,
+        VideoError,
+    )
 except ImportError:
-    from base import BaseProvider, CreditError, ProviderUnavailableError, VideoError  # type: ignore
+    from base import (  # type: ignore
+        BaseProvider,
+        CompiledScene,
+        CreditError,
+        ProviderUnavailableError,
+        VideoError,
+    )
 
 
 DEFAULT_HOST = "127.0.0.1:8001"
@@ -36,6 +49,58 @@ VIDEO_MODEL_MAP = {
     "veo": "veo_2",
     "veo_2": "veo_2",
 }
+
+
+@dataclass(frozen=True)
+class FlowSceneInput:
+    """Provider-native inputs derived from one compiled project scene."""
+
+    prompt: str
+    images: Sequence[Path]
+    start_frame: Path | None
+
+
+def requires_google_fallback(
+    compiled: CompiledScene,
+    first_frame: Path | None,
+) -> bool:
+    """Return whether Flow would have to discard required references."""
+    return first_frame is not None and len(compiled.images) > 1
+
+
+def prepare_scene_input(
+    compiled: CompiledScene,
+    first_frame: Path | None,
+) -> FlowSceneInput:
+    """Serialize a compiled scene for the Flow endpoint without changing its source prompt."""
+    prompt = compiled.annotated_prompt or compiled.raw_prompt
+    if not prompt.strip():
+        raise VideoError("Compiled Flow scene has no authoring prompt")
+
+    if first_frame is not None:
+        if requires_google_fallback(compiled, first_frame):
+            raise VideoError(
+                "Flow cannot combine the literal start frame with the scene's "
+                "required references; route this scene through Google"
+            )
+        return FlowSceneInput(
+            prompt="Use the supplied start image as the exact first frame. " + prompt,
+            images=(),
+            start_frame=first_frame,
+        )
+
+    if compiled.handle_order:
+        bindings = "\n".join(
+            f"- Reference image {index} depicts {handle}."
+            for index, handle in enumerate(compiled.handle_order, 1)
+        )
+        prompt = f"REFERENCE IMAGE BINDINGS:\n{bindings}\n\n{prompt}"
+
+    return FlowSceneInput(
+        prompt=prompt,
+        images=tuple(compiled.images),
+        start_frame=None,
+    )
 
 
 def _base_url(host: str) -> str:
@@ -235,6 +300,25 @@ class FlowProvider(BaseProvider):
         poll_timeout: int = 300,
         **kwargs: Any,
     ) -> int:
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise VideoError("Flow requires a non-empty prompt")
+        if duration not in CREDIT_COSTS:
+            raise VideoError(
+                f"Flow duration must be one of {sorted(CREDIT_COSTS)} seconds; received {duration}"
+            )
+        if len(images) > 10:
+            raise VideoError("Flow accepts at most 10 reference images")
+        if end_frame is not None and start_frame is None:
+            raise VideoError("A Flow end frame requires a start frame")
+        if start_frame is not None and images:
+            raise VideoError(
+                "Flow cannot combine a literal start frame with reference images in one request"
+            )
+        if end_frame is not None and images:
+            raise VideoError(
+                "Flow cannot combine first/last-frame generation with reference images"
+            )
+
         self.preflight()
         self.check_credits(duration=duration, count=1)
 
@@ -246,11 +330,12 @@ class FlowProvider(BaseProvider):
         ref_ids: list[str] = []
         has_fresh_uploads = False
 
-        # If image_to_video or first image is provided as start frame
+        # Keep legacy direct calls deterministic: image_to_video treats its sole
+        # image as the start frame. Story generation passes start_frame explicitly.
         if start_frame is not None:
             start_media_id, fresh = upload_media_file(self.base, start_frame, "start frame")
             has_fresh_uploads = has_fresh_uploads or fresh
-        elif task and "first_frame" in task and images:
+        elif task == "image_to_video" and images:
             start_media_id, fresh = upload_media_file(self.base, images[0], "start frame")
             has_fresh_uploads = has_fresh_uploads or fresh
             images = images[1:]

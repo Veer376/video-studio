@@ -208,21 +208,27 @@ def compile_scene(
     if unknown:
         raise ConfigError(f"Scene {scene_id} uses unknown handles: {sorted(unknown)}")
 
-    # Sort handles in order of appearance in prompt
-    handle_order = sorted(subjects, key=prompt.index)
+    # Preserve exact handle-token order from the prompt. Using str.index/replace
+    # would corrupt prefixed handles such as @hero and @hero-alt.
+    handle_order = list(dict.fromkeys(HANDLE_PATTERN.findall(prompt)))
+    token_by_handle = {
+        handle: f"<IMAGE_REF_{index}>"
+        for index, handle in enumerate(handle_order)
+    }
     images: list[Path] = []
     declarations: list[str] = []
     next_image_number = 1
 
     # Annotated prompt with profiles for inspection
-    annotated_prompt = raw_prompt
-    for handle in handle_order:
+    def annotate_handle(match: re.Match[str]) -> str:
+        handle = match.group(0)
         char_entry = characters[handle]
-        profile = getattr(char_entry, "profile", None) or (char_entry.get("profile") if isinstance(char_entry, dict) else "")
-        if profile:
-            annotated_prompt = annotated_prompt.replace(
-                handle, f"{handle} ({profile})"
-            )
+        profile = getattr(char_entry, "profile", None) or (
+            char_entry.get("profile") if isinstance(char_entry, dict) else ""
+        )
+        return f"{handle} ({profile})" if profile else handle
+
+    annotated_prompt = HANDLE_PATTERN.sub(annotate_handle, raw_prompt)
 
     if first_frame is not None:
         if not first_frame.is_file():
@@ -234,8 +240,7 @@ def compile_scene(
             prompt = f"<FIRST_FRAME> {prompt}"
 
     for reference_index, handle in enumerate(handle_order):
-        token = f"<IMAGE_REF_{reference_index}>"
-        prompt = prompt.replace(handle, token)
+        token = token_by_handle[handle]
         char_entry = characters[handle]
         ref_path = getattr(char_entry, "resolved_reference_path", None) or (char_entry.get("resolved_reference_path") if isinstance(char_entry, dict) else None)
         if not isinstance(ref_path, Path):
@@ -245,6 +250,10 @@ def compile_scene(
         images.append(ref_path)
         declarations.append(f"[# References {token}@Image{next_image_number}]")
         next_image_number += 1
+
+    prompt = HANDLE_PATTERN.sub(
+        lambda match: token_by_handle[match.group(0)], prompt
+    )
 
     reference_images = scene.get("reference_images", [])
     if not isinstance(reference_images, list):
@@ -291,8 +300,13 @@ def compile_scene(
     )
 
 
-def format_character_brief(handles: Sequence[str], characters: dict[str, CharacterEntry]) -> str:
-    """Format character profiles and relational descriptions into a clean brief block."""
+def format_character_brief(
+    handles: Sequence[str],
+    characters: dict[str, CharacterEntry],
+    *,
+    include_description: bool = False,
+) -> str:
+    """Format model-facing profiles, optionally with narrative context."""
     if not handles:
         return ""
     lines = ["CHARACTER MORPHOLOGY & PROFILES:"]
@@ -303,7 +317,7 @@ def format_character_brief(handles: Sequence[str], characters: dict[str, Charact
             lines.append(f"- {token} ({handle}, {c.name}):")
             if c.profile:
                 lines.append(f"  {c.profile}")
-            if c.description and c.description != c.profile:
+            if include_description and c.description and c.description != c.profile:
                 lines.append(f"  {c.description}")
         else:
             lines.append(f"- {token} ({handle}): [Unregistered character]")

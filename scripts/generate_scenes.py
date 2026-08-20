@@ -6,11 +6,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import shutil
 import subprocess
 import tempfile
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -28,12 +26,8 @@ try:
     )
     from .video import (
         BaseProvider,
-        CharacterEntry,
-        CompiledScene,
         ConfigError,
-        HANDLE_PATTERN,
         PROJECT_ROOT,
-        VideoError,
         compile_scene,
         generate_video,
         get_provider,
@@ -42,6 +36,7 @@ try:
         resolve_characters_path,
         resolve_path,
     )
+    from .video.flow import prepare_scene_input, requires_google_fallback
     from .video.google import create_client
 except ImportError:  # Direct execution: python3 scripts/generate_scenes.py
     from review_contract import (
@@ -57,12 +52,8 @@ except ImportError:  # Direct execution: python3 scripts/generate_scenes.py
     )
     from video import (
         BaseProvider,
-        CharacterEntry,
-        CompiledScene,
         ConfigError,
-        HANDLE_PATTERN,
         PROJECT_ROOT,
-        VideoError,
         compile_scene,
         generate_video,
         get_provider,
@@ -71,6 +62,7 @@ except ImportError:  # Direct execution: python3 scripts/generate_scenes.py
         resolve_characters_path,
         resolve_path,
     )
+    from video.flow import prepare_scene_input, requires_google_fallback
     from video.google import create_client
 
 
@@ -105,7 +97,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--regenerate",
         action="store_true",
-        help="Generate even when a canonical video or this attempt candidate exists",
+        help="Generate even when a canonical video exists; attempt candidates remain immutable",
     )
     parser.add_argument(
         "--attempt",
@@ -137,51 +129,6 @@ def parse_args() -> argparse.Namespace:
         help="Flow agent server host:port (default: 127.0.0.1:8001)",
     )
     return parser.parse_args()
-
-
-def load_json(path: Path) -> dict[str, Any]:
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError as exc:
-        raise ConfigError(f"Configuration file does not exist: {path}") from exc
-    except json.JSONDecodeError as exc:
-        raise ConfigError(f"Invalid JSON in {path}: {exc}") from exc
-    if not isinstance(data, dict):
-        raise ConfigError(f"Expected a JSON object in {path}")
-    return data
-
-
-def resolve_path(project_root: Path, configured_path: str) -> Path:
-    path = Path(configured_path)
-    return path if path.is_absolute() else project_root / path
-
-
-def load_characters(path: Path, project_root: Path) -> dict[str, dict[str, Any]]:
-    data = load_json(path)
-    entries = data.get("characters")
-    if not isinstance(entries, list):
-        raise ConfigError(f"{path} must contain a characters array")
-
-    characters: dict[str, dict[str, Any]] = {}
-    for entry in entries:
-        if not isinstance(entry, dict):
-            raise ConfigError(f"Every character in {path} must be an object")
-        handle = entry.get("handle")
-        reference_path = entry.get("reference_path")
-        if not isinstance(handle, str) or not HANDLE_PATTERN.fullmatch(handle):
-            raise ConfigError(f"Invalid character handle: {handle!r}")
-        if handle in characters:
-            raise ConfigError(f"Duplicate character handle: {handle}")
-        if not isinstance(reference_path, str) or not reference_path:
-            raise ConfigError(f"Character {handle} has no reference_path")
-
-        resolved_reference = resolve_path(project_root, reference_path)
-        if not resolved_reference.is_file():
-            raise ConfigError(
-                f"Reference image for {handle} does not exist: {resolved_reference}"
-            )
-        characters[handle] = {**entry, "resolved_reference_path": resolved_reference}
-    return characters
 
 
 def scene_output_path(scene: dict[str, Any], project_root: Path) -> Path:
@@ -273,89 +220,6 @@ def scene_first_frame_path(
             f"Curated first frame for scene {scene.get('id')!r} does not exist: {path}"
         )
     return path
-
-
-def compile_scene(
-    scene: dict[str, Any],
-    characters: dict[str, dict[str, Any]],
-    project_root: Path,
-    first_frame: Path | None = None,
-) -> CompiledScene:
-    scene_id = scene.get("id")
-    prompt = scene.get("prompt")
-    if not isinstance(prompt, str) or not prompt.strip():
-        raise ConfigError(f"Scene {scene_id} is waiting for a non-empty prompt")
-
-    subjects = scene.get("subjects", [])
-    if not isinstance(subjects, list) or not all(isinstance(item, str) for item in subjects):
-        raise ConfigError(f"Scene {scene_id} subjects must be an array of handles")
-    if len(subjects) != len(set(subjects)):
-        raise ConfigError(f"Scene {scene_id} contains duplicate subject handles")
-
-    prompt_handles = set(HANDLE_PATTERN.findall(prompt))
-    subject_handles = set(subjects)
-    missing_from_prompt = subject_handles - prompt_handles
-    missing_from_subjects = prompt_handles - subject_handles
-    if missing_from_prompt:
-        raise ConfigError(
-            f"Scene {scene_id} subjects absent from prompt: {sorted(missing_from_prompt)}"
-        )
-    if missing_from_subjects:
-        raise ConfigError(
-            f"Scene {scene_id} prompt handles absent from subjects: {sorted(missing_from_subjects)}"
-        )
-    unknown = subject_handles - set(characters)
-    if unknown:
-        raise ConfigError(f"Scene {scene_id} uses unknown handles: {sorted(unknown)}")
-
-    handle_order = sorted(subjects, key=prompt.index)
-    images: list[Path] = []
-    declarations: list[str] = []
-    next_image_number = 1
-
-    if first_frame is not None:
-        if not first_frame.is_file():
-            raise ConfigError(f"Continuity frame does not exist: {first_frame}")
-        images.append(first_frame)
-        declarations.append(f"[# Sources <FIRST_FRAME>@Image{next_image_number}]")
-        next_image_number += 1
-        if "<FIRST_FRAME>" not in prompt:
-            prompt = f"<FIRST_FRAME> {prompt}"
-
-    for reference_index, handle in enumerate(handle_order):
-        token = f"<IMAGE_REF_{reference_index}>"
-        prompt = prompt.replace(handle, token)
-        images.append(characters[handle]["resolved_reference_path"])
-        declarations.append(f"[# References {token}@Image{next_image_number}]")
-        next_image_number += 1
-
-    reference_images = scene.get("reference_images", [])
-    if not isinstance(reference_images, list):
-        raise ConfigError(f"Scene {scene_id} reference_images must be an array")
-    for item in reference_images:
-        if isinstance(item, str):
-            configured_path = item
-        elif isinstance(item, dict) and isinstance(item.get("path"), str):
-            configured_path = item["path"]
-        else:
-            raise ConfigError(
-                f"Scene {scene_id} reference_images entries must be paths or path objects"
-            )
-        path = resolve_path(project_root, configured_path)
-        if not path.is_file():
-            raise ConfigError(f"Scene {scene_id} reference image does not exist: {path}")
-        reference_index = len(images) - (1 if first_frame is not None else 0)
-        token = f"<IMAGE_REF_{reference_index}>"
-        images.append(path)
-        declarations.append(f"[# References {token}@Image{next_image_number}]")
-        next_image_number += 1
-
-    compiled_prompt = "\n".join([*declarations, prompt]) if declarations else prompt
-    if first_frame is not None and len(images) == 1:
-        task = "image_to_video"
-    else:
-        task = "reference_to_video" if images else "text_to_video"
-    return CompiledScene(compiled_prompt, images, task, handle_order)
 
 
 def verify_video(path: Path) -> None:
@@ -471,6 +335,8 @@ def run(args: argparse.Namespace) -> int:
     story_chars_path = resolve_characters_path(config_path, characters_file, project_root)
     characters = load_characters(story_chars_path, project_root)
 
+    provider = getattr(args, "provider", "google")
+    flow_host = getattr(args, "flow_host", "127.0.0.1:8001")
     client: Any = None
     provider_instance: BaseProvider | None = None
     generated_count = 0
@@ -531,25 +397,19 @@ def run(args: argparse.Namespace) -> int:
             print(f"WAIT {scene_id}: {exc}")
             continue
 
+        planned_provider = provider
+        if provider == "flow" and requires_google_fallback(
+            preflight, preflight_first_frame
+        ):
+            planned_provider = "google (Flow fallback: start frame + references)"
+
         print(
             f"PLAN {scene_id}: ATTEMPT {args.attempt} -> {attempt_path}, "
             f"{len(preflight.images)} image input(s), task={preflight.task}, "
-            f"handles={preflight.handle_order}"
+            f"handles={preflight.handle_order}, provider={planned_provider}"
         )
         if args.dry_run:
             continue
-
-        provider = getattr(args, "provider", "google")
-        flow_host = getattr(args, "flow_host", "127.0.0.1:8001")
-
-        if client is None and provider_instance is None:
-            if provider == "google":
-                client, backend_label = create_client(args.backend, args.gcp_project)
-                print(f"Using {backend_label}")
-            else:
-                provider_instance = get_provider("flow", host=flow_host)
-                provider_instance.preflight()
-                print(f"Using Google Flow ({flow_host})")
 
         attempt_path.parent.mkdir(parents=True, exist_ok=True)
         partial_path = attempt_path.with_suffix(".partial.mp4")
@@ -565,7 +425,23 @@ def run(args: argparse.Namespace) -> int:
                     scene, characters, project_root, first_frame=first_frame
                 )
                 scene_duration = scene.get("duration", config.get("duration", 10))
-                if provider == "google":
+                fallback_to_google = provider == "flow" and requires_google_fallback(
+                    compiled, first_frame
+                )
+                if fallback_to_google:
+                    reference_count = len(compiled.images) - 1
+                    print(
+                        f"ROUTE {scene_id}: Flow -> Google because the literal start "
+                        f"frame must be combined with {reference_count} required "
+                        "reference image(s)."
+                    )
+
+                if provider == "google" or fallback_to_google:
+                    if client is None:
+                        client, backend_label = create_client(
+                            args.backend, args.gcp_project
+                        )
+                        print(f"Using {backend_label}")
                     byte_count = generate_video(
                         client=client,
                         prompt=compiled.prompt,
@@ -577,14 +453,20 @@ def run(args: argparse.Namespace) -> int:
                         model=config.get("model", "gemini-omni-flash-preview"),
                     )
                 else:
+                    if provider_instance is None:
+                        provider_instance = get_provider("flow", host=flow_host)
+                        provider_instance.preflight()
+                        print(f"Using Google Flow ({flow_host})")
+                    flow_input = prepare_scene_input(compiled, first_frame)
                     byte_count = generate_video(
-                        prompt=compiled.raw_prompt,
+                        prompt=flow_input.prompt,
                         output=partial_path,
-                        images=compiled.images,
+                        images=flow_input.images,
                         task=compiled.task,
                         aspect_ratio=config.get("aspect_ratio", "16:9"),
                         duration=scene_duration,
                         model=config.get("model", "gemini-omni-flash-preview"),
+                        start_frame=flow_input.start_frame,
                         provider_instance=provider_instance,
                     )
             verify_video(partial_path)

@@ -28,14 +28,15 @@ In autonomous execution, advance through the sequential scene pipeline to comple
 ## Phase routing
 
 - For story design or revision, read [references/story-planning.md](references/story-planning.md).
+- When a required recurring character is missing or incomplete, read [references/character-readiness.md](references/character-readiness.md).
 - For an approved clip or part, read [references/scene-production.md](references/scene-production.md).
 - After every generated or replaced clip, read [references/clip-review.md](references/clip-review.md).
 - Render with the project renderer only after the requested canonical clips exist and have been reviewed.
 
 ## Hard boundaries
 
-- Invoke `omni-flash-prompt-writer` independently for every Omni prompt, revision, or prompt diagnosis. Do not reproduce or guess its model rules.
-- `story.md` owns story intent. `scenes.json` owns final authoring prompts. The project-root `characters.json` owns recurring-character identity (profile and description); the story-level `characters.json` owns story-specific characters and reference paths.
+- Invoke `compile-omni-scene` independently for every Omni prompt, revision, or prompt diagnosis. Do not reproduce or guess its model rules.
+- `story.md` owns story intent. `scenes.json` owns final authoring prompts. The project-root `characters.json` owns reusable characters; the story-level `characters.json` owns story-specific characters and overrides.
 - Before drafting or revising any part, reread the selected `story.md` creative contract and story-writing instructions.
 - Use project-relative paths. Reuse project-level assets; do not copy them into every story.
 - Preserve every generation as an attempt candidate under `temp/partial/`. Promote exactly one reviewed selected attempt to the canonical scene path; never generate or retry directly over a canonical clip.

@@ -16,7 +16,7 @@ idea or script
     → final render and publishing assets
 ```
 
-Gemini Omni Flash prompt creation is delegated to the shared `omni-flash-prompt-writer` skill. The project-local `produce-story` skill coordinates planning, generation, review, repair, and rendering without duplicating model-specific prompting rules.
+Gemini Omni Flash prompt creation is delegated to the project-local `compile-omni-scene` skill. It preserves one provider-neutral authoring prompt while the Flow and Gemini API adapters apply their own request configuration. The `produce-story` skill coordinates planning, generation, review, repair, and rendering without duplicating model-specific prompting rules.
 
 ## Project structure
 
@@ -64,6 +64,7 @@ The core sources of truth are:
 ## Main tools
 
 - `produce-story`: runs the story-production workflow at whole-story, part, or clip scope.
+- `compile-omni-scene`: translates approved scene direction into an Omni authoring prompt and validates provider capability.
 - `create-prompt`: clarifies and saves one standalone prompt without executing it.
 - `scripts/generate_scenes.py`: generates candidates and promotes reviewed selections.
 - `scripts/render_video.py`: joins canonical scene clips into a final video.

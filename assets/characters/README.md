@@ -67,36 +67,11 @@ Every canonical character reference image must be generated as a **4-Panel Multi
 ## 4. Registry Integration
 
 Once a character sheet is created and validated:
-1. Save image to `assets/characters/<character_name>.<ext>`.
-2. Register the `@handle`, `name`, `profile`, `description`, and `reference_path` in `characters.json`.
+1. Follow `.agents/skills/produce-story/references/character-readiness.md` to choose project-level or story-level ownership.
+2. Register the approved canonical image and complete character entry in the owning registry.
 
 ---
 
-## 5. Character Profiling & The "Non-Standard Subject Grounding" Rule
+## 5. Character Profiles
 
-When defining the `profile` and `description` in `characters.json`, apply Google’s canonical **Non-Standard Subject Grounding** rule (`omni-flash-prompt-writer/SKILL.md`):
-
-> *"For standard subjects, Omni's world knowledge is sufficient. For non-standard subjects — custom anatomy, non-human character designs, or creatures with unusual structure — state the structural facts that world knowledge cannot supply."*
-
-### Standard vs. Non-Standard Characters:
-
-| Character Type | Examples | Profiling Strategy |
-| :--- | :--- | :--- |
-| **Standard Subject** | Normal humans (`@motu`), real-world objects, regular vehicles | **Minimal Profile**: World knowledge handles the anatomy. Only specify age, build, hair style chunk, and signature clothing. |
-| **Non-Standard / Hybrid Subject** | Anthropomorphic produce (`@aloo`, `@tamatar`, `@baingan`), fantasy creatures (`@dragon`) | **Strict Structural Morphology Lock**: World knowledge will hallucinate human features if human clothes/props are present. You **MUST** define explicit structural facts and anti-human negative locks. |
-
-### Mandatory Profile Checklist for Non-Standard Characters:
-
-1. **Head Geometry & Skin Material**:
-   - Explicitly define what the head physically IS (e.g. *"Head IS a large, perfectly round, glossy spherical red tomato with a green leaf calyx stem on top"*).
-2. **Negative Anti-Human Locks**:
-   - Explicitly forbid human morphology that diffusion priors tend to hallucinate (e.g. *"Zero human hair, no human skull, cartoon eyes and lips are painted directly onto the shiny tomato skin"*).
-3. **Body Proportions & Silhouette**:
-   - Define body type (e.g. *"Chubby 2.5-heads-tall potato torso"*, *"Petite stylized mannequin body"*).
-4. **Signature Wardrobe Locks**:
-   - State exact fabrics, trims, and colors (e.g. *"Pastel-pink tailored cropped blazer over white top, matching pink pleated mini-skirt, white ankle boots"*).
-5. **Fixed Signature Props**:
-   - Lock handheld props so they do not mutate between cuts (e.g. *"Glowing pink LED ring-light selfie stick streaming live"*).
-
-### Why This is Critical:
-When Gemini Omni Flash evaluates `[# References <IMAGE_REF_N>@ImageN]`, simply referencing `<IMAGE_REF_N>` without structural words leaves the model to guess from pixel embeddings. Pairing the image reference with an explicit **Morphology & Wardrobe Profile** forces the model's cross-attention layers to bind the turnaround image directly to the non-human rules, completely preventing human face hallucination and character drift.
+This file owns the visual reference-sheet standard. Character registry semantics are owned by `.agents/skills/produce-story/references/character-readiness.md` so visual guidance and model-facing profile guidance do not diverge.

@@ -106,10 +106,12 @@ Character identity is split across two files:
   "handle": "@name",
   "name": "Display Name",
   "reference_path": "assets/characters/name.png",
-  "profile": "Age, height reference, voice reference, 3-4 behavior traits (no clothing/head details as they exist in reference image)",
-  "description": "Relational context: who this character is, how they relate to others, their role and motivation"
+  "profile": "Concise, stable model-facing identity and performance grounding",
+  "description": "Concise narrative role, relationships, and motivation"
 }
 ```
+
+Follow [character-readiness.md](character-readiness.md) when authoring or validating these fields.
 
 **Story registry** (`stories/<slug>/characters.json`) — story-specific characters only. Uses the same full schema. For stories where all characters are global, this file holds an empty array:
 

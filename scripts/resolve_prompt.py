@@ -113,7 +113,7 @@ def main() -> None:
 
         if args.format in {"brief", "all"}:
             print("\n[SUBAGENT BRIEF - CHARACTER PROFILES]:")
-            print(format_character_brief(subjects, characters))
+            print(format_character_brief(subjects, characters, include_description=True))
 
     print(f"\n{'='*70}\n")
 
