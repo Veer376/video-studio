@@ -111,11 +111,6 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Restore an archived video as the active scene for fresh review",
     )
-    parser.add_argument(
-        "--backend",
-        choices=("auto", "vertex", "developer"),
-        default="auto",
-    )
     parser.add_argument("--gcp-project", default=None)
     parser.add_argument(
         "--provider",
@@ -587,7 +582,7 @@ def run(args: argparse.Namespace) -> int:
                 if provider == "google" or fallback_to_google:
                     if client is None:
                         client, backend_label = create_client(
-                            args.backend, args.gcp_project
+                            gcp_project=args.gcp_project
                         )
                         print(f"Using {backend_label}")
                     byte_count = generate_video(
