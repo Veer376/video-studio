@@ -42,6 +42,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Final MP4 path (default: <story>/output/final-video.mp4)",
     )
+    parser.add_argument(
+        "--watermark-image",
+        type=Path,
+        default=None,
+        help="Optional channel logo / badge image path to mask AI watermark on the final render",
+    )
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -170,7 +176,22 @@ def render(args: argparse.Namespace) -> None:
             "-ar", "48000", "-ac", "2", "-movflags", "+faststart", str(partial),
         ])
         media_info(partial)
-        partial.replace(output)
+        if args.watermark_image:
+            wm_img_path = (
+                args.watermark_image
+                if args.watermark_image.is_absolute()
+                else PROJECT_ROOT / args.watermark_image
+            )
+            from apply_watermark import apply_watermark
+            wm_partial = temp / "final.watermarked.mp4"
+            apply_watermark(
+                input_video=partial,
+                output_video=wm_partial,
+                image_path=wm_img_path,
+            )
+            wm_partial.replace(output)
+        else:
+            partial.replace(output)
     print(f"Rendered {output}")
 
 

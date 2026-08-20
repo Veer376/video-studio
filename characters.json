@@ -11,8 +11,22 @@
       "handle": "@motu",
       "name": "Motu",
       "reference_path": "assets/characters/motu.png",
-      "profile": "Age: 11-year-old child; Height: stocky chubby child build, slightly taller than Chhotu, chest-height to an adult; Voice: playful, punchy boy's voice with slow rolling rustic Hindi delivery; Behavior: fiercely loyal, strong kid mechanic, protective best friend, earthy humor",
-      "description": "Kid mechanic and Chhotu's loyal best friend; dependable muscle, playful companion, and comic relief"
+      "profile": "Age: 10-year-old child; Height: stocky chubby child build, chest-height to an adult; Voice: playful, punchy boy's voice with slow rolling rustic Hindi delivery; Behavior: fiercely loyal, strong kid mechanic, protective best friend, earthy humor",
+      "description": "Kid mechanic and Chhotu's loyal best friend; wears saffron headwrap, turquoise khadi vest over marigold kurta, and carries a brass spanner with lucky nimbu-mirchi charm; dependable muscle, playful companion, and comic relief"
+    },
+    {
+      "handle": "@cheeku",
+      "name": "Cheeku",
+      "reference_path": "assets/characters/cheeku.png",
+      "profile": "Age: Juvenile dragon (equivalent to a playful 6-year-old child); Height: pony-sized quad-pedal dragon, back reaches adult waist-height, large enough to seat two children; Voice: cheerful melodic chirps, playful trills, friendly purrs, and energetic spark-roars (no human speech); Behavior: fiercely loyal, playful, curious, protective of Chhotu and Motu, loves flying stunts and snacking on crispy roasted chickpeas",
+      "description": "Majestic yet adorable juvenile flying spark-dragon mount; Chhotu and Motu's loyal flying companion and aerial rescue partner; breathes harmless cyan nitro sparks that turbo-boost the tractor engine; equipped with a rustic double leather riding saddle"
+    },
+    {
+      "handle": "@tractor",
+      "name": "Lal Bahadur",
+      "reference_path": "assets/characters/lal_bahadur.png",
+      "profile": "Model: 1978 Swaraj-style Indian farm tractor modified for rocket flight; Body: chipped cherry-red enamel with subtle patina; Features: giant notched black rear tires with sunflower-yellow rims, vertical chrome exhaust stack, glowing round brass headlights, fresh orange marigold flower garland draped across radiator grill, side-mounted polished copper tubes, brass pressure cooker booster valve, and rear Diwali rocket launcher cluster",
+      "description": "Grandfather's heroic red tractor and the crew's trusty land-and-space vehicle; powered by mustard oil and 108 Diwali rocket boosters; durable, roaring, and beloved family machine"
     },
     {
       "handle": "@aloo",
@@ -62,6 +76,27 @@
       "reference_path": "assets/characters/jadui_bargad.png",
       "profile": "Age: 500-year-old tree elder; Height: colossal stationary banyan tree; Voice: deep, resonant ancient booming voice echoing like wind; Behavior: mystical, patient, all-knowing, solemn folkloric guide",
       "description": "Village's ancient mystical oracle; keeper of the Sharad Purnima legend; stationary at the village square"
+    },
+    {
+      "handle": "@helena",
+      "name": "Princess Helena",
+      "reference_path": "assets/characters/helena.png",
+      "profile": "Age: 20-year-old young Greek princess; Height: adult female standing height; Voice: soft, trembling, emotionally vulnerable yet noble alto with melancholic grace; Behavior: deeply affectionate, sorrowful, dignified, torn by the brutal demands of royal politics",
+      "description": "Daughter of Seleucus I Nicator and queen-consort of Magadha; deeply in love with Chandragupta Maurya; her tearful question on love vs stone-hearted imperial duty sparks Chanakya's philosophical intervention"
+    },
+    {
+      "handle": "@chandragupta",
+      "name": "Chandragupta Maurya",
+      "reference_path": "assets/characters/chandragupta.png",
+      "profile": "Age: 22-year-old young adult emperor; Height: tall athletic warrior build; Voice: deep, conflicted baritone that hardens into commanding imperial authority; Behavior: fierce warrior, passionate leader, internally torn between romantic love and his sworn duty to unite Bharatvarsh",
+      "description": "Founding Emperor of the Maurya Dynasty; Chanakya's foremost disciple; must conquer his own emotional attachments to fulfill his destiny as the supreme ruler of Akhand Bharat"
+    },
+    {
+      "handle": "@chanakya",
+      "name": "Acharya Chanakya",
+      "reference_path": "assets/characters/chanakya.png",
+      "profile": "Age: 50-year-old elder master scholar and strategist; Height: lean ascetic standing height; Voice: deep, resonant, icy, commanding gravelly baritone with absolute Sanskritized conviction; Behavior: uncompromising, calculating, emotionally detached, immovable protector of Bharatvarsh",
+      "description": "Master political philosopher, kingmaker, and architect of the Mauryan Empire; prime mentor to Chandragupta; embodies the brutal psychological truth that ultimate greatness requires the sacrifice of personal desire"
     }
   ]
 }

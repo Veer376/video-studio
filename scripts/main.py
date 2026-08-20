@@ -33,6 +33,17 @@ def parse_args() -> argparse.Namespace:
         help="Input video for an edit; repeat only when the model supports multiple videos",
     )
     parser.add_argument("--task", choices=TASKS, default=None)
+    parser.add_argument(
+        "--provider",
+        choices=("google", "flow"),
+        default="google",
+        help="Generation provider: google or flow (default: google)",
+    )
+    parser.add_argument(
+        "--flow-host",
+        default="127.0.0.1:8001",
+        help="Flow agent server host:port (default: 127.0.0.1:8001)",
+    )
     parser.add_argument("--aspect-ratio", choices=("16:9", "9:16"), default="16:9")
     parser.add_argument(
         "--backend",
@@ -162,17 +173,33 @@ def generate_video(
 
 def main() -> None:
     args = parse_args()
-    client, backend_label = create_client(args.backend, args.gcp_project)
-    print(f"Using {backend_label}")
-    byte_count = generate_video(
-        client=client,
-        prompt=args.prompt,
-        output=args.output,
-        images=args.image,
-        videos=args.video,
-        task=args.task,
-        aspect_ratio=args.aspect_ratio,
-    )
+    if args.provider == "flow":
+        try:
+            from .video.flow import FlowProvider
+        except ImportError:
+            from video.flow import FlowProvider
+        provider = FlowProvider(host=args.flow_host)
+        provider.preflight()
+        byte_count = provider.generate_video(
+            prompt=args.prompt,
+            output=args.output,
+            images=args.image,
+            videos=args.video,
+            task=args.task,
+            aspect_ratio=args.aspect_ratio,
+        )
+    else:
+        client, backend_label = create_client(args.backend, args.gcp_project)
+        print(f"Using {backend_label}")
+        byte_count = generate_video(
+            client=client,
+            prompt=args.prompt,
+            output=args.output,
+            images=args.image,
+            videos=args.video,
+            task=args.task,
+            aspect_ratio=args.aspect_ratio,
+        )
     print(f"Saved {byte_count:,} bytes to {args.output}")
 
 

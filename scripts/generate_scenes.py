@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from .main import create_client, generate_video
     from .review_contract import (
         MAX_ATTEMPTS,
         ReviewContractError,
@@ -26,8 +25,24 @@ try:
         validate_review,
         write_review_atomic,
     )
+    from .video import (
+        BaseProvider,
+        CharacterEntry,
+        CompiledScene,
+        ConfigError,
+        HANDLE_PATTERN,
+        PROJECT_ROOT,
+        VideoError,
+        compile_scene,
+        generate_video,
+        get_provider,
+        load_characters,
+        load_json,
+        resolve_characters_path,
+        resolve_path,
+    )
+    from .video.google import create_client
 except ImportError:  # Direct execution: python3 scripts/generate_scenes.py
-    from main import create_client, generate_video
     from review_contract import (
         MAX_ATTEMPTS,
         ReviewContractError,
@@ -39,23 +54,26 @@ except ImportError:  # Direct execution: python3 scripts/generate_scenes.py
         validate_review,
         write_review_atomic,
     )
+    from video import (
+        BaseProvider,
+        CharacterEntry,
+        CompiledScene,
+        ConfigError,
+        HANDLE_PATTERN,
+        PROJECT_ROOT,
+        VideoError,
+        compile_scene,
+        generate_video,
+        get_provider,
+        load_characters,
+        load_json,
+        resolve_characters_path,
+        resolve_path,
+    )
+    from video.google import create_client
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = PROJECT_ROOT / "stories" / "aloo-flood-rescue" / "scenes.json"
-HANDLE_PATTERN = re.compile(r"(?<![A-Za-z0-9_])@[A-Za-z][A-Za-z0-9_-]*")
-
-
-class ConfigError(ValueError):
-    """Raised when project JSON cannot be compiled safely."""
-
-
-@dataclass(frozen=True)
-class CompiledScene:
-    prompt: str
-    images: list[Path]
-    task: str
-    handle_order: list[str]
 
 
 def parse_args() -> argparse.Namespace:
@@ -106,6 +124,17 @@ def parse_args() -> argparse.Namespace:
         default="auto",
     )
     parser.add_argument("--gcp-project", default=None)
+    parser.add_argument(
+        "--provider",
+        choices=("google", "flow"),
+        default="google",
+        help="Video generation provider: google or flow (default: google)",
+    )
+    parser.add_argument(
+        "--flow-host",
+        default="127.0.0.1:8001",
+        help="Flow agent server host:port (default: 127.0.0.1:8001)",
+    )
     return parser.parse_args()
 
 
@@ -438,9 +467,11 @@ def run(args: argparse.Namespace) -> int:
     characters_file = config.get("characters_file", "characters.json")
     if not isinstance(characters_file, str):
         raise ConfigError("characters_file must be a path string")
-    characters = load_characters(resolve_path(project_root, characters_file), project_root)
+    story_chars_path = resolve_characters_path(config_path, characters_file, project_root)
+    characters = load_characters(story_chars_path, project_root)
 
-    client = None
+    client: Any = None
+    provider_instance: BaseProvider | None = None
     generated_count = 0
     for scene in selected_scenes:
 
@@ -507,9 +538,17 @@ def run(args: argparse.Namespace) -> int:
         if args.dry_run:
             continue
 
-        if client is None:
-            client, backend_label = create_client(args.backend, args.gcp_project)
-            print(f"Using {backend_label}")
+        provider = getattr(args, "provider", "google")
+        flow_host = getattr(args, "flow_host", "127.0.0.1:8001")
+
+        if client is None and provider_instance is None:
+            if provider == "google":
+                client, backend_label = create_client(args.backend, args.gcp_project)
+                print(f"Using {backend_label}")
+            else:
+                provider_instance = get_provider("flow", host=flow_host)
+                provider_instance.preflight()
+                print(f"Using Google Flow ({flow_host})")
 
         attempt_path.parent.mkdir(parents=True, exist_ok=True)
         partial_path = attempt_path.with_suffix(".partial.mp4")
@@ -524,15 +563,29 @@ def run(args: argparse.Namespace) -> int:
                 compiled = compile_scene(
                     scene, characters, project_root, first_frame=first_frame
                 )
-                byte_count = generate_video(
-                    client=client,
-                    prompt=compiled.prompt,
-                    output=partial_path,
-                    images=compiled.images,
-                    task=compiled.task,
-                    aspect_ratio=config.get("aspect_ratio", "16:9"),
-                    model=config.get("model", "gemini-omni-flash-preview"),
-                )
+                scene_duration = scene.get("duration", config.get("duration", 10))
+                if provider == "google":
+                    byte_count = generate_video(
+                        client=client,
+                        prompt=compiled.prompt,
+                        output=partial_path,
+                        images=compiled.images,
+                        task=compiled.task,
+                        aspect_ratio=config.get("aspect_ratio", "16:9"),
+                        duration=scene_duration,
+                        model=config.get("model", "gemini-omni-flash-preview"),
+                    )
+                else:
+                    byte_count = generate_video(
+                        prompt=compiled.raw_prompt,
+                        output=partial_path,
+                        images=compiled.images,
+                        task=compiled.task,
+                        aspect_ratio=config.get("aspect_ratio", "16:9"),
+                        duration=scene_duration,
+                        model=config.get("model", "gemini-omni-flash-preview"),
+                        provider_instance=provider_instance,
+                    )
             verify_video(partial_path)
             os.replace(partial_path, attempt_path)
         except Exception as exc:
