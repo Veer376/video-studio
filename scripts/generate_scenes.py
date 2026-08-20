@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate reviewed Omni Flash attempt candidates and promote selected attempts."""
+"""Generate active scene videos and archive rejected versions beside them."""
 
 from __future__ import annotations
 
@@ -14,12 +14,15 @@ from typing import Any
 
 try:
     from .review_contract import (
-        MAX_ATTEMPTS,
+        MAX_GENERATIONS,
         ReviewContractError,
-        attempt_path,
+        active_contact_sheet_path,
+        archived_path,
+        begin_active_review,
+        load_review,
         project_relative,
         review_path,
-        sha256_file,
+        validate_active_bytes,
         validate_canonical_binding,
         validate_review,
         write_review_atomic,
@@ -40,12 +43,15 @@ try:
     from .video.google import create_client
 except ImportError:  # Direct execution: python3 scripts/generate_scenes.py
     from review_contract import (
-        MAX_ATTEMPTS,
+        MAX_GENERATIONS,
         ReviewContractError,
-        attempt_path,
+        active_contact_sheet_path,
+        archived_path,
+        begin_active_review,
+        load_review,
         project_relative,
         review_path,
-        sha256_file,
+        validate_active_bytes,
         validate_canonical_binding,
         validate_review,
         write_review_atomic,
@@ -97,19 +103,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--regenerate",
         action="store_true",
-        help="Generate even when a canonical video exists; attempt candidates remain immutable",
+        help="Archive the reviewed active video and generate its replacement",
     )
     parser.add_argument(
-        "--attempt",
-        type=int,
-        default=1,
-        help=f"Attempt number from 1 to {MAX_ATTEMPTS} (default: 1)",
-    )
-    parser.add_argument(
-        "--promote-attempt",
-        type=int,
+        "--restore",
+        choices=("a1", "a2"),
         default=None,
-        help="Promote this reviewed attempt to the canonical scene path",
+        help="Restore an archived video as the active scene for fresh review",
     )
     parser.add_argument(
         "--backend",
@@ -138,70 +138,159 @@ def scene_output_path(scene: dict[str, Any], project_root: Path) -> Path:
     return resolve_path(project_root, configured)
 
 
-def scene_attempt_path(config_path: Path, scene_id: str, attempt: int) -> Path:
-    try:
-        return attempt_path(config_path, scene_id, attempt)
-    except ReviewContractError as exc:
-        raise ConfigError(str(exc)) from exc
+def existing_archive_numbers(active: Path) -> list[int]:
+    return [
+        number
+        for number in range(1, MAX_GENERATIONS + 1)
+        if archived_path(active, number).is_file()
+    ]
 
 
-def validate_promotion_review(
-    config_path: Path,
-    scene_id: str,
-    attempt: int,
-    project_root: Path = PROJECT_ROOT,
+def review_snapshot(
+    review: dict[str, Any],
+    archived_video: Path,
+    archived_sheet: Path | None,
+    project_root: Path,
 ) -> dict[str, Any]:
-    try:
-        review, selected_candidate = validate_review(
-            config_path, scene_id, project_root
+    if "attempts" in review:
+        selected = review["selected_attempt"]
+        item = review["attempts"][selected - 1]
+        return {
+            "video_path": project_relative(archived_video, project_root),
+            "video_sha256": review.get("canonical_sha256"),
+            "contact_sheet_path": item.get("contact_sheet_path"),
+            "media_valid": item.get("media_valid"),
+            "decision": review.get("decision"),
+            "findings": item.get("findings", []),
+            "diagnosis": item.get("diagnosis"),
+            "repair_applied": item.get("repair_applied"),
+        }
+    snapshot = {
+        key: review.get(key)
+        for key in (
+            "video_path",
+            "video_sha256",
+            "contact_sheet_path",
+            "media_valid",
+            "decision",
+            "findings",
+            "diagnosis",
+            "repair_applied",
         )
-    except ReviewContractError as exc:
-        raise ConfigError(str(exc)) from exc
-    if review["selected_attempt"] != attempt:
-        raise ConfigError(
-            f"Review for {scene_id} selects attempt "
-            f"{review['selected_attempt']!r}, not {attempt}"
+    }
+    snapshot["video_path"] = project_relative(archived_video, project_root)
+    if archived_sheet is not None:
+        snapshot["contact_sheet_path"] = project_relative(
+            archived_sheet, project_root
         )
-    if selected_candidate != scene_attempt_path(config_path, scene_id, attempt):
-        raise ConfigError(f"Review for {scene_id} selects a mismatched candidate")
-    return review
+    return snapshot
 
 
-def promote_attempt(
+def archive_active_video(
     config_path: Path,
     scene: dict[str, Any],
-    attempt: int,
+    project_root: Path,
+) -> tuple[int, Path, list[dict[str, Any]]]:
+    scene_id = scene["id"]
+    active = scene_output_path(scene, project_root)
+    review = load_review(config_path, scene_id)
+    validate_active_bytes(review, active, project_root)
+    archives = existing_archive_numbers(active)
+    expected = list(range(1, len(archives) + 1))
+    if archives != expected:
+        raise ConfigError(f"Scene {scene_id} has non-sequential video archives")
+    number = len(archives) + 1
+    if number > MAX_GENERATIONS:
+        raise ConfigError(f"Scene {scene_id} already has {MAX_GENERATIONS} archives")
+    destination = archived_path(active, number)
+    active_sheet = active_contact_sheet_path(config_path, scene_id)
+    archived_sheet = archived_path(active_sheet, number)
+    current_sheet: Path | None = None
+    if "attempts" not in review:
+        configured_sheet = review.get("contact_sheet_path")
+        if not isinstance(configured_sheet, str) or (
+            resolve_path(project_root, configured_sheet).resolve()
+            != active_sheet.resolve()
+            or not active_sheet.is_file()
+        ):
+            raise ConfigError(f"Scene {scene_id} has no active contact sheet to archive")
+        if archived_sheet.exists():
+            raise ConfigError(f"Archive evidence already exists: {archived_sheet}")
+        current_sheet = active_sheet
+    history = review.get("history", []) if "attempts" not in review else []
+    if not isinstance(history, list):
+        raise ConfigError(f"Scene {scene_id} review history is invalid")
+    history = list(history)
+    original_review = json.loads(json.dumps(review))
+    try:
+        os.replace(active, destination)
+        if current_sheet is not None:
+            os.replace(current_sheet, archived_sheet)
+        history.append(
+            review_snapshot(
+                review,
+                destination,
+                archived_sheet if current_sheet is not None else None,
+                project_root,
+            )
+        )
+        waiting = number == MAX_GENERATIONS
+        state = {
+            "scene_id": scene_id,
+            "decision": "await_user" if waiting else "pending_generation",
+            "video_path": None,
+            "video_sha256": None,
+            "contact_sheet_path": None,
+            "media_valid": None,
+            "findings": [],
+            "diagnosis": None,
+            "repair_applied": None,
+            "history": history,
+            "next_action": "await_user" if waiting else "generate",
+        }
+        write_review_atomic(review_path(config_path, scene_id), state)
+    except Exception:
+        if destination.is_file() and not active.exists():
+            os.replace(destination, active)
+        if current_sheet is not None and archived_sheet.is_file():
+            os.replace(archived_sheet, current_sheet)
+        write_review_atomic(review_path(config_path, scene_id), original_review)
+        raise
+    return number, destination, history
+
+
+def restore_archived_video(
+    config_path: Path,
+    scene: dict[str, Any],
+    archive_number: int,
     project_root: Path,
 ) -> tuple[Path, Path]:
     scene_id = scene["id"]
-    candidate = scene_attempt_path(config_path, scene_id, attempt)
-    if not candidate.is_file():
-        raise ConfigError(f"Attempt candidate does not exist: {candidate}")
-    review = validate_promotion_review(config_path, scene_id, attempt, project_root)
-    verify_video(candidate)
-
-    canonical = scene_output_path(scene, project_root)
-    canonical.parent.mkdir(parents=True, exist_ok=True)
-    staged = canonical.with_suffix(".promoting.mp4")
-    original_review = dict(review)
+    active = scene_output_path(scene, project_root)
+    source = archived_path(active, archive_number)
+    if active.exists():
+        raise ConfigError(f"Active scene video already exists: {active}")
+    if not source.is_file():
+        raise ConfigError(f"Archived scene video does not exist: {source}")
+    review = load_review(config_path, scene_id)
+    history = review.get("history", [])
+    if not isinstance(history, list):
+        raise ConfigError(f"Scene {scene_id} review history is invalid")
+    archived_sheet = archived_path(
+        active_contact_sheet_path(config_path, scene_id), archive_number
+    )
+    active_sheet = active_contact_sheet_path(config_path, scene_id)
+    shutil.copy2(source, active)
     try:
-        shutil.copy2(candidate, staged)
-        verify_video(staged)
-        candidate_hash = sha256_file(candidate)
-        if sha256_file(staged) != candidate_hash:
-            raise RuntimeError("Staged canonical video differs from selected attempt")
-        review["promoted_attempt"] = attempt
-        review["canonical_path"] = project_relative(canonical, project_root)
-        review["canonical_sha256"] = candidate_hash
-        write_review_atomic(review_path(config_path, scene_id), review)
-        os.replace(staged, canonical)
-        validate_canonical_binding(review, canonical, project_root)
+        if archived_sheet.is_file():
+            active_sheet.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(archived_sheet, active_sheet)
+        begin_active_review(config_path, scene_id, active, project_root, history)
     except Exception:
-        write_review_atomic(review_path(config_path, scene_id), original_review)
+        active.unlink(missing_ok=True)
+        active_sheet.unlink(missing_ok=True)
         raise
-    finally:
-        staged.unlink(missing_ok=True)
-    return candidate, canonical
+    return source, active
 
 
 def scene_first_frame_path(
@@ -294,14 +383,8 @@ def run(args: argparse.Namespace) -> int:
         raise ConfigError("Every scene must have a non-empty string id")
     if len(scene_ids) != len(set(scene_ids)):
         raise ConfigError("Scene IDs must be unique")
-    if not 1 <= args.attempt <= MAX_ATTEMPTS:
-        raise ConfigError(f"--attempt must be between 1 and {MAX_ATTEMPTS}")
-    if args.promote_attempt is not None and not 1 <= args.promote_attempt <= MAX_ATTEMPTS:
-        raise ConfigError(
-            f"--promote-attempt must be between 1 and {MAX_ATTEMPTS}"
-        )
-    if args.promote_attempt is not None and args.regenerate:
-        raise ConfigError("--promote-attempt cannot be combined with --regenerate")
+    if args.restore is not None and args.regenerate:
+        raise ConfigError("--restore cannot be combined with --regenerate")
     unknown_requested = set(args.scene) - set(scene_ids)
     if unknown_requested:
         raise ConfigError(f"Unknown --scene IDs: {sorted(unknown_requested)}")
@@ -309,24 +392,27 @@ def run(args: argparse.Namespace) -> int:
     scenes_by_id = {scene["id"]: scene for scene in scenes}
 
     selected_scenes = [scene for scene in scenes if scene_is_selected(scene, args)]
-    if args.promote_attempt is not None:
-        for scene in selected_scenes:
-            scene_id = scene["id"]
-            candidate = scene_attempt_path(config_path, scene_id, args.promote_attempt)
-            canonical = scene_output_path(scene, project_root)
-            if args.dry_run:
-                validate_promotion_review(
-                    config_path, scene_id, args.promote_attempt, project_root
-                )
-                if not candidate.is_file():
-                    raise ConfigError(f"Attempt candidate does not exist: {candidate}")
-                verify_video(candidate)
-                print(f"PROMOTE {scene_id}: {candidate} -> {canonical}")
-                continue
-            source, destination = promote_attempt(
-                config_path, scene, args.promote_attempt, project_root
-            )
-            print(f"PROMOTED {scene_id}: {source} -> {destination}")
+    if args.restore is not None:
+        if len(selected_scenes) != 1:
+            raise ConfigError("--restore requires exactly one selected --scene")
+        scene = selected_scenes[0]
+        number = int(args.restore[1:])
+        active = scene_output_path(scene, project_root)
+        source = archived_path(active, number)
+        if args.dry_run:
+            if active.exists():
+                raise ConfigError(f"Active scene video already exists: {active}")
+            if not source.is_file():
+                raise ConfigError(f"Archived scene video does not exist: {source}")
+            print(f"RESTORE {scene['id']}: {source} -> {active}")
+            return 0
+        source, destination = restore_archived_video(
+            config_path, scene, number, project_root
+        )
+        print(
+            f"RESTORED {scene['id']}: {source} -> {destination}. "
+            "Review the active video before continuing."
+        )
         return 0
 
     characters_file = config.get("characters_file", "characters.json")
@@ -344,20 +430,82 @@ def run(args: argparse.Namespace) -> int:
 
         scene_id = scene["id"]
         output_path = scene_output_path(scene, project_root)
-        if output_path.is_file() and not args.regenerate:
-            verify_video(output_path)
-            print(f"KEEP {scene_id}: {output_path}")
-            continue
-        attempt_path = scene_attempt_path(config_path, scene_id, args.attempt)
-        if attempt_path.is_file():
-            if args.regenerate:
-                raise ConfigError(
-                    f"Attempt candidate already exists and is immutable: {attempt_path}. "
-                    "Use the next attempt number."
+        archives = existing_archive_numbers(output_path)
+        history: list[dict[str, Any]] = []
+        generation_number = len(archives) + 1
+
+        if output_path.is_file():
+            try:
+                review = load_review(config_path, scene_id)
+            except ReviewContractError as exc:
+                print(f"WAIT {scene_id}: {exc}")
+                continue
+            decision = review.get("decision")
+            if decision == "pending_review":
+                print(f"WAIT {scene_id}: review the active video -> {output_path}")
+                continue
+            if decision != "needs_fix" and not args.regenerate:
+                try:
+                    validate_review(config_path, scene_id, project_root)
+                    validate_canonical_binding(review, output_path, project_root)
+                except ReviewContractError as exc:
+                    print(f"WAIT {scene_id}: {exc}")
+                    continue
+                verify_video(output_path)
+                print(f"KEEP {scene_id}: accepted active video -> {output_path}")
+                continue
+
+            next_archive = len(archives) + 1
+            if next_archive > MAX_GENERATIONS:
+                print(
+                    f"STOP {scene_id}: the active video cannot be archived because "
+                    f"{MAX_GENERATIONS} archives already exist. Ask the user what to keep."
                 )
-            verify_video(attempt_path)
-            print(f"KEEP ATTEMPT {scene_id}: {attempt_path}")
-            continue
+                continue
+            if args.dry_run:
+                destination = archived_path(output_path, next_archive)
+                print(f"ARCHIVE {scene_id}: {output_path} -> {destination}")
+                if next_archive == MAX_GENERATIONS:
+                    print(
+                        f"STOP {scene_id}: both generated videos need fixing. "
+                        "Ask the user what to keep."
+                    )
+                    continue
+                history = review.get("history", [])
+                generation_number = next_archive + 1
+            else:
+                archived_number, destination, history = archive_active_video(
+                    config_path, scene, project_root
+                )
+                print(f"ARCHIVED {scene_id}: {output_path} -> {destination}")
+                if archived_number == MAX_GENERATIONS:
+                    print(
+                        f"STOP {scene_id}: both generated videos need fixing. "
+                        "Ask the user to select an archive or revise the scene manually."
+                    )
+                    continue
+                generation_number = archived_number + 1
+        elif archives:
+            try:
+                review = load_review(config_path, scene_id)
+            except ReviewContractError as exc:
+                print(f"WAIT {scene_id}: {exc}")
+                continue
+            if len(archives) >= MAX_GENERATIONS or review.get("decision") == "await_user":
+                print(
+                    f"STOP {scene_id}: no active video; archived versions are "
+                    f"{[archived_path(output_path, n).name for n in archives]}. "
+                    "Ask the user what to restore."
+                )
+                continue
+            if review.get("decision") != "pending_generation":
+                print(f"WAIT {scene_id}: review state does not permit replacement generation")
+                continue
+            stored_history = review.get("history", [])
+            if not isinstance(stored_history, list):
+                raise ConfigError(f"Scene {scene_id} review history is invalid")
+            history = stored_history
+            generation_number = len(archives) + 1
 
         reference_scene_id = scene.get("reference_scene_id")
         reference_video: Path | None = None
@@ -382,7 +530,7 @@ def run(args: argparse.Namespace) -> int:
             except ReviewContractError as exc:
                 raise ConfigError(
                     f"Scene {scene_id} predecessor {reference_scene_id} is not a "
-                    f"reviewed promoted canonical: {exc}"
+                    f"accepted active video: {exc}"
                 ) from exc
             verify_video(reference_video)
 
@@ -404,15 +552,15 @@ def run(args: argparse.Namespace) -> int:
             planned_provider = "google (Flow fallback: start frame + references)"
 
         print(
-            f"PLAN {scene_id}: ATTEMPT {args.attempt} -> {attempt_path}, "
+            f"PLAN {scene_id}: generation {generation_number} -> {output_path}, "
             f"{len(preflight.images)} image input(s), task={preflight.task}, "
             f"handles={preflight.handle_order}, provider={planned_provider}"
         )
         if args.dry_run:
             continue
 
-        attempt_path.parent.mkdir(parents=True, exist_ok=True)
-        partial_path = attempt_path.with_suffix(".partial.mp4")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        partial_path = output_path.with_suffix(".partial.mp4")
         try:
             with tempfile.TemporaryDirectory(prefix=f"{scene_id}-continuity-") as temp_dir:
                 first_frame: Path | None = None
@@ -470,13 +618,17 @@ def run(args: argparse.Namespace) -> int:
                         provider_instance=provider_instance,
                     )
             verify_video(partial_path)
-            os.replace(partial_path, attempt_path)
+            os.replace(partial_path, output_path)
         except Exception as exc:
             partial_path.unlink(missing_ok=True)
             raise RuntimeError(f"Generation failed for {scene_id}: {exc}") from exc
 
         generated_count += 1
-        print(f"SAVED ATTEMPT {scene_id}: {byte_count:,} bytes -> {attempt_path}")
+        begin_active_review(config_path, scene_id, output_path, project_root, history)
+        print(
+            f"ACTIVE {scene_id}: {byte_count:,} bytes -> {output_path}. "
+            "Review this video before generating a dependent scene or rendering."
+        )
 
     if args.dry_run:
         print("Dry run complete; Gemini was not called.")

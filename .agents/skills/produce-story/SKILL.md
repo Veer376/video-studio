@@ -21,9 +21,9 @@ If the user has not specified the working scope, ask once whether to work on:
 - one part; or
 - one clip.
 
-Use the chosen scope until changed. Working scope defines the target boundary, but scene production is strictly sequential: prompt, generate, review, and promote one scene at a time.
+Use the chosen scope until changed. Working scope defines the target boundary, but scene production is strictly sequential: prompt, generate, and review one scene at a time.
 
-In autonomous execution, advance through the sequential scene pipeline to completion without pausing for routine confirmations. In interactive execution, confirm after each scene. Record autonomous fallback selections in review JSON, not in `story.md`.
+In autonomous execution, advance through the sequential scene pipeline to completion without pausing for routine confirmations. In interactive execution, confirm after each scene.
 
 ## Phase routing
 
@@ -31,7 +31,7 @@ In autonomous execution, advance through the sequential scene pipeline to comple
 - When a required recurring character is missing or incomplete, read [references/character-readiness.md](references/character-readiness.md).
 - For an approved clip or part, read [references/scene-production.md](references/scene-production.md).
 - After every generated or replaced clip, read [references/clip-review.md](references/clip-review.md).
-- Render with the project renderer only after the requested canonical clips exist and have been reviewed.
+- Render with the project renderer only after the requested active clips exist and have been accepted.
 
 ## Hard boundaries
 
@@ -39,10 +39,10 @@ In autonomous execution, advance through the sequential scene pipeline to comple
 - `story.md` owns story intent. `scenes.json` owns final authoring prompts. The project-root `characters.json` owns reusable characters; the story-level `characters.json` owns story-specific characters and overrides.
 - Before drafting or revising any part, reread the selected `story.md` creative contract and story-writing instructions.
 - Use project-relative paths. Reuse project-level assets; do not copy them into every story.
-- Preserve every generation as an attempt candidate under `temp/partial/`. Promote exactly one reviewed selected attempt to the canonical scene path; never generate or retry directly over a canonical clip.
+- Generate through the project runner. The scene's `output_path` is its active video.
 - A successful generation or playable file is not an accepted scene.
 - Inspect a predecessor's exact final frame before generating any clip that uses it for continuity.
-- A `needs_fix` decision permits at most two diagnosed repair retries, producing three total attempts. Log and review every attempt. After the third failure, interactive execution stops; explicitly autonomous execution selects the best media-valid attempt as `best_available`, promotes it with unresolved defects recorded, and continues. Stop autonomous execution only when no media-valid attempt exists.
+- After `needs_fix`, diagnose and revise before running the scene once more. If the replacement also needs fixing, stop and ask the user whether to restore an archived video or revise the scene manually.
 - Do not claim dialogue or audio correctness from still frames.
 
 ## Completion

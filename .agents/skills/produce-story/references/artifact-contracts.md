@@ -14,7 +14,6 @@
     videos/
     temp/continuity_frames/
     temp/contact_sheets/
-    temp/partial/
     reviews/
     output/final-video.mp4
 ```
@@ -151,29 +150,18 @@ Save one report at `reviews/<scene-id>.json`:
 {
   "scene_id": "s001",
   "decision": "needs_fix",
-  "execution_mode": "interactive",
-  "selected_attempt": null,
-  "attempts": [
-    {
-      "attempt": 1,
-      "kind": "initial",
-      "candidate_path": "stories/<story-slug>/temp/partial/s001-attempt-1.mp4",
-      "contact_sheet_path": "stories/<story-slug>/temp/contact_sheets/s001-attempt-1.png",
-      "media_valid": true,
-      "decision": "needs_fix",
-      "findings": ["00:04 character disappears through an unintended snap"],
-      "diagnosis": "model continuity failure during the camera move",
-      "repair_applied": null
-    }
-  ],
+  "video_path": "stories/<story-slug>/videos/s001.mp4",
+  "video_sha256": "<written by the runner>",
+  "contact_sheet_path": "stories/<story-slug>/temp/contact_sheets/s001.png",
+  "media_valid": true,
+  "findings": ["00:04 character disappears through an unintended snap"],
+  "diagnosis": "model continuity failure during the camera move",
+  "repair_applied": null,
+  "history": [],
   "next_action": "retry"
 }
 ```
 
-Attempt decisions are `accepted`, `accepted_with_note`, `fix_next_scene`, and `needs_fix`. The top-level decision may additionally be `best_available` only after three failed attempts and autonomous comparison of every media-valid candidate.
+Decisions are `pending_review`, `accepted`, `accepted_with_note`, `fix_next_scene`, and `needs_fix`. The runner creates the review slot and owns `video_path`, `video_sha256`, and `history`; the reviewer fills the observable evidence, diagnosis, decision, and next action for the active video. When a rejected video is replaced, the runner archives its video, contact sheet, and review fields before opening a fresh review slot.
 
-Append one entry after every reviewed generation; never overwrite earlier attempts. `kind` is `initial` for attempt 1 and `repair` for retries. `repair_applied` records the concrete change that produced a retry and is `null` for the initial generation. Record the project-relative candidate and contact-sheet paths for every attempt. The top-level `decision` and `next_action` reflect the current scene resolution.
-
-A scene may contain at most three attempts without fresh user authorization: one initial generation and two repair retries. A promotable review must identify `selected_attempt`. For `best_available`, it must also contain `execution_mode: "autonomous"`, a concrete `selection_reason`, and `unresolved_findings`. If attempt 3 remains `needs_fix` in interactive execution, set `next_action` to `await_user`. If no media-valid attempt exists, always stop.
-
-Promotion writes `promoted_attempt`, `canonical_path`, and `canonical_sha256` into the review. Dependent-scene generation and final rendering must verify that the canonical file matches this hash; file existence alone does not prove promotion.
+Dependent-scene generation and final rendering verify that the active video matches `video_sha256` and has an accepted decision.

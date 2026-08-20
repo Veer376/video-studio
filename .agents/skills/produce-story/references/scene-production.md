@@ -30,8 +30,7 @@ These are recovery policies, not guarantees of model consistency.
 
 ## Generate
 
-1. Run the generator in dry-run mode first.
-2. Generate the current scene with `--scene <scene-id> --attempt <number>`. The runner writes `temp/partial/<scene-id>-attempt-<number>.mp4`; it does not change the canonical video.
-3. Review the candidate and persist its attempt entry before deciding whether to retry or promote it.
-4. Set `selected_attempt` in the review, then use `--promote-attempt <number>` to copy only that reviewed candidate to the scene's canonical `output_path`.
-5. Existing valid canonical videos are skipped unless regeneration is explicitly authorized. Regeneration still creates a candidate and leaves the current canonical file untouched until promotion.
+1. Generate the current scene with `--scene <scene-id>`. The runner writes directly to the scene's `output_path`.
+2. Review the active video and persist the evidence and decision in `reviews/<scene-id>.json`.
+3. If accepted, continue to the next scene; the active video already has its final name.
+4. If it needs fixing, revise the scene or prompt and run the normal generation command once more. The runner archives the rejected video and its contact sheet before creating the replacement. If the replacement also fails, it archives that video and stops for user direction.

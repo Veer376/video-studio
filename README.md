@@ -1,6 +1,6 @@
 # Video Project
 
-An agent-assisted workspace for creating story videos with Gemini Omni Flash. It turns a story idea into short generated scenes, reviews each candidate, keeps one canonical clip per scene, and renders the approved sequence with FFmpeg.
+An agent-assisted workspace for creating story videos with Gemini Omni Flash. It turns a story idea into short generated scenes, reviews each active clip, and renders the accepted sequence with FFmpeg.
 
 The repository also holds reusable visual assets, standalone execution prompts, channel resources, and small command interfaces around the production scripts.
 
@@ -10,9 +10,8 @@ The repository also holds reusable visual assets, standalone execution prompts, 
 idea or script
     → story plan and recurring assets
     → scene prompts and references
-    → generated clip attempts
-    → evidence-based review and selection
-    → canonical scene videos
+    → active scene videos
+    → evidence-based review and repair
     → final render and publishing assets
 ```
 
@@ -46,10 +45,9 @@ story.md         creative direction, story parts, and scene briefs
 characters.json recurring character handles and reference images
 scenes.json     final scene prompts and generation inputs
 assets/         story-specific visual assets
-temp/partial/   generated attempt candidates
 temp/           continuity frames, contact sheets, and other review evidence
-reviews/        persisted scene decisions and attempt history
-videos/         selected canonical scene clips
+reviews/        current scene decisions and preserved review history
+videos/         active scene clips and archived rejected versions
 output/         final renders and delivery assets
 ```
 
@@ -59,15 +57,15 @@ The core sources of truth are:
 - `characters.json` for recurring, consistency-critical references.
 - `scenes.json` for executable scene inputs.
 - `reviews/<scene-id>.json` for review and selection state.
-- `videos/` for the canonical clips used by the renderer.
+- `videos/` for accepted active clips and archived rejected versions.
 
 ## Main tools
 
 - `produce-story`: runs the story-production workflow at whole-story, part, or clip scope.
 - `compile-omni-scene`: translates approved scene direction into an Omni authoring prompt and validates provider capability.
 - `create-prompt`: clarifies and saves one standalone prompt without executing it.
-- `scripts/generate_scenes.py`: generates candidates and promotes reviewed selections.
-- `scripts/render_video.py`: joins canonical scene clips into a final video.
+- `scripts/generate_scenes.py`: generates active clips and archives rejected versions before replacement.
+- `scripts/render_video.py`: joins accepted active scene clips into a final video.
 - `scripts/render_text.py`, `scripts/apply_watermark.py`, and `scripts/add_loop.py`: optional post-production passes.
 - `app/`: provides local command interfaces over maintained project utilities.
 
@@ -75,7 +73,7 @@ Operational rules, retry limits, continuity handling, and review decisions are d
 
 ## Basic usage
 
-Preview generation without consuming quota:
+Optional configuration and routing diagnostics without consuming quota:
 
 ```bash
 python3 scripts/generate_scenes.py \
@@ -90,7 +88,7 @@ python3 scripts/generate_scenes.py \
   --config stories/<story-slug>/scenes.json
 ```
 
-Render its canonical clips:
+Render its accepted active clips:
 
 ```bash
 python3 scripts/render_video.py \

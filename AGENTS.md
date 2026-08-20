@@ -18,19 +18,15 @@
 
 ## Hard production rules
 
-- Process scenes sequentially. Draft, generate, review, and promote scene N before drafting scene N+1.
+- Process scenes sequentially. Draft, generate, and review scene N before drafting scene N+1 in `scenes.json`.
 - Use project-relative paths. Reuse project-level assets instead of copying them into every story.
 - Register only recurring characters whose visual identity must remain consistent. Describe one-off figures and flexible story elements directly in scene prompts.
 - Keep project `@handles` in `scenes.json`; resolve them to ordered Gemini image references only at request time. Do not store an `extended_prompt`.
 - Use `reference_scene_id` only when a predecessor's final frame must be the literal opening anchor. Inspect that exact frame before producing the dependent scene.
-- Generate every attempt under the selected story's `temp/partial/` directory. Promote only the reviewed selected attempt to the canonical `videos/` path; never generate or retry directly over a canonical clip.
 - A successful generation or playable MP4 is not an accepted scene. Validate media streams, review observable evidence, and persist the review decision.
 - Do not claim dialogue or audio correctness from still frames.
-- When review returns `needs_fix`, diagnose and retry no more than two times for that scene, producing three total attempts. Append every attempt, diagnosis, repair action, and evidence path to its review JSON.
-- If all three attempts remain `needs_fix`, stop in interactive work. In explicitly autonomous work, compare every media-valid attempt against the clip contract, select and record one `best_available` attempt, promote it, report its unresolved defects, and continue. Stop only when no media-valid candidate exists.
 
 
 ## Temp
-- there is no narration verification script in the project, skip narration verification for now.
-- if a subagent is used for scene fixes, ask it at the end of its work: if you think `.agents/skills/compile-omni-scene/SKILL.md` needs an update, write the proposed change to `subagent/fixes.md`.
+- There is no narration verification script in the project, skip narration verification for now.
 - For the image creation for characters or for any other use, use /flow skill.

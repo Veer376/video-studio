@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Concatenate canonical scene videos into one final MP4."""
+"""Concatenate accepted active scene videos into one final MP4."""
 
 from __future__ import annotations
 
@@ -142,7 +142,7 @@ def render(args: argparse.Namespace) -> None:
     for scene in scenes:
         path = resolve_path(scene["output_path"])
         if not path.is_file():
-            raise RenderError(f"Missing canonical scene video: {path}")
+            raise RenderError(f"Missing active scene video: {path}")
         validate_scene_review(config_path, scene["id"], path)
         _, scene_width, scene_height, scene_fps = media_info(path)
         if not width:
