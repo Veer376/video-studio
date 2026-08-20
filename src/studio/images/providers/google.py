@@ -138,15 +138,29 @@ def generate_image(
     image_config_args: dict[str, str] = {"aspect_ratio": aspect_ratio}
     if normalized_model != "gemini-2.5-flash-image":
         image_config_args["image_size"] = "2K"
+    import time
+
     config = types.GenerateContentConfig(
         response_modalities=["TEXT", "IMAGE"],
         image_config=types.ImageConfig(**image_config_args),
     )
-    response = client.models.generate_content(
-        model=normalized_model,
-        contents=[types.Content(role="user", parts=parts)],
-        config=config,
-    )
+    max_retries = 12
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model=normalized_model,
+                contents=[types.Content(role="user", parts=parts)],
+                config=config,
+            )
+            break
+        except Exception as exc:
+            err_str = str(exc)
+            if ("429" in err_str or "RESOURCE_EXHAUSTED" in err_str) and attempt < max_retries - 1:
+                wait_sec = (attempt + 1) * 15
+                print(f"  ⚠ Google 429 quota hit, retrying in {wait_sec}s (attempt {attempt + 1}/{max_retries})...")
+                time.sleep(wait_sec)
+                continue
+            raise
     image_bytes = _final_image_bytes(response)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     temporary = out_path.with_name(f".{out_path.name}.{uuid.uuid4().hex}.tmp")

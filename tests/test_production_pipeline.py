@@ -57,7 +57,7 @@ class ProductionPipelineTests(unittest.TestCase):
             patch.object(
                 production,
                 "load_production_config",
-                return_value=ProductionConfig("cloudflare", "model", False, False),
+                return_value=ProductionConfig("cloudflare", "model", False, False, False),
             ),
             patch.object(production, "_run_script") as run_script,
             patch.object(production, "update_status"),
@@ -71,6 +71,7 @@ class ProductionPipelineTests(unittest.TestCase):
                     "rendering/scenes.py",
                     "--skip-subtitles",
                     "--no-motion",
+                    "--no-closing-fade",
                 ),
                 unittest.mock.call(project, "rendering/final.py"),
             ],
@@ -140,7 +141,9 @@ class ProductionPipelineTests(unittest.TestCase):
         ):
             production.run_stage(project, "render", subtitles=True, zoom=False)
 
-        load_config.assert_called_once_with({}, subtitles=True, zoom=False)
+        load_config.assert_called_once_with(
+            {}, subtitles=True, zoom=False, closing_fade=None
+        )
 
     def test_render_override_rejects_cached_scene_clips_without_force(self) -> None:
         with TemporaryDirectory() as tmp:

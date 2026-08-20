@@ -30,6 +30,12 @@ def _add_production_overrides(parser: argparse.ArgumentParser) -> None:
         default=None,
         help="Temporarily enable or disable Ken Burns motion.",
     )
+    parser.add_argument(
+        "--closing-fade",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Temporarily enable or disable 2s tail extension and closing fade out.",
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -92,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
                 image_model=args.image_model,
                 subtitles=args.subtitles,
                 zoom=args.zoom,
+                closing_fade=args.closing_fade,
             )
         elif args.command == "stage":
             run_stage(
@@ -104,6 +111,7 @@ def main(argv: list[str] | None = None) -> int:
                 image_model=args.image_model,
                 subtitles=args.subtitles,
                 zoom=args.zoom,
+                closing_fade=args.closing_fade,
             )
         elif args.command == "retry":
             run_stage(
@@ -114,6 +122,7 @@ def main(argv: list[str] | None = None) -> int:
                 image_model=args.image_model,
                 subtitles=args.subtitles,
                 zoom=args.zoom,
+                closing_fade=args.closing_fade,
             )
         elif args.command == "voice-step":
             run_voice_step(args.project_dir, args.step_name, force=args.force, unit_id=args.unit)

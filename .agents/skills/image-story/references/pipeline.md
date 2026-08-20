@@ -57,18 +57,20 @@ Repository defaults live in `kathamind/config.json` under `production`:
 
 ```json
 {
-  "_comment": "image_provider: cloudflare|google; subtitles/zoom: true|false; short overrides render settings for Shorts",
-  "image_provider": "cloudflare",
-  "image_model": "@cf/black-forest-labs/flux-2-klein-4b",
+  "_comment": "image_provider: cloudflare|google; subtitles/zoom/closing_fade: true|false; short overrides render settings for Shorts",
+  "image_provider": "google",
+  "image_model": "gemini-3-pro-image",
   "subtitles": false,
   "zoom": true,
+  "closing_fade": true,
   "short": {
-    "subtitles": true
+    "subtitles": false,
+    "closing_fade": false
   }
 }
 ```
 
-Supported image providers are `cloudflare` and `google`. The `short` object overrides `subtitles` and `zoom` for `9:16` projects targeting at most 180 seconds; otherwise the base values apply. Provider and model are never stored in `session.json`.
+Supported image providers are `cloudflare` and `google`. The `short` object overrides `subtitles`, `zoom`, and `closing_fade` for `9:16` projects targeting at most 180 seconds; otherwise the base values apply. `closing_fade` controls whether the video is extended by 2 seconds at the end and faded out gradually to black (default `true` for long videos, disabled for Shorts). Provider and model are never stored in `session.json`.
 
 An outer pipeline invocation may temporarily override its internal stages:
 
@@ -78,6 +80,7 @@ story-video run library/<project_name> \
   --image-model gemini-3.1-flash-image \
   --subtitles \
   --no-zoom \
+  --no-closing-fade \
   --force-stage illustrate \
   --force-stage render
 ```

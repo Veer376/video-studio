@@ -32,6 +32,7 @@ class PipelineCliTests(unittest.TestCase):
             image_model="gemini-3.1-flash-image",
             subtitles=True,
             zoom=False,
+            closing_fade=None,
         )
 
     def test_force_stage_is_repeatable(self) -> None:

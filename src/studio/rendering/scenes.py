@@ -370,22 +370,36 @@ def render_scene_clip(
     ffmpeg(*args)
 
 
-def concat_with_xfade(scene_clips: list[Path], durations: list[float], out_path: Path) -> None:
+def concat_with_xfade(
+    scene_clips: list[Path],
+    durations: list[float],
+    out_path: Path,
+    closing_fade: bool = True,
+) -> None:
     """
     Concatenate scene clips using FFmpeg xfade transition (crossfade) between each pair.
     """
     td = CROSSFADE_DURATION
     if len(scene_clips) == 1:
-        fade_st = max(0.0, durations[0] - CLOSING_FADE_DURATION)
-        filter_complex = f"[0:v]fade=t=out:st={fade_st:.3f}:d={CLOSING_FADE_DURATION:.3f}[v_fadeout]"
-        cmd = [
-            "ffmpeg", "-y", "-i", str(scene_clips[0]),
-            "-filter_complex", filter_complex,
-            "-map", "[v_fadeout]", "-an",
-            "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
-            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
-            str(out_path)
-        ]
+        if closing_fade:
+            fade_st = max(0.0, durations[0] - CLOSING_FADE_DURATION)
+            filter_complex = f"[0:v]fade=t=out:st={fade_st:.3f}:d={CLOSING_FADE_DURATION:.3f}[v_fadeout]"
+            cmd = [
+                "ffmpeg", "-y", "-i", str(scene_clips[0]),
+                "-filter_complex", filter_complex,
+                "-map", "[v_fadeout]", "-an",
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+                "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                str(out_path),
+            ]
+        else:
+            cmd = [
+                "ffmpeg", "-y", "-i", str(scene_clips[0]),
+                "-an",
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+                "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                str(out_path),
+            ]
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
             tail = (result.stderr or result.stdout)[-4000:]
@@ -411,10 +425,13 @@ def concat_with_xfade(scene_clips: list[Path], durations: list[float], out_path:
         cumulative_offset -= td
 
     final_label = f"[vx{len(scene_clips) - 1}]"
-    total_duration = cumulative_offset + durations[-1]
-    fade_st = max(0.0, total_duration - CLOSING_FADE_DURATION)
-
-    chains.append(f"{final_label}fade=t=out:st={fade_st:.3f}:d={CLOSING_FADE_DURATION:.3f}[v_fadeout]")
+    if closing_fade:
+        total_duration = cumulative_offset + durations[-1]
+        fade_st = max(0.0, total_duration - CLOSING_FADE_DURATION)
+        chains.append(f"{final_label}fade=t=out:st={fade_st:.3f}:d={CLOSING_FADE_DURATION:.3f}[v_fadeout]")
+        out_map = "[v_fadeout]"
+    else:
+        out_map = final_label
     filter_complex = ";".join(chains)
 
     cmd = (
@@ -422,7 +439,7 @@ def concat_with_xfade(scene_clips: list[Path], durations: list[float], out_path:
         + [arg for clip in scene_clips for arg in ["-i", str(clip)]]
         + [
             "-filter_complex", filter_complex,
-            "-map", "[v_fadeout]",
+            "-map", out_map,
             "-an",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
             "-pix_fmt", "yuv420p",
@@ -443,6 +460,7 @@ def main():
     parser.add_argument("--skip-subtitles", action="store_true", help="Skip subtitle overlay step")
     parser.add_argument("--subtitle-style", choices=["soft_halo", "classic_card"], default="soft_halo", help="Subtitle visual style (soft_halo or classic_card)")
     parser.add_argument("--no-motion", action="store_true", help="Disable Ken Burns zoom motion (removes all shaking/trembling)")
+    parser.add_argument("--no-closing-fade", action="store_true", help="Disable 2s tail extension and closing fade out")
     args = parser.parse_args()
 
     if shutil.which("ffmpeg") is None:
@@ -499,10 +517,13 @@ def main():
         end_t = float(scene.get("end_time") or 0.0)
         duration = max(0.5, end_t - start_t)
 
-        # For the last scene, extend duration by CLOSING_TAIL_EXTENSION (instead of adding CROSSFADE_DURATION)
+        # For the last scene, extend duration by CLOSING_TAIL_EXTENSION (unless disabled)
         # so the final scene continues for post-narration reflection.
         is_last = (idx == len(scenes) - 1)
-        clip_duration = (duration + CLOSING_TAIL_EXTENSION) if is_last else (duration + CROSSFADE_DURATION)
+        if is_last:
+            clip_duration = duration if args.no_closing_fade else (duration + CLOSING_TAIL_EXTENSION)
+        else:
+            clip_duration = duration + CROSSFADE_DURATION
 
         image_path = project_dir / scene["image_path"]
         clip_path = scenes_dir / f"{scene_id}.mp4"
@@ -536,7 +557,7 @@ def main():
 
     # ── Sub-stage B: Concatenate with crossfade ───────────────────────────────
     print(f"→ Concatenating {len(scene_clips)} clips with {CROSSFADE_DURATION}s crossfade...")
-    concat_with_xfade(scene_clips, durations, out_path)
+    concat_with_xfade(scene_clips, durations, out_path, closing_fade=not args.no_closing_fade)
     print(f"  ✓ Concatenated video: {out_path}")
     print(f"✓ Video (no audio) ready: {out_path}")
 

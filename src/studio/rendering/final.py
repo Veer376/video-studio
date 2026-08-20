@@ -41,11 +41,11 @@ def get_duration(path: Path) -> float:
 CLOSING_FADE_DURATION = 4.0   # total duration of audio fade-out
 
 
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description="Mux video and narration audio into final MP4")
     parser.add_argument("--project-dir", required=True, help="Path to the project directory")
     parser.add_argument("--force", action="store_true", help="Re-render even if final video exists")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
         print("ERROR: ffmpeg/ffprobe not found in PATH. Install ffmpeg first.", file=sys.stderr)
@@ -65,16 +65,6 @@ def main():
     if out_path.exists() and not args.force:
         print(f"✓ final-video.mp4 already exists. Use --force to re-render.")
         sys.exit(0)
-
-    # If final-video.mp4 already exists, generate a versioned output filename (e.g. final-video-001.mp4) for easy comparison
-    if out_path.exists():
-        idx = 1
-        while True:
-            candidate = project_dir / "output" / f"final-video-{idx:03d}.mp4"
-            if not candidate.exists():
-                out_path = candidate
-                break
-            idx += 1
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
 

@@ -54,6 +54,7 @@ def run_stage(
     image_model: str | None = None,
     subtitles: bool | None = None,
     zoom: bool | None = None,
+    closing_fade: bool | None = None,
 ) -> None:
     resolved = resolve_project_dir(project_dir)
     if stage not in STAGES:
@@ -65,11 +66,13 @@ def run_stage(
     if validate_only and illustration_phase != "all":
         raise PipelineError("partial illustration phases cannot use --validate-only")
     image_override = image_provider is not None or image_model is not None
-    render_override = subtitles is not None or zoom is not None
+    render_override = (
+        subtitles is not None or zoom is not None or closing_fade is not None
+    )
     if image_override and stage != "illustrate":
         raise PipelineError("image provider/model overrides apply only to illustrate")
     if render_override and stage != "render":
-        raise PipelineError("subtitles/zoom overrides apply only to render")
+        raise PipelineError("render overrides apply only to render")
     if validate_only and (image_override or render_override):
         raise PipelineError("production overrides cannot be used with --validate-only")
 
@@ -103,7 +106,7 @@ def run_stage(
         cached_clips = list((resolved / "temp" / "scenes").glob("*.mp4"))
         if cached_clips:
             raise PipelineError(
-                "render has cached scene clips; use --force to apply subtitles/zoom overrides"
+                "render has cached scene clips; use --force to apply render overrides"
             )
 
     if stage == "voice":
@@ -126,6 +129,7 @@ def run_stage(
                 load_session(resolved),
                 subtitles=subtitles,
                 zoom=zoom,
+                closing_fade=closing_fade,
             )
         except (FileNotFoundError, ValueError) as exc:
             raise PipelineError(str(exc)) from exc
@@ -137,6 +141,8 @@ def run_stage(
             scene_args += ("--skip-subtitles",)
         if not production.zoom:
             scene_args += ("--no-motion",)
+        if not production.closing_fade:
+            scene_args += ("--no-closing-fade",)
         _run_script(resolved, "rendering/scenes.py", *scene_args)
         _run_script(resolved, "rendering/final.py", *final_args)
 
@@ -156,6 +162,7 @@ def run_pipeline(
     image_model: str | None = None,
     subtitles: bool | None = None,
     zoom: bool | None = None,
+    closing_fade: bool | None = None,
 ) -> None:
     resolved = resolve_project_dir(project_dir)
     if from_stage and from_stage not in STAGES:
@@ -178,4 +185,5 @@ def run_pipeline(
             image_model=image_model if stage == "illustrate" else None,
             subtitles=subtitles if stage == "render" else None,
             zoom=zoom if stage == "render" else None,
+            closing_fade=closing_fade if stage == "render" else None,
         )

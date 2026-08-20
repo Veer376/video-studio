@@ -112,7 +112,12 @@ class ProductionConfigTests(unittest.TestCase):
                             "image_model": "model",
                             "subtitles": False,
                             "zoom": True,
-                            "short": {"subtitles": True, "zoom": False},
+                            "closing_fade": True,
+                            "short": {
+                                "subtitles": True,
+                                "zoom": False,
+                                "closing_fade": False,
+                            },
                         }
                     }
                 ),
@@ -135,5 +140,7 @@ class ProductionConfigTests(unittest.TestCase):
 
         self.assertTrue(short.subtitles)
         self.assertFalse(short.zoom)
+        self.assertFalse(short.closing_fade)
         self.assertFalse(long.subtitles)
         self.assertTrue(long.zoom)
+        self.assertTrue(long.closing_fade)

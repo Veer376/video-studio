@@ -16,6 +16,7 @@ class ProductionConfig:
     image_model: str
     subtitles: bool
     zoom: bool
+    closing_fade: bool = True
 
 
 def _strict_bool(value: object, field: str) -> bool:
@@ -41,6 +42,7 @@ def load_production_config(
     model: str | None = None,
     subtitles: bool | None = None,
     zoom: bool | None = None,
+    closing_fade: bool | None = None,
     config_path: Path | None = None,
 ) -> ProductionConfig:
     """Resolve production settings: invocation overrides > repository config."""
@@ -80,5 +82,10 @@ def load_production_config(
             _strict_bool(zoom, "zoom")
             if zoom is not None
             else _strict_bool(values.get("zoom", True), "zoom")
+        ),
+        closing_fade=(
+            _strict_bool(closing_fade, "closing_fade")
+            if closing_fade is not None
+            else _strict_bool(values.get("closing_fade", True), "closing_fade")
         ),
     )
