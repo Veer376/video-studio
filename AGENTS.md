@@ -18,7 +18,7 @@
 - Use project-relative paths. Reuse project-level assets instead of copying them into every story.
 - Register only recurring characters whose visual identity must remain consistent. Describe one-off figures and flexible story elements directly in scene prompts.
 - Keep project `@handles` in `scenes.json`; resolve them to ordered Gemini image references only at request time. Do not store an `extended_prompt`.
-- Use `reference_scene_id` only when a predecessor's final frame must be the literal opening anchor. Inspect that exact frame before producing the dependent scene.
+- When adjacent scenes continue the same physical moment, inspect the predecessor's exact final frame and use `reference_scene_id` when that frame should anchor the next scene's opening. Skip literal frame chaining when the transition intentionally changes time, place, perspective, or composition.
 
 ## Temp
 - There is no narration verification script in the project, skip narration verification for now.

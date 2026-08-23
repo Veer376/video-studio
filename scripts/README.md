@@ -35,3 +35,4 @@ This directory contains durable, reusable project pipeline and media utilities. 
 | `cut_video.py` | Cut out sections or extract windows with safe in-place replace | `-i`, `-o`, `--cut-start`, `--cut-end`, `--cut`, `--keep`, `--backup` | `cut-video -i clip.mp4 --cut-start 2.5 --backup` |
 | `render_text.py` | Render text overlays and captions | `--input`, `--output`, `--text` | `python3 scripts/render_text.py` |
 | `add_loop.py` | Create seamless loops for clips | `--input`, `--output` | `python3 scripts/add_loop.py` |
+| `add_background_music.py` | Mix music beneath dialogue with smooth sidechain ducking | `--input`, `--music`, `--output`, `--music-volume-db` | `python3 scripts/add_background_music.py -i final.mp4 -m score.m4a -o final-with-music.mp4` |

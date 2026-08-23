@@ -6,8 +6,8 @@ Use this reference only after the relevant clip briefs are approved.
 
 1. Read the approved clip brief, adjacent clips, creative contract, character map, and existing scene records.
 2. Identify the recurring consistency-critical characters required by the selected clip and make each one ready by following [character-readiness.md](character-readiness.md).
-3. Use `reference_scene_id` only when the predecessor's final composition should become the literal opening frame.
-4. If continuity is requested, inspect the predecessor's exact final frame before prompt creation.
+3. When the selected clip continues the same physical moment as its predecessor, inspect the predecessor's exact final frame before prompt creation.
+4. Use `reference_scene_id` when that inspected frame should become the literal opening anchor. Do not use it for an intentional discontinuity such as a change of time, place, perspective, or composition.
 5. Invoke the project-local `direct-video-scene` skill with the approved clip brief, creative contract, adjacent scene states, ready characters, and inspected continuity evidence. Use its directed-scene contract as the creative input to prompt production.
 
 ## Create and persist the prompt
