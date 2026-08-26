@@ -6,8 +6,13 @@ import argparse
 import base64
 import mimetypes
 import os
+import sys
 from pathlib import Path
 from typing import Any, Sequence
+
+# Prevent local script directory from shadowing top-level google namespace package
+if sys.path and Path(sys.path[0]).resolve() == Path(__file__).parent.resolve():
+    sys.path.pop(0)
 
 try:
     from .base import BaseProvider, ProviderUnavailableError, VideoError
