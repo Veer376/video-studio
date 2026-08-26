@@ -4,6 +4,7 @@ import io
 import json
 import sys
 import unittest
+import urllib.error
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -120,6 +121,69 @@ class FlowImageGenerationTests(unittest.TestCase):
             self.assertEqual(first, second)
             self.assertEqual(1, upload_calls)
             self.assertEqual(1, history_calls)
+
+    def test_missing_reference_is_reuploaded_and_retried_twice(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            reference = root / "hero.png"
+            reference.write_bytes(png_bytes())
+            output = root / "result.png"
+            references = [
+                illustrate.ReferenceImage(reference, "canonical appearance of Hero")
+            ]
+            upload_calls = 0
+            generation_calls = 0
+
+            def missing_media_error() -> urllib.error.HTTPError:
+                payload = io.BytesIO(
+                    json.dumps(
+                        {
+                            "detail": (
+                                "Media ID stale-id is unavailable, and re-uploading "
+                                "the history asset failed"
+                            )
+                        }
+                    ).encode("utf-8")
+                )
+                return urllib.error.HTTPError(
+                    "http://flow.test/v1/images/generations",
+                    400,
+                    "Bad Request",
+                    hdrs=None,
+                    fp=payload,
+                )
+
+            def fake_json_request(url, *, body=None, timeout=30):
+                nonlocal upload_calls, generation_calls
+                if url.endswith("/v1/upload"):
+                    upload_calls += 1
+                    return {"media_id": f"media-{upload_calls}"}
+                if url.endswith("/v1/images/generations"):
+                    generation_calls += 1
+                    if generation_calls <= 2:
+                        raise missing_media_error()
+                    return {"data": [{"url": "https://example.test/generated.jpg"}]}
+                raise AssertionError(url)
+
+            def fake_download(_url: str, out_path: Path) -> None:
+                out_path.write_bytes(png_bytes())
+
+            with (
+                patch.object(flow, "_json_request", side_effect=fake_json_request),
+                patch.object(flow, "_download_image_as_png", side_effect=fake_download),
+            ):
+                flow.generate_image(
+                    model="pro",
+                    prompt="Hero remains seated",
+                    aspect_ratio="16:9",
+                    out_path=output,
+                    reference_images=references,
+                    base_url="http://flow.test",
+                )
+
+            self.assertEqual(3, generation_calls)
+            self.assertEqual(3, upload_calls)
+            self.assertTrue(output.exists())
 
     def test_project_orchestration_dispatches_flow_with_character_reference(self) -> None:
         with TemporaryDirectory() as tmp:

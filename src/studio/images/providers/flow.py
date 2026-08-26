@@ -111,6 +111,20 @@ def _http_error_detail(exc: urllib.error.HTTPError) -> str:
         return str(exc)
 
 
+def _is_missing_reference_error(status_code: int, detail: str) -> bool:
+    """Return True when Flow rejected a generation because a media reference vanished."""
+    if status_code not in (400, 404):
+        return False
+    normalized = detail.lower()
+    return (
+        "media not found in history.json" in normalized
+        or (
+            "media id" in normalized
+            and any(marker in normalized for marker in ("unavailable", "not found", "missing"))
+        )
+    )
+
+
 def require_ready(base_url: str | None = None) -> dict:
     """Validate that Flow backend, Chrome extension, and captured key are ready."""
     base = (base_url or resolve_base_url()).rstrip("/")
@@ -299,9 +313,14 @@ def generate_image(
     if ref_media_ids:
         body["ref_media_ids"] = ref_media_ids
 
-    max_attempts = 3
+    # Normal path: reuse verified cached media IDs. If Flow loses one anyway,
+    # invalidate the cache, re-upload the local reference files, and retry twice
+    # before surfacing the failure. This keeps the fast path while making long
+    # continuity chains resilient to transient Flow media-history loss.
+    max_attempts = 5
+    max_reference_recoveries = 2
     response: dict | None = None
-    reference_recovery_used = False
+    reference_recoveries = 0
     for attempt in range(1, max_attempts + 1):
         try:
             response = _json_request(
@@ -312,17 +331,16 @@ def generate_image(
             break
         except urllib.error.HTTPError as exc:
             detail = _http_error_detail(exc)
-            missing_reference = (
-                exc.code == 404
-                and references
-                and "Media not found in history.json" in detail
-            )
-            if missing_reference and not reference_recovery_used:
-                print("  ⚠ Flow lost a cached reference media ID; re-uploading references once...")
+            missing_reference = references and _is_missing_reference_error(exc.code, detail)
+            if missing_reference and reference_recoveries < max_reference_recoveries:
+                reference_recoveries += 1
+                print(
+                    "  ⚠ Flow lost a reference media ID; re-uploading references "
+                    f"(recovery {reference_recoveries}/{max_reference_recoveries})..."
+                )
                 for reference in references:
                     _invalidate_reference_cache(reference.path)
                 body["ref_media_ids"] = prepare_reference_ids(force_upload=True)
-                reference_recovery_used = True
                 continue
             if exc.code in (429, 500, 502, 503, 504) and attempt < max_attempts:
                 wait = 2.0 * attempt
