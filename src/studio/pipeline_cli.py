@@ -11,7 +11,7 @@ from studio.pipeline_scripts.narration import VOICE_STEPS, run_voice_step
 def _add_production_overrides(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--image-provider",
-        choices=("cloudflare", "google"),
+        choices=("cloudflare", "flow", "google"),
         help="Temporarily override the configured illustration provider.",
     )
     parser.add_argument(

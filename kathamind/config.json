@@ -1,9 +1,9 @@
 {
   "audience": "Hindi-speaking adults interested in practical spiritual, philosophical, and motivational stories",
   "production": {
-    "_comment": "Options: image_provider is cloudflare or google; image_model is a Cloudflare @cf/... ID or Google gemini-3.1-flash-image, gemini-3-pro-image, or gemini-2.5-flash-image; subtitles, zoom, and closing_fade are true or false; short may override subtitles, zoom, and closing_fade.",
-    "image_provider": "google",
-    "image_model": "gemini-3-pro-image",
+    "_comment": "Options: image_provider is cloudflare, flow, or google; Flow image_model may be lite (free/harbor_seal), standard (narwhal), or pro (gem_pix_2); Cloudflare and Google model IDs remain supported; subtitles, zoom, and closing_fade are true or false; short may override subtitles, zoom, and closing_fade.",
+    "image_provider": "flow",
+    "image_model": "pro",
     "subtitles": false,
     "zoom": true,
     "closing_fade": true,

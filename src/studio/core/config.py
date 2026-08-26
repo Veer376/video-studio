@@ -7,7 +7,7 @@ from studio.core.io import read_json
 from studio.core.paths import project_root
 
 
-SUPPORTED_IMAGE_PROVIDERS = {"cloudflare", "google"}
+SUPPORTED_IMAGE_PROVIDERS = {"cloudflare", "flow", "google"}
 
 
 @dataclass(frozen=True)

@@ -57,9 +57,9 @@ Repository defaults live in `kathamind/config.json` under `production`:
 
 ```json
 {
-  "_comment": "image_provider: cloudflare|google; subtitles/zoom/closing_fade: true|false; short overrides render settings for Shorts",
-  "image_provider": "google",
-  "image_model": "gemini-3-pro-image",
+  "_comment": "image_provider: cloudflare|flow|google; subtitles/zoom/closing_fade: true|false; short overrides render settings for Shorts",
+  "image_provider": "flow",
+  "image_model": "pro",
   "subtitles": false,
   "zoom": true,
   "closing_fade": true,
@@ -70,14 +70,14 @@ Repository defaults live in `kathamind/config.json` under `production`:
 }
 ```
 
-Supported image providers are `cloudflare` and `google`. The `short` object overrides `subtitles`, `zoom`, and `closing_fade` for `9:16` projects targeting at most 180 seconds; otherwise the base values apply. `closing_fade` controls whether the video is extended by 2 seconds at the end and faded out gradually to black (default `true` for long videos, disabled for Shorts). Provider and model are never stored in `session.json`.
+Supported image providers are `cloudflare`, `flow`, and `google`. Flow's `lite` alias maps to the free `harbor_seal` model, `standard` maps to `narwhal`, and `pro` maps to `gem_pix_2`. Flow uses the local `flow-agent` backend and Chrome extension, including ordered reference-image uploads for character and previous-scene continuity. The `short` object overrides `subtitles`, `zoom`, and `closing_fade` for `9:16` projects targeting at most 180 seconds; otherwise the base values apply. `closing_fade` controls whether the video is extended by 2 seconds at the end and faded out gradually to black (default `true` for long videos, disabled for Shorts). Provider and model are never stored in `session.json`.
 
 An outer pipeline invocation may temporarily override its internal stages:
 
 ```bash
 story-video run library/<project_name> \
-  --image-provider google \
-  --image-model gemini-3.1-flash-image \
+  --image-provider flow \
+  --image-model pro \
   --subtitles \
   --no-zoom \
   --no-closing-fade \
@@ -86,6 +86,8 @@ story-video run library/<project_name> \
 ```
 
 Without these flags, `kathamind/config.json` supplies the defaults. Overrides do not mutate project state. If the affected stage is already complete or has cached artifacts, use `--force` or the matching `--force-stage`; the pipeline rejects an override that would otherwise be ignored. After editing repository defaults, force each affected stage because cached artifacts are not automatically invalidated.
+
+For Flow, start the local backend with `~/.local/bin/flow`, keep the Flow Agent Chrome extension connected, and open/refresh Google Flow while signed in so the bearer key is captured. `image_model: lite` is the free image path and supports ordered local reference images for continuity.
 
 For Google, set `image_provider` to `google`, set `image_model` to `gemini-3.1-flash-image`, and configure Application Default Credentials plus `GOOGLE_CLOUD_PROJECT` before illustration.
 

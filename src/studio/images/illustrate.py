@@ -11,7 +11,7 @@ from PIL import Image
 
 from studio.core.config import load_production_config
 from studio.core.paths import is_root_asset_locator, resolve_asset_locator
-from studio.images.providers import cloudflare, google
+from studio.images.providers import cloudflare, flow, google
 
 IMAGE_WIDTH = 1920
 IMAGE_HEIGHT = 1080
@@ -322,7 +322,11 @@ def main():
     parser = argparse.ArgumentParser(description="Generate canonical characters and scene images")
     parser.add_argument("--project-dir", required=True, help="Path to the project directory")
     parser.add_argument("--force", action="store_true", help="Re-generate even if image already exists")
-    parser.add_argument("--provider", choices=("cloudflare", "google"), help="Override configured image provider")
+    parser.add_argument(
+        "--provider",
+        choices=("cloudflare", "flow", "google"),
+        help="Override configured image provider",
+    )
     parser.add_argument("--model", help="Override configured image model")
     parser.add_argument("--concurrency", type=int, default=2, help="Number of parallel generation threads")
     parser.add_argument(
@@ -339,9 +343,10 @@ def main():
     credentials = cloudflare.load_credentials()
     credentials_reported = False
     google_client = None
+    flow_ready = False
 
     def require_provider() -> None:
-        nonlocal credentials_reported, google_client
+        nonlocal credentials_reported, google_client, flow_ready
         if provider_name == "cloudflare":
             if not credentials:
                 raise RuntimeError(
@@ -351,6 +356,10 @@ def main():
             if not credentials_reported:
                 print(f"  Loaded {len(credentials)} Cloudflare account credential pair(s).")
                 credentials_reported = True
+        elif provider_name == "flow":
+            if not flow_ready:
+                flow.require_ready()
+                flow_ready = True
         elif google_client is None:
             google_client = google.create_client()
 
@@ -381,6 +390,12 @@ def main():
     model_name = production.image_model
     if provider_name == "cloudflare":
         model_name = cloudflare.normalize_model(model_name)
+    elif provider_name == "flow":
+        try:
+            model_name = flow.normalize_model(model_name)
+        except ValueError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            sys.exit(1)
     else:
         try:
             model_name = google.normalize_model(model_name)
@@ -418,6 +433,15 @@ def main():
                 prompt=prompt,
                 width=width,
                 height=height,
+                out_path=out_path,
+                reference_images=reference_images,
+            )
+            return
+        if provider_name == "flow":
+            flow.generate_image(
+                model=model_name,
+                prompt=prompt,
+                aspect_ratio=aspect_ratio,
                 out_path=out_path,
                 reference_images=reference_images,
             )

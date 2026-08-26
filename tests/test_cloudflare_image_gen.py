@@ -227,6 +227,10 @@ class CloudflareImageGenTests(unittest.TestCase):
 
             argv = [
                 "cloudflare_image_gen.py",
+                "--provider",
+                "cloudflare",
+                "--model",
+                "@cf/black-forest-labs/flux-2-klein-4b",
                 "--project-dir",
                 str(project),
                 "--concurrency",
@@ -307,6 +311,10 @@ class CloudflareImageGenTests(unittest.TestCase):
 
             argv = [
                 "cloudflare_image_gen.py",
+                "--provider",
+                "cloudflare",
+                "--model",
+                "@cf/black-forest-labs/flux-2-klein-4b",
                 "--project-dir",
                 str(project),
                 "--phase",
@@ -423,6 +431,10 @@ class CloudflareImageGenTests(unittest.TestCase):
 
             argv = [
                 "cloudflare_image_gen.py",
+                "--provider",
+                "cloudflare",
+                "--model",
+                "@cf/black-forest-labs/flux-2-klein-4b",
                 "--project-dir",
                 str(project),
                 "--phase",
@@ -566,6 +578,10 @@ class CloudflareImageGenTests(unittest.TestCase):
 
             argv = [
                 "cloudflare_image_gen.py",
+                "--provider",
+                "cloudflare",
+                "--model",
+                "@cf/black-forest-labs/flux-2-klein-4b",
                 "--project-dir",
                 str(project),
                 "--phase",
