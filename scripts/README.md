@@ -27,6 +27,7 @@ This directory contains durable, reusable project pipeline and media utilities. 
 
 | Script | Purpose | Key Flags | Example |
 |---|---|---|---|
+| `project.py` | Create the canonical files and directories for a new video project | `create`, `--title`, `--aspect-ratio`, `--slug` | `python3 scripts/project.py create --title "Flying Auto" --aspect-ratio 9:16` |
 | `generate_scenes.py` | Generate an active scene video or restore an archived version | `--config`, `--scene`, `--regenerate`, `--restore` | `python3 scripts/generate_scenes.py --config stories/story/scenes.json --scene s001` |
 | `extract_frame.py` | Extract pristine first, last, or timestamp frame from a video | `-i`, `-o`, `-p {last,first,timestamp}`, `-t <secs>` | `python3 scripts/extract_frame.py -i clip.mp4 -p last -o last_frame.png` |
 | `concat_videos.py` | Seamlessly concatenate multiple MP4 videos in sequence | `-i <file1> <file2> ...`, `-o <merged.mp4>` | `python3 scripts/concat_videos.py -i s01.mp4 s02.mp4 -o full.mp4` |
