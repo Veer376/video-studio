@@ -1,6 +1,6 @@
 ---
 name: produce-story
-description: "Plan, prompt, generate, review, repair, and render Gemini Omni Flash stories that use the Video Studio project structure. Use for end-to-end story production or when continuing a story by whole story, part, or clip. Do not use for isolated prompt-only requests, still-image character design, or unrelated video models."
+description: "Plan, prompt, generate, review, repair, and render Gemini Omni Flash stories that use the Video Studio project structure. Use for end-to-end story production or when continuing a story by whole story, part, or scene. Do not use for isolated prompt-only requests, still-image character design, or unrelated video models."
 ---
 
 # Produce Story
@@ -19,7 +19,7 @@ If the user has not specified the working scope, ask once whether to work on:
 
 - the complete story;
 - one part; or
-- one clip.
+- one scene.
 
 Use the chosen scope until changed. Working scope defines the target boundary, but scene production is strictly sequential: prompt, generate, and review one scene at a time.
 
@@ -29,8 +29,8 @@ In autonomous execution, advance through the sequential scene pipeline to comple
 
 - For story design or revision, read [references/story-planning.md](references/story-planning.md).
 - When a required recurring character is missing or incomplete, read [references/character-readiness.md](references/character-readiness.md).
-- For an approved clip or part, read [references/scene-production.md](references/scene-production.md).
-- After every generated or replaced clip, read [references/clip-review.md](references/clip-review.md).
+- For an approved scene, read [references/scene-production.md](references/scene-production.md).
+- After every generated or replaced scene, read [references/clip-review.md](references/clip-review.md).
 - Render with the project renderer only after the requested active clips exist and have been accepted.
 
 ## Hard boundaries
@@ -47,4 +47,4 @@ In autonomous execution, advance through the sequential scene pipeline to comple
 
 ## Completion
 
-Complete only the requested scope. Report the project or scene paths, generation results, review decisions, accepted limitations, and any continuity repair required by the next clip.
+Complete only the requested scope. Report the project or scene paths, generation results, review decisions, accepted limitations, and any continuity repair required by the next scene.
