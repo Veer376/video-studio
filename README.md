@@ -42,7 +42,7 @@ Reusable assets stay at studio level. Files needed only by one production projec
 Each new directory under `projects/<project-slug>/` may contain:
 
 ```text
-story.md         creative direction, story parts, and scene briefs
+story.md         source constraints, story, direction, and scene briefs
 characters.json recurring character handles and reference images
 scenes.json     final scene prompts and generation inputs
 assets/         project-specific visual assets
@@ -62,7 +62,7 @@ The core sources of truth are:
 
 ## Main tools
 
-- `produce-story`: runs the story-production workflow at whole-story, part, or clip scope.
+- `produce-story`: runs the story-production workflow at whole-story or scene scope.
 - `compile-omni-scene`: translates approved scene direction into an Omni authoring prompt and validates provider capability.
 - `create-prompt`: clarifies and saves one standalone prompt without executing it.
 - `scripts/generate_scenes.py`: generates active clips and archives rejected versions before replacement.

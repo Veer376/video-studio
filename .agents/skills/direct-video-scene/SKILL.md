@@ -35,7 +35,7 @@ Keep the selected mode for the active task until the user changes it. In autonom
 Use the available:
 
 - rough scene brief and exact duration;
-- story-wide creative contract;
+- project direction from `story.md`, when present;
 - adjacent-scene entry and exit states;
 - characters, location, props, and dialogue already established;
 - inspected visual continuity evidence when the scene must begin from existing footage or a curated frame.
