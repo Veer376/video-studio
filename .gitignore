@@ -15,3 +15,4 @@ stories/
 temp/
 tests/*
 !tests/test_*.py
+.claude
