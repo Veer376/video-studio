@@ -23,6 +23,7 @@ Gemini Omni Flash prompt creation is delegated to the project-local `compile-omn
 .agents/skills/       project-local agent workflows and utilities
 app/                  desktop and terminal command interfaces
 assets/               reusable characters, locations, and vehicles
+voices.json           reusable off-screen narration voice profiles
 prompts/              standalone prompts for optional or ad-hoc workflows
 scripts/              maintained generation, review, and rendering utilities
 projects/             canonical production projects
@@ -36,6 +37,12 @@ GEMINI.md              Gemini entry point to the repository rules
 ```
 
 Reusable assets stay at studio level. Files needed only by one production project stay inside that project. Temporary experiments are not production state.
+
+Off-screen recurring narrators use `@narration-*` handles registered in
+project-root `voices.json`. Scene prompts place the handle directly at the
+voiceover source (for example, `A single off-screen @narration-kathamind
+voiceover...`). Narration handles are audio-only and do not belong in the
+scene `subjects` array.
 
 ## Production project structure
 

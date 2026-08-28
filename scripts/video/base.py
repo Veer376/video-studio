@@ -12,6 +12,7 @@ from typing import Any, Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 HANDLE_PATTERN = re.compile(r"(?<![A-Za-z0-9_])@[A-Za-z][A-Za-z0-9_-]*")
+NARRATION_HANDLE_PREFIX = "@narration-"
 
 
 class VideoError(RuntimeError):
@@ -39,6 +40,42 @@ class CharacterEntry:
     profile: str = ""
     description: str = ""
     extra: dict[str, Any] = field(default_factory=dict)
+
+
+def load_voices(project_root: Path = PROJECT_ROOT) -> dict[str, str]:
+    """Load optional project-level off-screen narration voice profiles."""
+    path = project_root / "voices.json"
+    if not path.is_file():
+        return {}
+
+    data = load_json(path)
+    entries = data.get("voices")
+    if entries is None:
+        return {}
+    if not isinstance(entries, list):
+        raise ConfigError(f"{path} must contain a voices array")
+
+    voices: dict[str, str] = {}
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise ConfigError(f"Every voice in {path} must be an object")
+        handle = entry.get("handle")
+        profile = entry.get("profile")
+        if (
+            not isinstance(handle, str)
+            or not HANDLE_PATTERN.fullmatch(handle)
+            or not handle.startswith(NARRATION_HANDLE_PREFIX)
+        ):
+            raise ConfigError(
+                f"Invalid narration handle: {handle!r} in {path}; "
+                f"expected {NARRATION_HANDLE_PREFIX}<identity>"
+            )
+        if not isinstance(profile, str) or not profile.strip():
+            raise ConfigError(f"Narration voice {handle} in {path} has no profile")
+        if handle in voices:
+            raise ConfigError(f"Duplicate narration handle: {handle} in {path}")
+        voices[handle] = profile.strip()
+    return voices
 
 
 @dataclass(frozen=True)
@@ -192,7 +229,16 @@ def compile_scene(
     if len(subjects) != len(set(subjects)):
         raise ConfigError(f"Scene {scene_id} contains duplicate subject handles")
 
-    prompt_handles = set(HANDLE_PATTERN.findall(prompt))
+    prompt_handle_order = list(dict.fromkeys(HANDLE_PATTERN.findall(prompt)))
+    narration_handles = [
+        handle
+        for handle in prompt_handle_order
+        if handle.startswith(NARRATION_HANDLE_PREFIX)
+    ]
+    character_prompt_handles = [
+        handle for handle in prompt_handle_order if handle not in narration_handles
+    ]
+    prompt_handles = set(character_prompt_handles)
     subject_handles = set(subjects)
     missing_from_prompt = subject_handles - prompt_handles
     missing_from_subjects = prompt_handles - subject_handles
@@ -208,9 +254,18 @@ def compile_scene(
     if unknown:
         raise ConfigError(f"Scene {scene_id} uses unknown handles: {sorted(unknown)}")
 
+    voices = load_voices(project_root)
+    unknown_narration = set(narration_handles) - set(voices)
+    if unknown_narration:
+        raise ConfigError(
+            f"Scene {scene_id} uses unknown narration handles: {sorted(unknown_narration)}"
+        )
+
     # Preserve exact handle-token order from the prompt. Using str.index/replace
     # would corrupt prefixed handles such as @hero and @hero-alt.
-    handle_order = list(dict.fromkeys(HANDLE_PATTERN.findall(prompt)))
+    # Only visual character handles bind image references. Narration handles stay
+    # as semantic audio-only handles inside the authored prompt.
+    handle_order = character_prompt_handles
     token_by_handle = {
         handle: f"<IMAGE_REF_{index}>"
         for index, handle in enumerate(handle_order)
@@ -222,6 +277,8 @@ def compile_scene(
     # Annotated prompt with profiles for inspection
     def annotate_handle(match: re.Match[str]) -> str:
         handle = match.group(0)
+        if handle.startswith(NARRATION_HANDLE_PREFIX):
+            return handle
         char_entry = characters[handle]
         profile = getattr(char_entry, "profile", None) or (
             char_entry.get("profile") if isinstance(char_entry, dict) else ""
@@ -229,6 +286,18 @@ def compile_scene(
         return f"{handle} ({profile})" if profile else handle
 
     annotated_prompt = HANDLE_PATTERN.sub(annotate_handle, raw_prompt)
+
+    voice_brief = ""
+    if narration_handles:
+        voice_lines = ["NARRATION VOICE PROFILES:"]
+        for handle in narration_handles:
+            voice_lines.append(f"- {handle}: {voices[handle]}")
+        voice_lines.append(
+            "These @narration-* handles are off-screen voice identities only. "
+            "Never visualize them as people or characters."
+        )
+        voice_brief = "\n".join(voice_lines)
+        annotated_prompt = f"{voice_brief}\n\n{annotated_prompt}"
 
     if first_frame is not None:
         if not first_frame.is_file():
@@ -252,7 +321,12 @@ def compile_scene(
         next_image_number += 1
 
     prompt = HANDLE_PATTERN.sub(
-        lambda match: token_by_handle[match.group(0)], prompt
+        lambda match: (
+            match.group(0)
+            if match.group(0).startswith(NARRATION_HANDLE_PREFIX)
+            else token_by_handle[match.group(0)]
+        ),
+        prompt,
     )
 
     reference_images = scene.get("reference_images", [])
@@ -282,6 +356,8 @@ def compile_scene(
         prompt_blocks.append("\n".join(declarations))
     if char_brief:
         prompt_blocks.append(char_brief)
+    if voice_brief:
+        prompt_blocks.append(voice_brief)
     prompt_blocks.append(prompt)
     compiled_prompt = "\n\n".join(prompt_blocks)
 

@@ -184,6 +184,18 @@ Read the line aloud mentally and ensure it fits its time window with margin. Nev
 A single off-screen [voice] voiceover says exactly: "[line]". No character dialogue. Sound design: [ambience]. [Music instruction.]
 ```
 
+For a registered project narrator, put its `@narration-*` handle exactly at the
+voice source in that sentence, for example:
+
+```text
+A single off-screen @narration-kathamind voiceover says exactly: "[line]". No character dialogue.
+```
+
+`@narration-*` handles are audio-only identities resolved from project-root
+`voices.json`. Do not put them in a scene's `subjects` array and never describe
+or stage them as visible characters. The runtime compiler injects the resolved
+voice profile once while preserving the handle in the authored prompt.
+
 **Ambient sound only**
 
 ```text
