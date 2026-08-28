@@ -86,6 +86,7 @@ class CompiledScene:
     handle_order: list[str]
     raw_prompt: str = ""
     annotated_prompt: str = ""
+    flow_prompt: str = ""
 
 
 def resolve_path(project_root: Path, configured_path: str | Path) -> Path:
@@ -274,19 +275,6 @@ def compile_scene(
     declarations: list[str] = []
     next_image_number = 1
 
-    # Annotated prompt with profiles for inspection
-    def annotate_handle(match: re.Match[str]) -> str:
-        handle = match.group(0)
-        if handle.startswith(NARRATION_HANDLE_PREFIX):
-            return handle
-        char_entry = characters[handle]
-        profile = getattr(char_entry, "profile", None) or (
-            char_entry.get("profile") if isinstance(char_entry, dict) else ""
-        )
-        return f"{handle} ({profile})" if profile else handle
-
-    annotated_prompt = HANDLE_PATTERN.sub(annotate_handle, raw_prompt)
-
     voice_brief = ""
     if narration_handles:
         voice_lines = ["NARRATION VOICE PROFILES:"]
@@ -297,7 +285,6 @@ def compile_scene(
             "Never visualize them as people or characters."
         )
         voice_brief = "\n".join(voice_lines)
-        annotated_prompt = f"{voice_brief}\n\n{annotated_prompt}"
 
     if first_frame is not None:
         if not first_frame.is_file():
@@ -361,6 +348,20 @@ def compile_scene(
     prompt_blocks.append(prompt)
     compiled_prompt = "\n\n".join(prompt_blocks)
 
+    # Flow keeps project @handles in the authored scene prompt. Define each
+    # recurring identity once above that prompt instead of expanding the full
+    # character profile at every handle occurrence. This keeps the directing
+    # prompt intact while still giving Flow the same persistent identity/voice
+    # context that the Gemini transport receives through <IMAGE_REF_N> blocks.
+    flow_character_brief = format_flow_character_brief(handle_order, characters)
+    flow_blocks = []
+    if flow_character_brief:
+        flow_blocks.append(flow_character_brief)
+    if voice_brief:
+        flow_blocks.append(voice_brief)
+    flow_blocks.append(raw_prompt)
+    flow_prompt = "\n\n".join(flow_blocks)
+
     if first_frame is not None and len(images) == 1:
         task = "image_to_video"
     else:
@@ -372,7 +373,8 @@ def compile_scene(
         task=task,
         handle_order=handle_order,
         raw_prompt=raw_prompt,
-        annotated_prompt=annotated_prompt,
+        annotated_prompt=flow_prompt,
+        flow_prompt=flow_prompt,
     )
 
 
@@ -397,6 +399,25 @@ def format_character_brief(
                 lines.append(f"  {c.description}")
         else:
             lines.append(f"- {token} ({handle}): [Unregistered character]")
+    return "\n".join(lines)
+
+
+def format_flow_character_brief(
+    handles: Sequence[str],
+    characters: dict[str, CharacterEntry],
+) -> str:
+    """Format one-time Flow-facing character profiles keyed by project handle."""
+    if not handles:
+        return ""
+    lines = ["CHARACTER MORPHOLOGY & PROFILES:"]
+    for handle in handles:
+        if handle in characters:
+            c = characters[handle]
+            lines.append(f"- {handle} ({c.name}):")
+            if c.profile:
+                lines.append(f"  {c.profile}")
+        else:
+            lines.append(f"- {handle}: [Unregistered character]")
     return "\n".join(lines)
 
 

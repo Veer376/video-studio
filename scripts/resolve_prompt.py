@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import shlex
 import sys
 from pathlib import Path
 
@@ -17,6 +18,7 @@ try:
         resolve_characters_path,
         resolve_path,
     )
+    from .video.flow import prepare_scene_input
 except ImportError:
     from video.base import (
         PROJECT_ROOT,
@@ -27,6 +29,7 @@ except ImportError:
         resolve_characters_path,
         resolve_path,
     )
+    from video.flow import prepare_scene_input
 
 
 DEFAULT_CONFIG = PROJECT_ROOT / "stories" / "chhotu-motu-rocket-tractor" / "scenes.json"
@@ -93,7 +96,7 @@ def main() -> None:
         print(f"{'='*70}")
 
         if args.format in {"annotated", "all"}:
-            print("\n[PROMPT WITH INLINE PROFILES]:")
+            print("\n[RESOLVED FLOW AUTHORING PROMPT - PROFILES DEFINED ONCE]:")
             print(compiled.annotated_prompt)
 
         if args.format in {"gemini", "all"}:
@@ -104,11 +107,17 @@ def main() -> None:
                 print(f"    [{idx}] {img}")
 
         if args.format in {"flow", "all"}:
-            print("\n[FLOW PROMPT & COMMAND]:")
-            # For Flow, we can keep the raw prompt with @handles or compiled prompt
-            ref_args = " ".join(f'--ref-file "{img}"' for img in compiled.images)
-            cmd = f'python3 -m scripts.video --provider flow --prompt "{compiled.raw_prompt}" {ref_args} -o ./videos/{scene_id}.mp4'
-            print(f"  Prompt : {compiled.raw_prompt}")
+            flow_input = prepare_scene_input(compiled, None)
+            print("\n[FLOW PRODUCTION PROMPT]:")
+            ref_args = " ".join(
+                f"--ref-file {shlex.quote(str(img))}" for img in flow_input.images
+            )
+            cmd = (
+                "python3 -m scripts.video --provider flow "
+                f"--prompt {shlex.quote(flow_input.prompt)} {ref_args} "
+                f"-o ./videos/{scene_id}.mp4"
+            )
+            print(f"  Prompt : {flow_input.prompt}")
             print(f"  Command: {cmd}")
 
         if args.format in {"brief", "all"}:

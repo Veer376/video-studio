@@ -73,7 +73,7 @@ def prepare_scene_input(
     first_frame: Path | None,
 ) -> FlowSceneInput:
     """Serialize a compiled scene for the Flow endpoint without changing its source prompt."""
-    prompt = compiled.annotated_prompt or compiled.raw_prompt
+    prompt = compiled.flow_prompt or compiled.annotated_prompt or compiled.raw_prompt
     if not prompt.strip():
         raise VideoError("Compiled Flow scene has no authoring prompt")
 
