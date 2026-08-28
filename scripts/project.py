@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create canonical story-video project directories and initial artifacts."""
+"""Create canonical video-project directories and initial artifacts."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 class ProjectSetupError(ValueError):
-    """Raised when a story project cannot be initialized safely."""
+    """Raised when a video project cannot be initialized safely."""
 
 
 def derive_slug(title: str) -> str:
@@ -106,14 +106,14 @@ def create_project(
         raise ProjectSetupError("Aspect ratio must be 16:9 or 9:16")
 
     project_slug = validate_slug(slug) if slug is not None else derive_slug(clean_title)
-    stories_root = project_root.resolve() / "stories"
-    stories_root.mkdir(parents=True, exist_ok=True)
-    destination = stories_root / project_slug
+    projects_root = project_root.resolve() / "projects"
+    projects_root.mkdir(parents=True, exist_ok=True)
+    destination = projects_root / project_slug
     if destination.exists():
         raise ProjectSetupError(f"Project already exists: {destination}")
 
     staging = Path(
-        tempfile.mkdtemp(prefix=f".{project_slug}.tmp-", dir=stories_root)
+        tempfile.mkdtemp(prefix=f".{project_slug}.tmp-", dir=projects_root)
     )
     try:
         for relative in (
@@ -135,7 +135,7 @@ def create_project(
             {
                 "model": DEFAULT_MODEL,
                 "aspect_ratio": aspect_ratio,
-                "characters_file": f"stories/{project_slug}/characters.json",
+                "characters_file": f"projects/{project_slug}/characters.json",
                 "scenes": [],
             },
         )
@@ -177,12 +177,12 @@ def create_project(
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="project",
-        description="Manage canonical story-video projects.",
+        description="Manage canonical video projects.",
     )
     commands = parser.add_subparsers(dest="command", required=True)
 
     create = commands.add_parser(
-        "create", help="Create an initialized project under stories/"
+        "create", help="Create an initialized project under projects/"
     )
     create.add_argument("--title", required=True, help="Human-readable story title")
     create.add_argument(

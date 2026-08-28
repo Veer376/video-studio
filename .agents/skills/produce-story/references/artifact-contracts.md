@@ -1,14 +1,14 @@
 # Artifact contracts
 
-## Story directory
+## Production project directory
 
 ```text
-<project-root>/
+<studio-root>/
   characters.json          ← global character registry (source of truth for identity)
   assets/characters/       ← character reference images
-  stories/<story-slug>/
+  projects/<project-slug>/
     story.md
-    characters.json        ← story-specific characters only; empty array when all are global
+    characters.json        ← project-specific characters only; empty array when all are global
     scenes.json
     assets/
     videos/
@@ -18,11 +18,11 @@
     output/final-video.mp4
 ```
 
-Reusable characters and reusable visual assets remain under the project-level `assets/` directory.
+Reusable characters and reusable visual assets remain under the studio-level `assets/` directory. Existing production directories under `stories/` remain valid and are not relocated.
 
-## New-story initialization
+## New-project initialization
 
-Create `characters.json` with an empty `characters` array. Create `scenes.json` with the selected Omni model, aspect ratio, project-relative `characters_file`, and an empty `scenes` array. Do not create dialogue metadata, take folders, or a render manifest.
+Run `python3 scripts/project.py create --title <title> --aspect-ratio <16:9|9:16> [--slug <slug>]`. The command creates and validates `story.md`, an empty project character registry, `scenes.json`, and the canonical directories atomically.
 
 ## `story.md`
 
@@ -98,7 +98,7 @@ Before creating or revising any part, reread the current creative contract and s
 
 Character identity is split across two files:
 
-**Global registry** (`characters.json` at project root) — source of truth for all reusable characters. Contains the full entry:
+**Studio registry** (`characters.json` at studio root) — source of truth for all reusable characters. Contains the full entry:
 
 ```json
 {
@@ -112,7 +112,7 @@ Character identity is split across two files:
 
 Follow [character-readiness.md](character-readiness.md) when authoring or validating these fields.
 
-**Story registry** (`stories/<slug>/characters.json`) — story-specific characters only. Uses the same full schema. For stories where all characters are global, this file holds an empty array:
+**Project registry** (`projects/<slug>/characters.json`) — project-specific characters only. Uses the same full schema. For projects where all characters are global, this file holds an empty array:
 
 ```json
 {
@@ -120,9 +120,9 @@ Follow [character-readiness.md](character-readiness.md) when authoring or valida
 }
 ```
 
-Story-level entries for script compatibility (when a global character's `reference_path` must be confirmed for a specific story) may contain only `handle`, `name`, and `reference_path`.
+Project-level entries for script compatibility (when a studio character's `reference_path` must be confirmed for a specific project) may contain only `handle`, `name`, and `reference_path`.
 
-**Resolution rule:** for any `@handle`, check the story registry first, then fall back to the global registry. If an entry exists in both, the story entry wins (allows per-story overrides).
+**Resolution rule:** for any `@handle`, check the project registry first, then fall back to the studio registry. If an entry exists in both, the project entry wins.
 
 Register only recurring characters whose appearance must remain consistent across clips. Describe one-off or incidental figures directly in the scene prompt.
 
@@ -136,11 +136,11 @@ Register only recurring characters whose appearance must remain consistent acros
   "subjects": ["@name"],
   "reference_images": [],
   "reference_scene_id": null,
-  "output_path": "stories/<story-slug>/videos/s001.mp4"
+  "output_path": "projects/<project-slug>/videos/s001.mp4"
 }
 ```
 
-`first_frame_path` is optional and is used only for an inspected curated continuity frame. All paths are project-relative.
+`first_frame_path` is optional and is used only for an inspected curated continuity frame. All persisted paths are repository-relative.
 
 ## Review entry
 
@@ -150,9 +150,9 @@ Save one report at `reviews/<scene-id>.json`:
 {
   "scene_id": "s001",
   "decision": "needs_fix",
-  "video_path": "stories/<story-slug>/videos/s001.mp4",
+  "video_path": "projects/<project-slug>/videos/s001.mp4",
   "video_sha256": "<written by the runner>",
-  "contact_sheet_path": "stories/<story-slug>/temp/contact_sheets/s001.png",
+  "contact_sheet_path": "projects/<project-slug>/temp/contact_sheets/s001.png",
   "media_valid": true,
   "findings": ["00:04 character disappears through an unintended snap"],
   "diagnosis": "model continuity failure during the camera move",

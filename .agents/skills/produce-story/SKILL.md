@@ -1,6 +1,6 @@
 ---
 name: produce-story
-description: "Plan, prompt, generate, review, repair, and render Gemini Omni Flash stories that use the video-project story-directory structure. Use for end-to-end story production or when continuing a story by whole story, part, or clip. Do not use for isolated prompt-only requests, still-image character design, or unrelated video models."
+description: "Plan, prompt, generate, review, repair, and render Gemini Omni Flash stories that use the Video Studio project structure. Use for end-to-end story production or when continuing a story by whole story, part, or clip. Do not use for isolated prompt-only requests, still-image character design, or unrelated video models."
 ---
 
 # Produce Story
@@ -9,9 +9,9 @@ Orchestrate the complete story workflow without duplicating model-specific promp
 
 ## Required context
 
-1. Locate the project root and read `README.md` and `AGENTS.md` completely.
-2. Select the story under `stories/<story-slug>/` and read the project-root `characters.json` (global registry), the story's `characters.json` (story-specific additions), `story.md`, and `scenes.json` completely before changing or generating clips. Resolve any `@handle` by checking the story registry first, then the global registry.
-3. For a new story, follow [references/artifact-contracts.md](references/artifact-contracts.md) to initialize its files and directories.
+1. Locate the studio root and read `README.md` and `AGENTS.md` completely.
+2. Select the production project under `projects/<project-slug>/`; existing projects under `stories/` remain valid. Read the studio-root `characters.json`, the selected project's `characters.json`, `story.md`, and `scenes.json` completely before changing or generating clips. Resolve any `@handle` from the project registry first, then the studio registry.
+3. For a new project, initialize it through `scripts/project.py`, then follow [references/artifact-contracts.md](references/artifact-contracts.md).
 
 ## Working scope
 
@@ -36,9 +36,9 @@ In autonomous execution, advance through the sequential scene pipeline to comple
 ## Hard boundaries
 
 - Invoke `compile-omni-scene` independently for every Omni prompt, revision, or prompt diagnosis. Do not reproduce or guess its model rules.
-- `story.md` owns story intent. `scenes.json` owns final authoring prompts. The project-root `characters.json` owns reusable characters; the story-level `characters.json` owns story-specific characters and overrides.
+- `story.md` owns story intent. `scenes.json` owns final authoring prompts. The studio-root `characters.json` owns reusable characters; the selected project's `characters.json` owns project-specific characters and overrides.
 - Before drafting or revising any part, reread the selected `story.md` creative contract and story-writing instructions.
-- Use project-relative paths. Reuse project-level assets; do not copy them into every story.
+- Use repository-relative paths. Reuse studio-level assets; do not copy them into every project.
 - Generate through the project runner. The scene's `output_path` is its active video.
 - A successful generation or playable file is not an accepted scene.
 - Inspect a predecessor's exact final frame before generating any clip that uses it for continuity.
@@ -47,4 +47,4 @@ In autonomous execution, advance through the sequential scene pipeline to comple
 
 ## Completion
 
-Complete only the requested scope. Report the story or scene paths, generation results, review decisions, accepted limitations, and any continuity repair required by the next clip.
+Complete only the requested scope. Report the project or scene paths, generation results, review decisions, accepted limitations, and any continuity repair required by the next clip.

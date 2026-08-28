@@ -150,6 +150,7 @@ def list_available_videos(custom_paths: Optional[List[str]] = None) -> List[Dict
         PROJECT_ROOT / "videos",
         PROJECT_ROOT / "output",
         PROJECT_ROOT / "temp",
+        PROJECT_ROOT / "projects",
         PROJECT_ROOT / "stories",
         PROJECT_ROOT / "tests",
     ]
@@ -210,10 +211,11 @@ def list_available_videos(custom_paths: Optional[List[str]] = None) -> List[Dict
 def _categorize_path(rel_path: str) -> str:
     """Categorize video for UI grouping."""
     parts = rel_path.split(os.sep)
-    if "stories" in parts:
-        idx = parts.index("stories")
-        if len(parts) > idx + 1:
-            return f"Story: {parts[idx + 1]}"
+    for container in ("projects", "stories"):
+        if container in parts:
+            idx = parts.index(container)
+            if len(parts) > idx + 1:
+                return f"Project: {parts[idx + 1]}"
     if "videos" in parts:
         return "Library Videos"
     if "output" in parts:
@@ -656,4 +658,3 @@ def read_project_file_content(path_or_rel: str) -> Dict[str, Any]:
         }
     except Exception as exc:
         raise RenderStudioError(f"Cannot read file {path}: {exc}") from exc
-

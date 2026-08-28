@@ -9,13 +9,13 @@
 
 ## Required context and ownership
 
-- Before starting, read `README.md` and the story's files (`story.md` for rules/briefs—do not generalize, `characters.json` for character refs, `scenes.json` for prompts/inputs, `reviews/<scene-id>.json` for reviews).
+- Before starting, read `README.md` and the selected project's files (`story.md` for rules/briefs—do not generalize, `characters.json` for character refs, `scenes.json` for prompts/inputs, `reviews/<scene-id>.json` for reviews).
 - If scope is unspecified, ask once whether to work on the complete story, one part, or one clip, and retain that scope until changed.
 
 ## Hard production rules
 
 - Process scenes sequentially. Draft, generate, and review scene N before drafting scene N+1 in `scenes.json`.
-- Use project-relative paths. Reuse project-level assets instead of copying them into every story.
+- Use repository-relative paths. Reuse studio-level assets instead of copying them into every project.
 - Register only recurring characters whose visual identity must remain consistent. Describe one-off figures and flexible story elements directly in scene prompts.
 - Keep project `@handles` in `scenes.json`; resolve them to ordered Gemini image references only at request time. Do not store an `extended_prompt`.
 - When adjacent scenes continue the same physical moment, inspect the predecessor's exact final frame and use `reference_scene_id` when that frame should anchor the next scene's opening. Skip literal frame chaining when the transition intentionally changes time, place, perspective, or composition.

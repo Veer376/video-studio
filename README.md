@@ -1,4 +1,4 @@
-# Video Project
+# Video Studio
 
 An agent-assisted workspace for creating story videos with Gemini Omni Flash. It turns a story idea into short generated scenes, reviews each active clip, and renders the accepted sequence with FFmpeg.
 
@@ -25,7 +25,8 @@ app/                  desktop and terminal command interfaces
 assets/               reusable characters, locations, and vehicles
 prompts/              standalone prompts for optional or ad-hoc workflows
 scripts/              maintained generation, review, and rendering utilities
-stories/              self-contained story projects and their production state
+projects/             canonical production projects
+stories/              existing legacy production projects
 temp/                 non-canonical scratch files and test artifacts
 kahanikachakkar/       Kahani Ka Chakkar channel resources
 kathamind/             Katha Mind channel resources
@@ -34,17 +35,17 @@ AGENTS.md              repository-wide agent rules
 GEMINI.md              Gemini entry point to the repository rules
 ```
 
-Reusable assets stay at project level. Files needed only by one story stay inside that story. Temporary experiments are not production state.
+Reusable assets stay at studio level. Files needed only by one production project stay inside that project. Temporary experiments are not production state.
 
-## Story structure
+## Production project structure
 
-Each directory under `stories/<story-slug>/` may contain:
+Each new directory under `projects/<project-slug>/` may contain:
 
 ```text
 story.md         creative direction, story parts, and scene briefs
 characters.json recurring character handles and reference images
 scenes.json     final scene prompts and generation inputs
-assets/         story-specific visual assets
+assets/         project-specific visual assets
 temp/           continuity frames, contact sheets, and other review evidence
 reviews/        current scene decisions and preserved review history
 videos/         active scene clips and archived rejected versions
@@ -77,7 +78,7 @@ Optional configuration and routing diagnostics without consuming quota:
 
 ```bash
 python3 scripts/generate_scenes.py \
-  --config stories/<story-slug>/scenes.json \
+  --config projects/<project-slug>/scenes.json \
   --dry-run
 ```
 
@@ -85,15 +86,15 @@ Generate scenes for a story:
 
 ```bash
 python3 scripts/generate_scenes.py \
-  --config stories/<story-slug>/scenes.json
+  --config projects/<project-slug>/scenes.json
 ```
 
 Render its accepted active clips:
 
 ```bash
 python3 scripts/render_video.py \
-  --config stories/<story-slug>/scenes.json \
-  --output stories/<story-slug>/output/final-video.mp4
+  --config projects/<project-slug>/scenes.json \
+  --output projects/<project-slug>/output/final-video.mp4
 ```
 
 Generation uses Google Cloud Application Default Credentials when available, otherwise `GEMINI_API_KEY`. Credentials must not be copied into the repository.
