@@ -35,8 +35,10 @@ try:
         generate_video,
         get_provider,
         load_characters,
+        load_locations,
         load_json,
         resolve_characters_path,
+        resolve_locations_path,
         resolve_path,
     )
     from .video.flow import prepare_scene_input, requires_google_fallback
@@ -64,8 +66,10 @@ except ImportError:  # Direct execution: python3 scripts/generate_scenes.py
         generate_video,
         get_provider,
         load_characters,
+        load_locations,
         load_json,
         resolve_characters_path,
+        resolve_locations_path,
         resolve_path,
     )
     from video.flow import prepare_scene_input, requires_google_fallback
@@ -416,6 +420,16 @@ def run(args: argparse.Namespace) -> int:
     story_chars_path = resolve_characters_path(config_path, characters_file, project_root)
     characters = load_characters(story_chars_path, project_root)
 
+    locations_file = config.get("locations_file")
+    if locations_file is not None and not isinstance(locations_file, str):
+        raise ConfigError("locations_file must be a path string")
+    locations = {}
+    if isinstance(locations_file, str):
+        story_locations_path = resolve_locations_path(
+            config_path, locations_file, project_root
+        )
+        locations = load_locations(story_locations_path, project_root)
+
     provider = getattr(args, "provider", "google")
     flow_host = getattr(args, "flow_host", "127.0.0.1:8001")
     client: Any = None
@@ -534,7 +548,8 @@ def run(args: argparse.Namespace) -> int:
 
         try:
             preflight = compile_scene(
-                scene, characters, project_root, first_frame=preflight_first_frame
+                scene, characters, project_root, first_frame=preflight_first_frame,
+                locations=locations,
             )
         except ConfigError as exc:
             print(f"WAIT {scene_id}: {exc}")
@@ -565,7 +580,8 @@ def run(args: argparse.Namespace) -> int:
                     first_frame = Path(temp_dir) / f"{reference_scene_id}_last_frame.png"
                     extract_last_frame(reference_video, first_frame)
                 compiled = compile_scene(
-                    scene, characters, project_root, first_frame=first_frame
+                    scene, characters, project_root, first_frame=first_frame,
+                    locations=locations,
                 )
                 scene_duration = scene.get("duration", config.get("duration", 10))
                 fallback_to_google = provider == "flow" and requires_google_fallback(

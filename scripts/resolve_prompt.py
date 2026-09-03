@@ -13,9 +13,12 @@ try:
         PROJECT_ROOT,
         compile_scene,
         format_character_brief,
+        format_location_brief,
         load_characters,
+        load_locations,
         load_json,
         resolve_characters_path,
+        resolve_locations_path,
         resolve_path,
     )
     from .video.flow import prepare_scene_input
@@ -24,9 +27,12 @@ except ImportError:
         PROJECT_ROOT,
         compile_scene,
         format_character_brief,
+        format_location_brief,
         load_characters,
+        load_locations,
         load_json,
         resolve_characters_path,
+        resolve_locations_path,
         resolve_path,
     )
     from video.flow import prepare_scene_input
@@ -76,6 +82,14 @@ def main() -> None:
     story_chars_path = resolve_characters_path(config_path, characters_file, PROJECT_ROOT)
     characters = load_characters(PROJECT_ROOT, story_chars_path)
 
+    locations_file = config.get("locations_file")
+    locations = {}
+    if isinstance(locations_file, str):
+        story_locations_path = resolve_locations_path(
+            config_path, locations_file, PROJECT_ROOT
+        )
+        locations = load_locations(PROJECT_ROOT, story_locations_path)
+
     selected = [
         s for s in scenes
         if (not args.scene or s.get("id") in args.scene)
@@ -89,10 +103,16 @@ def main() -> None:
     for scene in selected:
         scene_id = scene.get("id", "unknown")
         subjects = scene.get("subjects", [])
-        compiled = compile_scene(scene, characters, PROJECT_ROOT)
+        scene_locations = scene.get("locations", [])
+        compiled = compile_scene(
+            scene, characters, PROJECT_ROOT, locations=locations
+        )
 
         print(f"\n{'='*70}")
-        print(f"SCENE: {scene_id}  |  Part: {scene.get('part_id', '')}  |  Subjects: {subjects}")
+        print(
+            f"SCENE: {scene_id}  |  Part: {scene.get('part_id', '')}  |  "
+            f"Subjects: {subjects}  |  Locations: {scene_locations}"
+        )
         print(f"{'='*70}")
 
         if args.format in {"annotated", "all"}:
@@ -123,6 +143,12 @@ def main() -> None:
         if args.format in {"brief", "all"}:
             print("\n[SUBAGENT BRIEF - CHARACTER PROFILES]:")
             print(format_character_brief(subjects, characters, include_description=True))
+            print("\n[SUBAGENT BRIEF - LOCATION PROFILES]:")
+            print(
+                format_location_brief(
+                    scene_locations, locations, include_description=True
+                )
+            )
 
     print(f"\n{'='*70}\n")
 

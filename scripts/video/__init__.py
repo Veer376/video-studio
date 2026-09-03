@@ -11,6 +11,7 @@ from .base import (
     PROJECT_ROOT,
     BaseProvider,
     CharacterEntry,
+    LocationEntry,
     CompiledScene,
     ConfigError,
     CreditError,
@@ -18,9 +19,12 @@ from .base import (
     VideoError,
     compile_scene,
     format_character_brief,
+    format_location_brief,
     load_characters,
+    load_locations,
     load_json,
     resolve_characters_path,
+    resolve_locations_path,
     resolve_path,
 )
 from .flow import FlowProvider
@@ -130,6 +134,7 @@ def main() -> None:
 __all__ = [
     "BaseProvider",
     "CharacterEntry",
+    "LocationEntry",
     "CompiledScene",
     "ConfigError",
     "CreditError",
@@ -141,10 +146,14 @@ __all__ = [
     "VideoError",
     "compile_scene",
     "format_character_brief",
+    "format_location_brief",
     "generate_video",
     "get_provider",
     "load_characters",
+    "load_locations",
     "load_json",
+    "resolve_characters_path",
+    "resolve_locations_path",
     "resolve_path",
 ]
 

@@ -1,4 +1,4 @@
-"""Core base classes, two-tier character registry loader, and prompt compilation for video generation."""
+"""Core registry loaders and prompt compilation for video generation."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from typing import Any, Sequence
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 HANDLE_PATTERN = re.compile(r"(?<![A-Za-z0-9_])@[A-Za-z][A-Za-z0-9_-]*")
 NARRATION_HANDLE_PREFIX = "@narration-"
+LOCATION_HANDLE_PREFIX = "@location-"
 
 
 class VideoError(RuntimeError):
@@ -33,6 +34,17 @@ class CreditError(VideoError):
 
 @dataclass(frozen=True)
 class CharacterEntry:
+    handle: str
+    name: str
+    reference_path: str
+    resolved_reference_path: Path
+    profile: str = ""
+    description: str = ""
+    extra: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class LocationEntry:
     handle: str
     name: str
     reference_path: str
@@ -100,6 +112,17 @@ def resolve_characters_path(config_path: Path, characters_file: str | Path, proj
     if direct.is_file():
         return direct
     relative = config_path.parent / characters_file
+    if relative.is_file():
+        return relative
+    return direct
+
+
+def resolve_locations_path(config_path: Path, locations_file: str | Path, project_root: Path = PROJECT_ROOT) -> Path:
+    """Resolve location file path whether specified as project-relative or story-relative."""
+    direct = resolve_path(project_root, locations_file)
+    if direct.is_file():
+        return direct
+    relative = config_path.parent / locations_file
     if relative.is_file():
         return relative
     return direct
@@ -211,13 +234,126 @@ def load_characters(
     return characters
 
 
+def _load_location_entries(
+    path: Path, project_root: Path
+) -> dict[str, LocationEntry]:
+    """Parse a location registry into LocationEntry objects."""
+    if not path.is_file():
+        return {}
+
+    data = load_json(path)
+    entries = data.get("locations")
+    if entries is None:
+        return {}
+    if not isinstance(entries, list):
+        raise ConfigError(f"{path} must contain a locations array")
+
+    result: dict[str, LocationEntry] = {}
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise ConfigError(f"Every location in {path} must be an object")
+        handle = entry.get("handle")
+        name = entry.get("name", handle)
+        reference_path = entry.get("reference_path")
+        profile = entry.get("profile", "")
+        description = entry.get("description", "")
+
+        if (
+            not isinstance(handle, str)
+            or not HANDLE_PATTERN.fullmatch(handle)
+            or not handle.startswith(LOCATION_HANDLE_PREFIX)
+        ):
+            raise ConfigError(
+                f"Invalid location handle: {handle!r} in {path}; "
+                f"expected {LOCATION_HANDLE_PREFIX}<identity>"
+            )
+        if handle in result:
+            raise ConfigError(f"Duplicate location handle: {handle} in {path}")
+        if not isinstance(reference_path, str) or not reference_path:
+            raise ConfigError(f"Location {handle} in {path} has no reference_path")
+
+        resolved_reference = resolve_path(project_root, reference_path)
+        if not resolved_reference.is_file():
+            raise ConfigError(
+                f"Reference image for {handle} does not exist: {resolved_reference}"
+            )
+
+        extra = {
+            k: v
+            for k, v in entry.items()
+            if k not in {"handle", "name", "reference_path", "profile", "description"}
+        }
+        result[handle] = LocationEntry(
+            handle=handle,
+            name=name if isinstance(name, str) else handle,
+            reference_path=reference_path,
+            resolved_reference_path=resolved_reference,
+            profile=profile if isinstance(profile, str) else "",
+            description=description if isinstance(description, str) else "",
+            extra=extra,
+        )
+    return result
+
+
+def load_locations(
+    path_or_root: Path = PROJECT_ROOT,
+    story_or_root: Path | str | None = None,
+) -> dict[str, LocationEntry]:
+    """Load and merge studio/project location registries, project entries winning."""
+    if isinstance(path_or_root, Path) and path_or_root.is_file():
+        story_locations_path = path_or_root
+        project_root = (
+            story_or_root
+            if isinstance(story_or_root, Path) and story_or_root.is_dir()
+            else PROJECT_ROOT
+        )
+    else:
+        project_root = (
+            path_or_root
+            if isinstance(path_or_root, Path) and path_or_root.is_dir()
+            else PROJECT_ROOT
+        )
+        story_locations_path = Path(story_or_root) if story_or_root else None
+
+    global_path = project_root / "locations.json"
+    locations = (
+        _load_location_entries(global_path, project_root)
+        if global_path.is_file()
+        else {}
+    )
+
+    if story_locations_path is not None:
+        story_path = resolve_path(project_root, story_locations_path)
+        if story_path.is_file() and story_path != global_path:
+            story_locations = _load_location_entries(story_path, project_root)
+            for handle, entry in story_locations.items():
+                if handle in locations:
+                    base = locations[handle]
+                    locations[handle] = LocationEntry(
+                        handle=handle,
+                        name=entry.name or base.name,
+                        reference_path=entry.reference_path,
+                        resolved_reference_path=entry.resolved_reference_path,
+                        profile=entry.profile or base.profile,
+                        description=entry.description or base.description,
+                        extra={**base.extra, **entry.extra},
+                    )
+                else:
+                    locations[handle] = entry
+
+    return locations
+
+
 def compile_scene(
     scene: dict[str, Any],
     characters: dict[str, CharacterEntry],
     project_root: Path = PROJECT_ROOT,
     first_frame: Path | None = None,
+    *,
+    locations: dict[str, LocationEntry] | None = None,
 ) -> CompiledScene:
-    """Compile a scene configuration into model prompt tokens, ordered image references, and tasks."""
+    """Compile one scene, resolving character/location visuals and narration voices."""
+    locations = locations or {}
     scene_id = scene.get("id", "unknown")
     prompt = scene.get("prompt")
     if not isinstance(prompt, str) or not prompt.strip():
@@ -225,35 +361,74 @@ def compile_scene(
 
     raw_prompt = prompt
     subjects = scene.get("subjects", [])
+    location_declarations = scene.get("locations", [])
     if not isinstance(subjects, list) or not all(isinstance(item, str) for item in subjects):
         raise ConfigError(f"Scene {scene_id} subjects must be an array of handles")
+    if not isinstance(location_declarations, list) or not all(
+        isinstance(item, str) for item in location_declarations
+    ):
+        raise ConfigError(f"Scene {scene_id} locations must be an array of handles")
     if len(subjects) != len(set(subjects)):
         raise ConfigError(f"Scene {scene_id} contains duplicate subject handles")
+    if len(location_declarations) != len(set(location_declarations)):
+        raise ConfigError(f"Scene {scene_id} contains duplicate location handles")
 
     prompt_handle_order = list(dict.fromkeys(HANDLE_PATTERN.findall(prompt)))
     narration_handles = [
-        handle
-        for handle in prompt_handle_order
+        handle for handle in prompt_handle_order
         if handle.startswith(NARRATION_HANDLE_PREFIX)
     ]
-    character_prompt_handles = [
-        handle for handle in prompt_handle_order if handle not in narration_handles
+    location_prompt_handles = [
+        handle for handle in prompt_handle_order
+        if handle.startswith(LOCATION_HANDLE_PREFIX)
     ]
-    prompt_handles = set(character_prompt_handles)
+    character_prompt_handles = [
+        handle for handle in prompt_handle_order
+        if handle not in narration_handles and handle not in location_prompt_handles
+    ]
+
     subject_handles = set(subjects)
-    missing_from_prompt = subject_handles - prompt_handles
-    missing_from_subjects = prompt_handles - subject_handles
-    if missing_from_prompt:
+    declared_location_handles = set(location_declarations)
+    prompt_character_handles = set(character_prompt_handles)
+    prompt_location_handles = set(location_prompt_handles)
+
+    missing_characters_from_prompt = subject_handles - prompt_character_handles
+    missing_characters_from_subjects = prompt_character_handles - subject_handles
+    missing_locations_from_prompt = declared_location_handles - prompt_location_handles
+    missing_locations_from_declarations = prompt_location_handles - declared_location_handles
+    if missing_characters_from_prompt:
         raise ConfigError(
-            f"Scene {scene_id} subjects absent from prompt: {sorted(missing_from_prompt)}"
+            f"Scene {scene_id} subjects absent from prompt: "
+            f"{sorted(missing_characters_from_prompt)}"
         )
-    if missing_from_subjects:
+    if missing_characters_from_subjects:
         raise ConfigError(
-            f"Scene {scene_id} prompt handles absent from subjects: {sorted(missing_from_subjects)}"
+            f"Scene {scene_id} prompt character handles absent from subjects: "
+            f"{sorted(missing_characters_from_subjects)}"
         )
-    unknown = subject_handles - set(characters)
-    if unknown:
-        raise ConfigError(f"Scene {scene_id} uses unknown handles: {sorted(unknown)}")
+    if missing_locations_from_prompt:
+        raise ConfigError(
+            f"Scene {scene_id} locations absent from prompt: "
+            f"{sorted(missing_locations_from_prompt)}"
+        )
+    if missing_locations_from_declarations:
+        raise ConfigError(
+            f"Scene {scene_id} prompt location handles absent from locations: "
+            f"{sorted(missing_locations_from_declarations)}"
+        )
+
+    unknown_characters = subject_handles - set(characters)
+    unknown_locations = declared_location_handles - set(locations)
+    if unknown_characters:
+        raise ConfigError(
+            f"Scene {scene_id} uses unknown character handles: "
+            f"{sorted(unknown_characters)}"
+        )
+    if unknown_locations:
+        raise ConfigError(
+            f"Scene {scene_id} uses unknown location handles: "
+            f"{sorted(unknown_locations)}"
+        )
 
     voices = load_voices(project_root)
     unknown_narration = set(narration_handles) - set(voices)
@@ -262,14 +437,13 @@ def compile_scene(
             f"Scene {scene_id} uses unknown narration handles: {sorted(unknown_narration)}"
         )
 
-    # Preserve exact handle-token order from the prompt. Using str.index/replace
-    # would corrupt prefixed handles such as @hero and @hero-alt.
-    # Only visual character handles bind image references. Narration handles stay
-    # as semantic audio-only handles inside the authored prompt.
-    handle_order = character_prompt_handles
+    # Preserve the authored order for every visual handle, regardless of type.
+    visual_handle_order = [
+        handle for handle in prompt_handle_order if handle not in narration_handles
+    ]
     token_by_handle = {
         handle: f"<IMAGE_REF_{index}>"
-        for index, handle in enumerate(handle_order)
+        for index, handle in enumerate(visual_handle_order)
     }
     images: list[Path] = []
     declarations: list[str] = []
@@ -295,14 +469,18 @@ def compile_scene(
         if "<FIRST_FRAME>" not in prompt:
             prompt = f"<FIRST_FRAME> {prompt}"
 
-    for reference_index, handle in enumerate(handle_order):
+    for handle in visual_handle_order:
         token = token_by_handle[handle]
-        char_entry = characters[handle]
-        ref_path = getattr(char_entry, "resolved_reference_path", None) or (char_entry.get("resolved_reference_path") if isinstance(char_entry, dict) else None)
-        if not isinstance(ref_path, Path):
-            ref_path = Path(ref_path) if ref_path else None
-        if ref_path is None or not ref_path.is_file():
-            raise ConfigError(f"Resolved reference image for {handle} is missing or invalid: {ref_path}")
+        entry: CharacterEntry | LocationEntry
+        if handle.startswith(LOCATION_HANDLE_PREFIX):
+            entry = locations[handle]
+        else:
+            entry = characters[handle]
+        ref_path = entry.resolved_reference_path
+        if not ref_path.is_file():
+            raise ConfigError(
+                f"Resolved reference image for {handle} is missing or invalid: {ref_path}"
+            )
         images.append(ref_path)
         declarations.append(f"[# References {token}@Image{next_image_number}]")
         next_image_number += 1
@@ -337,26 +515,53 @@ def compile_scene(
         declarations.append(f"[# References {token}@Image{next_image_number}]")
         next_image_number += 1
 
-    char_brief = format_character_brief(handle_order, characters)
+    char_brief = format_character_brief(
+        character_prompt_handles,
+        characters,
+        token_by_handle=token_by_handle,
+    )
+    location_brief = format_location_brief(
+        location_prompt_handles,
+        locations,
+        token_by_handle=token_by_handle,
+    )
     prompt_blocks = []
     if declarations:
         prompt_blocks.append("\n".join(declarations))
+    if first_frame is not None:
+        if len(images) > 1:
+            prompt_blocks.append(
+                "FIRST FRAME ROLE: Use Image1 as the literal starting frame at time 0. "
+                "Preserve its composition, camera position, subject placement, costume, props, "
+                "lighting, background people, and environment geometry exactly at the start. "
+                "Use every other supplied image only as identity/environment reference material; "
+                "do not use them as alternate starting frames and do not recompose Image1 before motion begins."
+            )
+        else:
+            prompt_blocks.append(
+                "FIRST FRAME ROLE: Use Image1 as the literal starting frame at time 0 and preserve "
+                "its composition exactly before motion begins."
+            )
     if char_brief:
         prompt_blocks.append(char_brief)
+    if location_brief:
+        prompt_blocks.append(location_brief)
     if voice_brief:
         prompt_blocks.append(voice_brief)
     prompt_blocks.append(prompt)
     compiled_prompt = "\n\n".join(prompt_blocks)
 
-    # Flow keeps project @handles in the authored scene prompt. Define each
-    # recurring identity once above that prompt instead of expanding the full
-    # character profile at every handle occurrence. This keeps the directing
-    # prompt intact while still giving Flow the same persistent identity/voice
-    # context that the Gemini transport receives through <IMAGE_REF_N> blocks.
-    flow_character_brief = format_flow_character_brief(handle_order, characters)
+    flow_character_brief = format_flow_character_brief(
+        character_prompt_handles, characters
+    )
+    flow_location_brief = format_flow_location_brief(
+        location_prompt_handles, locations
+    )
     flow_blocks = []
     if flow_character_brief:
         flow_blocks.append(flow_character_brief)
+    if flow_location_brief:
+        flow_blocks.append(flow_location_brief)
     if voice_brief:
         flow_blocks.append(voice_brief)
     flow_blocks.append(raw_prompt)
@@ -371,7 +576,7 @@ def compile_scene(
         prompt=compiled_prompt,
         images=images,
         task=task,
-        handle_order=handle_order,
+        handle_order=visual_handle_order,
         raw_prompt=raw_prompt,
         annotated_prompt=flow_prompt,
         flow_prompt=flow_prompt,
@@ -383,13 +588,14 @@ def format_character_brief(
     characters: dict[str, CharacterEntry],
     *,
     include_description: bool = False,
+    token_by_handle: dict[str, str] | None = None,
 ) -> str:
-    """Format model-facing profiles, optionally with narrative context."""
+    """Format model-facing character profiles, optionally with narrative context."""
     if not handles:
         return ""
     lines = ["CHARACTER MORPHOLOGY & PROFILES:"]
     for idx, handle in enumerate(handles):
-        token = f"<IMAGE_REF_{idx}>"
+        token = token_by_handle[handle] if token_by_handle else f"<IMAGE_REF_{idx}>"
         if handle in characters:
             c = characters[handle]
             lines.append(f"- {token} ({handle}, {c.name}):")
@@ -399,6 +605,37 @@ def format_character_brief(
                 lines.append(f"  {c.description}")
         else:
             lines.append(f"- {token} ({handle}): [Unregistered character]")
+    return "\n".join(lines)
+
+
+def format_location_brief(
+    handles: Sequence[str],
+    locations: dict[str, LocationEntry],
+    *,
+    include_description: bool = False,
+    token_by_handle: dict[str, str] | None = None,
+) -> str:
+    """Format Google-facing recurring-location grounding without label-like text.
+
+    Human-readable location names and prose profiles are intentionally omitted here.
+    Gemini Omni has been observed to turn those metadata strings into visible signage.
+    The ordered reference image plus the authored scene prompt own the visible location.
+    Flow keeps its separate richer location brief below.
+    """
+    if not handles:
+        return ""
+    lines = [
+        "LOCATION REFERENCE BINDINGS — metadata only; never render these tokens or metadata as visible text:"
+    ]
+    for idx, handle in enumerate(handles):
+        token = token_by_handle[handle] if token_by_handle else f"<IMAGE_REF_{idx}>"
+        if handle in locations:
+            lines.append(
+                f"- {token} is the recurring environment reference for {handle}; "
+                "match its physical layout and visual identity."
+            )
+        else:
+            lines.append(f"- {token} ({handle}): [Unregistered location]")
     return "\n".join(lines)
 
 
@@ -418,6 +655,25 @@ def format_flow_character_brief(
                 lines.append(f"  {c.profile}")
         else:
             lines.append(f"- {handle}: [Unregistered character]")
+    return "\n".join(lines)
+
+
+def format_flow_location_brief(
+    handles: Sequence[str],
+    locations: dict[str, LocationEntry],
+) -> str:
+    """Format one-time Flow-facing location profiles keyed by project handle."""
+    if not handles:
+        return ""
+    lines = ["LOCATION PROFILES:"]
+    for handle in handles:
+        if handle in locations:
+            location = locations[handle]
+            lines.append(f"- {handle} ({location.name}):")
+            if location.profile:
+                lines.append(f"  {location.profile}")
+        else:
+            lines.append(f"- {handle}: [Unregistered location]")
     return "\n".join(lines)
 
 

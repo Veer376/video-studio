@@ -130,20 +130,27 @@ def create_project(
             initial_story(clean_title), encoding="utf-8"
         )
         _write_json(staging / "characters.json", {"characters": []})
+        _write_json(staging / "locations.json", {"locations": []})
         _write_json(
             staging / "scenes.json",
             {
                 "model": DEFAULT_MODEL,
                 "aspect_ratio": aspect_ratio,
                 "characters_file": f"projects/{project_slug}/characters.json",
+                "locations_file": f"projects/{project_slug}/locations.json",
                 "scenes": [],
             },
         )
 
         # Validate the staged artifacts before publishing the directory.
         characters = json.loads((staging / "characters.json").read_text(encoding="utf-8"))
+        locations = json.loads((staging / "locations.json").read_text(encoding="utf-8"))
         scenes = json.loads((staging / "scenes.json").read_text(encoding="utf-8"))
-        if characters != {"characters": []} or scenes.get("scenes") != []:
+        if (
+            characters != {"characters": []}
+            or locations != {"locations": []}
+            or scenes.get("scenes") != []
+        ):
             raise ProjectSetupError("Staged project artifacts failed validation")
 
         if destination.exists():
@@ -168,6 +175,7 @@ def create_project(
         "artifacts": {
             "story": str(relative / "story.md"),
             "characters": str(relative / "characters.json"),
+            "locations": str(relative / "locations.json"),
             "scenes": str(relative / "scenes.json"),
         },
         "next_action": "plan_story",

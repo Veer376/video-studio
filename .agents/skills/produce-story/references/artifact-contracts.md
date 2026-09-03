@@ -126,19 +126,46 @@ Project-level entries for script compatibility (when a studio character's `refer
 
 Register only recurring characters whose appearance must remain consistent across clips. Describe one-off or incidental figures directly in the scene prompt.
 
+## Location entry
+
+Recurring locations use the same project/studio ownership pattern as characters, but every location handle must begin with `@location-`.
+
+```json
+{
+  "handle": "@location-water-point",
+  "name": "Bhairampur Public Water Point",
+  "reference_path": "projects/<project-slug>/assets/locations/water-point.jpg",
+  "profile": "Concise stable spatial/architectural grounding",
+  "description": "Optional narrative function of the place"
+}
+```
+
+Project locations live in `projects/<slug>/locations.json` under a `locations` array. A studio-root `locations.json` may hold reusable places. Project entries override studio entries with the same handle.
+
+Register only places whose visual identity must persist across clips. A location profile should contain stable geography, layout, architecture, materials, or orientation cues that the reference image alone may not reliably communicate. Do not put temporary weather, temporary props, current characters, or scene-specific action in the profile.
+
 ## Scene entry
 
 ```json
 {
   "id": "s001",
   "part_id": "part_01",
-  "prompt": "Final authoring prompt with @handles",
+  "prompt": "Final authoring prompt with character, @location-*, and optional @narration-* handles",
   "subjects": ["@name"],
+  "locations": ["@location-water-point"],
   "reference_images": [],
   "reference_scene_id": null,
   "output_path": "projects/<project-slug>/videos/s001.mp4"
 }
 ```
+
+Resolution rules:
+
+- recurring character handles are visual references resolved from character registries and must be listed in `subjects`;
+- `@location-*` handles are visual references resolved from location registries and must be listed in `locations`;
+- `@narration-*` handles resolve from `voices.json`, remain audio-only, and belong in neither `subjects` nor `locations`;
+- a declared character or location must appear in the authored prompt, and a recurring character/location handle in the prompt must be declared in the matching array;
+- `reference_images` are for supplemental scene-specific visual evidence, not a substitute for recurring character or location registration.
 
 `first_frame_path` is optional and is used only for an inspected curated continuity frame. All persisted paths are repository-relative.
 

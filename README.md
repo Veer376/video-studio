@@ -51,6 +51,7 @@ Each new directory under `projects/<project-slug>/` may contain:
 ```text
 story.md         source constraints, story, direction, and scene briefs
 characters.json recurring character handles and reference images
+locations.json  recurring location handles and reference images
 scenes.json     final scene prompts and generation inputs
 assets/         project-specific visual assets
 temp/           continuity frames, contact sheets, and other review evidence
@@ -63,6 +64,7 @@ The core sources of truth are:
 
 - `story.md` for creative intent and progression.
 - `characters.json` for recurring, consistency-critical references.
+- `locations.json` for recurring, consistency-critical place references.
 - `scenes.json` for executable scene inputs.
 - `reviews/<scene-id>.json` for review and selection state.
 - `videos/` for accepted active clips and archived rejected versions.

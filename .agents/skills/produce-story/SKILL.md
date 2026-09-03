@@ -10,7 +10,7 @@ Orchestrate the complete story workflow without duplicating model-specific promp
 ## Required context
 
 1. Locate the studio root and read `README.md` and `AGENTS.md` completely.
-2. Select the production project under `projects/<project-slug>/`; existing projects under `stories/` remain valid. Read the studio-root `characters.json`, the selected project's `characters.json`, `story.md`, and `scenes.json` completely before changing or generating clips. Resolve any `@handle` from the project registry first, then the studio registry.
+2. Select the production project under `projects/<project-slug>/`; existing projects under `stories/` remain valid. Read the studio-root `characters.json`, the selected project's `characters.json`, `locations.json` when present, `story.md`, `scenes.json`, and project-local `production-playbook.md` when present before changing or generating clips. Resolve recurring character handles from the character registry and `@location-*` handles from the location registry before prompt compilation. A project-local production playbook may define visual grammar and additional review criteria, but it never overrides locked story facts in `story.md`.
 3. For a new project, initialize it through `scripts/project.py`, then follow [references/artifact-contracts.md](references/artifact-contracts.md).
 
 ## Working scope
@@ -36,7 +36,7 @@ In autonomous execution, advance through the sequential scene pipeline to comple
 ## Hard boundaries
 
 - Invoke `compile-omni-scene` independently for every Omni prompt, revision, or prompt diagnosis. Do not reproduce or guess its model rules.
-- `story.md` owns story intent. `scenes.json` owns final authoring prompts. The studio-root `characters.json` owns reusable characters; the selected project's `characters.json` owns project-specific characters and overrides.
+- `story.md` owns story intent. `scenes.json` owns final authoring prompts. Character registries own recurring people; location registries own recurring places. Narration voice identities remain in `voices.json`.
 - Before drafting or revising any part, reread the selected `story.md` creative contract and story-writing instructions.
 - Use repository-relative paths. Reuse studio-level assets; do not copy them into every project.
 - Generate through the project runner. The scene's `output_path` is its active video.

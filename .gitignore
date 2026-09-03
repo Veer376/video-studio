@@ -26,3 +26,4 @@ projects/*/reviews/*
 temp/
 tests/
 .claude/
+.playwright-cli/
