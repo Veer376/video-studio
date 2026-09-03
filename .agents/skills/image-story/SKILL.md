@@ -17,7 +17,7 @@ Read only the reference required for the current stage:
 | Stage | When it is needed | Read |
 |---|---|---|
 | Intake | No `session.json`, or the user starts a new project | `references/intake.md` |
-| Research | The user chooses research before composition, or requests re-research | `references/research.md`; for Short mode also read `references/research-short.md` |
+| Research | The user chooses before composition, or requests re-research | `references/research.md`; for Short mode also read `references/research-short.md` |
 | Split | Approved `script.md` exists but `scenes.json` does not, or the user requests a re-split | `references/split-script.md` |
 | Production | Run, resume, inspect, retry, voice, illustrate, render, or verify output | `references/pipeline.md` |
 | Package | Create YouTube titles, description, hashtags, metadata, or thumbnails | `references/package-youtube.md` |

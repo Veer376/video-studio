@@ -45,8 +45,6 @@ Parse `library/<project_name>/session.json`. Extract:
 
 If `visual.aspect_ratio` is `9:16` or `brief.target_duration_seconds <= 180`, also read `references/research-short.md` and let its scope rules override the general search breadth below.
 
-If the user says this research follows discovery, or if `.agents/skills/discovery/research.md` exists and is relevant, read it as optional directional context. Use its selected idea, shortlisted angle, demand signals, sources, and "Next research needed" notes to focus the project research. Do not overwrite discovery's scratchpad.
-
 ### Step 2 — Plan Your Searches
 Unless the Short reference applies, plan 7-10 targeted queries that cover different angles:
 1. **Spiritual/Philosophical:** The sacred texts, parables, or philosophical concepts at the heart of the topic
@@ -56,8 +54,6 @@ Unless the Short reference applies, plan 7-10 targeted queries that cover differ
 5. **Attributed wisdom:** Exact spoken words — shlokas, proverbs, letters, lectures, or famous dialogue — that carry emotional weight
 6. **Emotional beats:** Moments of fear, shame, grief, relief, silence, hesitation, or inner conflict that could become the emotional spine of the script
 7. **Anti-Hooks & Open-Loop Mining:** The exact counter-intuitive detail or paradox that can create the opening question, plus later escalation and payoff opportunities. Do not assume fixed timestamps.
-
-When discovery context is available, prefer focused verification and enrichment over broad re-discovery. Do not independently change the chosen idea, hook, or emotional direction unless the user asks to reconsider it.
 
 ### Step 3 — Run the Scripts
 Execute your planned queries using the custom CLI scripts. For each result:
@@ -140,5 +136,4 @@ Source: <session.json project_name>
 - **Flag all creative additions** in the "Creative Bridges" section — never mix fiction with fact silently.
 - **No story writing in this stage.** Only raw material collection.
 - **Research is not a script checklist.** Do not frame optional findings as mandatory inclusions or pre-compose the final structure.
-- **Preserve confirmed discovery direction** when research follows discovery; deepen it rather than replacing it.
 - **Update `session.json`** status to `"research_complete"` after writing `research.md`.

@@ -8,8 +8,6 @@ Use reference exploration only when the project inputs and continuity ledger lea
 - Public-domain or reusable museum assets: [Smithsonian Open Access](https://www.si.edu/openaccess).
 - Framing, composition, camera distance, lighting, and blocking: [ShotDeck](https://shotdeck.com/) or another searchable cinematography library.
 
-Treat social mood boards, unattributed image collections, and AI galleries as discovery leads only. They are not evidence for historical or cultural claims.
-
 ## Explore with a Bounded Question
 
 1. State the missing decision precisely, such as the construction of a river ferry, the grip used with a period weapon, or how to stage an unequal confrontation vertically.
