@@ -4,7 +4,7 @@ Use this reference only after the relevant clip briefs are approved.
 
 ## Prepare the scene
 
-1. Read the approved clip brief, adjacent clips, creative contract, character map, location map, narration requirements, and existing scene records. If the selected project contains `production-playbook.md`, read it completely before directing the scene and treat its project-specific camera, blocking, geography, retention, motif, and sound grammar as authoritative unless it conflicts with locked story facts.
+1. Read the approved clip brief, adjacent clips, creative contract, character map, location map, narration requirements, and existing scene records. If the selected production root contains `production-playbook.md`, read it completely before directing the scene and treat its production-specific camera, blocking, geography, retention, motif, and sound grammar as authoritative unless it conflicts with locked story facts.
 2. Identify the recurring consistency-critical characters and locations required by the selected clip. Make every character ready by following [character-readiness.md](character-readiness.md), and verify every recurring location has an existing registered reference image and concise stable profile before prompt creation.
 3. When the selected clip continues the same physical moment as its predecessor, inspect the predecessor's exact final frame before prompt creation.
 4. Use `reference_scene_id` when that inspected frame should become the literal opening anchor. Do not use it for an intentional discontinuity such as a change of time, place, perspective, or composition.
@@ -23,7 +23,7 @@ Use this reference only after the relevant clip briefs are approved.
 
 ## Project craft layer
 
-When a project contains `production-playbook.md`, scene production must not reduce the task to merely making the plot beat visible. Before prompt creation, verify that the proposed clip has an intentional first-read focal point, a visible state change or attention handoff, motivated camera behavior, and a useful ending image. Do not fall back to generic cinematic defaults when the playbook defines a stronger project-specific visual grammar.
+When a production root contains `production-playbook.md`, scene production must not reduce the task to merely making the plot beat visible. Before prompt creation, verify that the proposed clip has an intentional first-read focal point, a visible state change or attention handoff, motivated camera behavior, and a useful ending image. Do not fall back to generic cinematic defaults when the playbook defines a stronger production-specific visual grammar.
 
 ## Continuity policy
 

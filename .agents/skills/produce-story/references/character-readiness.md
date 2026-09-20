@@ -6,7 +6,7 @@ Use this reference before scene prompting when a recurring character must remain
 
 Register only characters whose identity must persist across clips. Describe one-off figures directly in the scene prompt.
 
-Resolve each required `@handle` from the selected project's registry first, then the studio registry. A character is ready when the resolved entry has a name, an existing reference image, and a complete profile. A project override may inherit profile and description from its studio entry.
+Resolve each required `@handle` from the selected production root's registry first, then the studio registry. A character is ready when the resolved entry has a name, an existing reference image, and a complete profile. A production override may inherit profile and description from its studio entry.
 
 ## Field ownership
 
@@ -26,6 +26,6 @@ When a required character is not ready:
 2. Create one production-ready reference by default. Use the interactive `prompts/create-characters.md` workflow only when the user requests variants or design exploration.
 3. Generate the image through `/flow`. Follow the selected story's visual contract and any applicable shared-universe asset standard.
 4. Inspect the result for the intended identity, readable anatomy and silhouette, required fixed features, and suitability as a clean video reference.
-5. Save reusable characters under studio assets and project-specific characters under the selected project. Register the canonical repository-relative path and the complete field contract in the owning registry.
+5. Save reusable characters under studio assets and production-specific characters under the selected production root. Register the canonical repository-relative path and the complete field contract in the owning registry.
 
 Do not begin the scene prompt until every required recurring character passes the readiness gate.

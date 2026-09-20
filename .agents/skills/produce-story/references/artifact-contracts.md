@@ -1,14 +1,15 @@
 # Artifact contracts
 
-## Production project directory
+## Production root
 
 ```text
 <studio-root>/
   characters.json          ← global character registry (source of truth for identity)
   assets/characters/       ← character reference images
-  projects/<project-slug>/
+  projects/.../<production-root>/
     story.md
-    characters.json        ← project-specific characters only; empty array when all are global
+    characters.json        ← production-specific characters only; empty array when all are global
+    locations.json
     scenes.json
     assets/
     videos/
@@ -18,11 +19,9 @@
     output/final-video.mp4
 ```
 
-Reusable characters and reusable visual assets remain under the studio-level `assets/` directory. Existing production directories under `stories/` remain valid and are not relocated.
+The production root is the directory that owns the target `story.md` and `scenes.json`. It may be nested to support collections, brands, series, or other organizational groupings. Reusable characters and reusable visual assets remain under the studio-level `assets/` directory. Existing production directories under `stories/` remain valid and are not relocated.
 
-## New-project initialization
-
-Run `python3 scripts/project.py create --title <title> --aspect-ratio <16:9|9:16> [--slug <slug>]`. The command creates and validates `story.md`, an empty project character registry, `scenes.json`, and the canonical directories atomically.
+For a new production root, create the canonical files and directories above directly from this contract.
 
 ## `story.md`
 
@@ -112,7 +111,7 @@ Character identity is split across two files:
 
 Follow [character-readiness.md](character-readiness.md) when authoring or validating these fields.
 
-**Project registry** (`projects/<slug>/characters.json`) — project-specific characters only. Uses the same full schema. For projects where all characters are global, this file holds an empty array:
+**Production registry** (`<production-root>/characters.json`) — production-specific characters only. Uses the same full schema. For productions where all characters are global, this file holds an empty array:
 
 ```json
 {
@@ -134,13 +133,13 @@ Recurring locations use the same project/studio ownership pattern as characters,
 {
   "handle": "@location-water-point",
   "name": "Bhairampur Public Water Point",
-  "reference_path": "projects/<project-slug>/assets/locations/water-point.jpg",
+  "reference_path": "<production-root>/assets/locations/water-point.jpg",
   "profile": "Concise stable spatial/architectural grounding",
   "description": "Optional narrative function of the place"
 }
 ```
 
-Project locations live in `projects/<slug>/locations.json` under a `locations` array. A studio-root `locations.json` may hold reusable places. Project entries override studio entries with the same handle.
+Production locations live in `<production-root>/locations.json` under a `locations` array. A studio-root `locations.json` may hold reusable places. Production entries override studio entries with the same handle.
 
 Register only places whose visual identity must persist across clips. A location profile should contain stable geography, layout, architecture, materials, or orientation cues that the reference image alone may not reliably communicate. Do not put temporary weather, temporary props, current characters, or scene-specific action in the profile.
 
@@ -155,7 +154,7 @@ Register only places whose visual identity must persist across clips. A location
   "locations": ["@location-water-point"],
   "reference_images": [],
   "reference_scene_id": null,
-  "output_path": "projects/<project-slug>/videos/s001.mp4"
+  "output_path": "<production-root>/videos/s001.mp4"
 }
 ```
 
@@ -177,9 +176,9 @@ Save one report at `reviews/<scene-id>.json`:
 {
   "scene_id": "s001",
   "decision": "needs_fix",
-  "video_path": "projects/<project-slug>/videos/s001.mp4",
+  "video_path": "<production-root>/videos/s001.mp4",
   "video_sha256": "<written by the runner>",
-  "contact_sheet_path": "projects/<project-slug>/temp/contact_sheets/s001.png",
+  "contact_sheet_path": "<production-root>/temp/contact_sheets/s001.png",
   "media_valid": true,
   "findings": ["00:04 character disappears through an unintended snap"],
   "diagnosis": "model continuity failure during the camera move",

@@ -10,8 +10,8 @@ Orchestrate the complete story workflow without duplicating model-specific promp
 ## Required context
 
 1. Locate the studio root and read `README.md` and `AGENTS.md` completely.
-2. Select the production project under `projects/<project-slug>/`; existing projects under `stories/` remain valid. Read the studio-root `characters.json`, the selected project's `characters.json`, `locations.json` when present, `story.md`, `scenes.json`, and project-local `production-playbook.md` when present before changing or generating clips. Resolve recurring character handles from the character registry and `@location-*` handles from the location registry before prompt compilation. A project-local production playbook may define visual grammar and additional review criteria, but it never overrides locked story facts in `story.md`.
-3. For a new project, initialize it through `scripts/project.py`, then follow [references/artifact-contracts.md](references/artifact-contracts.md).
+2. Select the production root that owns the target `story.md` and `scenes.json`; it may be nested anywhere under `projects/`. Existing projects under `stories/` remain valid. Read the studio-root `characters.json`, the selected production root's `characters.json`, `locations.json` when present, `story.md`, `scenes.json`, and local `production-playbook.md` when present before changing or generating clips. Resolve recurring character handles from the character registry and `@location-*` handles from the location registry before prompt compilation. A local production playbook may define visual grammar and additional review criteria, but it never overrides locked story facts in `story.md`.
+3. For a new production root, create the canonical files and directories described in [references/artifact-contracts.md](references/artifact-contracts.md).
 
 ## Working scope
 

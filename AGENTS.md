@@ -9,7 +9,7 @@
 
 ## Required context and ownership
 
-- Before starting, read `README.md` and the selected project's files (`story.md` for rules/briefs—do not generalize, `characters.json` for character refs, `scenes.json` for prompts/inputs, `reviews/<scene-id>.json` for reviews).
+- Before starting, read `README.md` and the selected production root's files (`story.md` for rules/briefs—do not generalize, `characters.json` for character refs, `scenes.json` for prompts/inputs, `reviews/<scene-id>.json` for reviews).
 - If scope is unspecified, ask once whether to work on the complete story or one scene, and retain that scope until changed.
 
 ## Hard production rules

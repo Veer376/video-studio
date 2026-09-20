@@ -26,7 +26,7 @@ assets/               reusable characters, locations, and vehicles
 voices.json           reusable off-screen narration voice profiles
 prompts/              standalone prompts for optional or ad-hoc workflows
 scripts/              maintained generation, review, and rendering utilities
-projects/             canonical production projects
+projects/             canonical production roots and organizational collections
 stories/              existing legacy production projects
 temp/                 non-canonical scratch files and test artifacts
 kahanikachakkar/       Kahani Ka Chakkar channel resources
@@ -36,24 +36,25 @@ AGENTS.md              repository-wide agent rules
 GEMINI.md              Gemini entry point to the repository rules
 ```
 
-Reusable assets stay at studio level. Files needed only by one production project stay inside that project. Temporary experiments are not production state.
+Reusable assets stay at studio level. Files needed only by one production root stay inside that root. Temporary experiments are not production state.
 
 Off-screen recurring narrators use `@narration-*` handles registered in
-project-root `voices.json`. Scene prompts place the handle directly at the
+production-root `voices.json`. Scene prompts place the handle directly at the
 voiceover source (for example, `A single off-screen @narration-kathamind
 voiceover...`). Narration handles are audio-only and do not belong in the
 scene `subjects` array.
 
-## Production project structure
+## Production structure
 
-Each new directory under `projects/<project-slug>/` may contain:
+A production root is any directory under `projects/` that owns a `story.md` and `scenes.json`. Production roots may be nested inside organizational directories such as a brand, series, or campaign.
 
 ```text
+<production-root>/
 story.md         source constraints, story, direction, and scene briefs
 characters.json recurring character handles and reference images
 locations.json  recurring location handles and reference images
 scenes.json     final scene prompts and generation inputs
-assets/         project-specific visual assets
+assets/         production-specific visual assets
 temp/           continuity frames, contact sheets, and other review evidence
 reviews/        current scene decisions and preserved review history
 videos/         active scene clips and archived rejected versions
@@ -87,7 +88,7 @@ Optional configuration and routing diagnostics without consuming quota:
 
 ```bash
 python3 scripts/generate_scenes.py \
-  --config projects/<project-slug>/scenes.json \
+  --config <production-root>/scenes.json \
   --dry-run
 ```
 
@@ -95,15 +96,15 @@ Generate scenes for a story:
 
 ```bash
 python3 scripts/generate_scenes.py \
-  --config projects/<project-slug>/scenes.json
+  --config <production-root>/scenes.json
 ```
 
 Render its accepted active clips:
 
 ```bash
 python3 scripts/render_video.py \
-  --config projects/<project-slug>/scenes.json \
-  --output projects/<project-slug>/output/final-video.mp4
+  --config <production-root>/scenes.json \
+  --output <production-root>/output/final-video.mp4
 ```
 
 Generation uses Google Cloud Application Default Credentials when available, otherwise `GEMINI_API_KEY`. Credentials must not be copied into the repository.

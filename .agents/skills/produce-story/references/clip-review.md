@@ -2,7 +2,7 @@
 
 Use this reference after every generated, edited, or regenerated clip.
 
-If the selected project contains `production-playbook.md`, read its project-specific review gate before deciding whether the active clip is acceptable. Technical validity, correct identity, and correct dialogue are necessary but are not sufficient when the playbook requires a first-read focal point, visible state change, retention function, motivated camera, location geography, or motif continuity.
+If the selected production root contains `production-playbook.md`, read its production-specific review gate before deciding whether the active clip is acceptable. Technical validity, correct identity, and correct dialogue are necessary but are not sufficient when the playbook requires a first-read focal point, visible state change, retention function, motivated camera, location geography, or motif continuity.
 
 ## Evidence gate
 
