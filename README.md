@@ -13,7 +13,7 @@ The creative workflow is agent-guided: writing, direction, visual inspection, an
 
 ## Watch the workflow
 
-[![Watch the 48-second Video Studio showcase](docs/media/video-studio-poster.png)](docs/media/video-studio-showcase.mp4)
+https://github.com/user-attachments/assets/d0bbb0e8-4e68-474b-a059-495316c892d1
 
 The showcase combines animated workflow diagrams with existing KathaMind Hindi output. Picture, narration, and captions align into frames, then separate pipeline exports resolve into MP4 files. [Media attribution and scope](docs/media/README.md).
 
