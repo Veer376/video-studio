@@ -1,6 +1,6 @@
 # Validation scope
 
-The consolidation was checked locally on macOS using Python 3.12, independent locked environments, isolated homes, mocked provider calls, and blocked external/Flow connections during tests. Both small synthetic fixtures rendered through the actual FFmpeg pipelines without credentials. CI repeats tests and offline renders on macOS and Linux after publication; no hosted result is claimed before those runs occur.
+The consolidation was checked locally on macOS using Python 3.12, independent locked environments, isolated homes, mocked provider calls, and blocked external/Flow connections during tests. Both small synthetic fixtures rendered through the actual FFmpeg pipelines without credentials. [The first hosted run](https://github.com/Veer376/video-studio/actions/runs/42001063531) passed all four pipeline/platform jobs on macOS and Linux, including independent locked installs, 102 image tests or 53 video tests, and the corresponding fixture render. [Current CI results](https://github.com/Veer376/video-studio/actions/workflows/checks.yml) track subsequent changes.
 
 Live narration, transcription, image generation, video generation, provider authentication, regional access, billing, and optional Flow/browser integration were intentionally not exercised. Request mocks validate local routing/serialization; they cannot establish remote model quality or account access. The showcase uses existing owned production footage, not new live API validation.
 

@@ -1,5 +1,7 @@
 # Video Studio
 
+[![Offline checks](https://github.com/Veer376/video-studio/actions/workflows/checks.yml/badge.svg)](https://github.com/Veer376/video-studio/actions/workflows/checks.yml)
+
 Two agent-assisted production pipelines for creating story videos: narrated image stories and generated video scenes. Each pipeline installs independently and keeps its own project state, dependencies, and recovery controls.
 
 | Pipeline | Input → output | Production controls |
@@ -59,4 +61,4 @@ Follow the owning pipeline README for credentials, editable templates, scene gen
 
 Examples of work produced during development are on [KathaMind Hindi](https://www.youtube.com/@KathaMindHindi). Channel media is separate from the MIT code license.
 
-macOS and Linux are the target platforms. Local macOS installation, offline tests, and both fixture renders have been checked. Linux CI is configured; its first hosted result is pending. Live generation and account/model access have not been tested for this release. Model availability, pricing, quotas, and regional access remain provider requirements.
+macOS and Linux are the target platforms. Hosted CI has passed independent locked installs, offline tests, and both fixture renders on both platforms; see the checks above for current results. Live generation and account/model access have not been tested for this release. Model availability, pricing, quotas, and regional access remain provider requirements.
