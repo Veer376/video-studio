@@ -1,59 +1,97 @@
 # Performance and blocking
 
-Direct observable behaviour. Emotions become filmable through gaze, breath, posture, distance, movement, touch, timing, and response.
+Direct behavior and spatial relationships that can actually be seen or inferred on screen. Use only as much acting theory as the shot needs.
 
-## Establish the spatial map
+## Start with the spatial map
 
-For every active subject, determine:
+Before directing performance, know:
 
-- starting position and body orientation;
-- eyeline and object of attention;
-- distance from other subjects and important props;
-- movement route, entrance, or exit;
-- final position and orientation.
+- where each important subject begins;
+- what each subject faces or watches;
+- the relevant entrances, exits, surfaces, obstacles, and usable space;
+- who or what owns each important prop;
+- the intended direction of travel across the frame;
+- which relationships must remain readable during movement.
 
-Preserve screen direction when adjacent shots depict continuous movement. Reverse it only with a clear reorientation or for a deliberate disorienting effect.
+Use relational language when exact measurement is unnecessary: `beside the doorway`, `across the table`, `behind her right shoulder`, `moving screen-left to screen-right`.
 
-## Build a performance chain
+When exact geography is load-bearing, state it clearly enough that the opening and ending states cannot be confused.
 
-Use only the stages that matter:
+## Direct playable behavior
 
-1. stimulus or intention;
-2. gaze or attention shift;
-3. facial or breath response;
-4. posture or body movement;
-5. hand, prop, or contact action;
-6. another subject's reaction;
-7. settled end state.
+Prefer actions a performer or animated subject can do over labels such as `sad`, `angry`, or `nervous`.
 
-The stages should cause one another. Avoid listing unrelated gestures that compete for attention.
+Useful questions for character-driven scenes:
 
-## Dialogue performance
+- What does this character want from the other person or from the immediate situation?
+- What observable tactic are they using now: press, charm, stall, hide, reassure, provoke, bargain, evade?
+- What stimulus makes the tactic or behavior change?
+- What does the listener do while not speaking?
+- What physical state affects the behavior: fatigue, breathlessness, restraint, injury, intoxication, composure?
 
-- Preserve the exact approved words.
-- Identify the speaker, intended listener, delivery, and relevant physical action.
-- Direct listeners as active performers through gaze, stillness, interruption, hesitation, or reaction.
-- Use pauses or overlapping speech only when they materially shape the relationship.
-- Match vocal intensity to body effort and distance; whispered, conversational, projected, and shouted speech imply different physical behaviour.
+Do not manufacture objectives, stakes, or tactic changes when the source does not support them. A short clip may contain only one reaction or one continuation of behavior.
 
-Do not invent dialogue to fill silence. Silence can be the active response.
+## Stimulus → response
 
-## Multi-character staging
+Performance reads as alive when behavior reacts to something.
 
-- Give the viewer a clear focal character while keeping the others spatially accounted for.
-- Let reactions occur in an intentional order rather than making everyone move simultaneously.
-- Use distance, height, orientation, and foreground/background placement to express relationships.
-- Keep entrances and exits motivated and visible enough to understand.
-- When a character is temporarily not visible, make the framing choice clear instead of implying that the character ceased to exist.
+Examples of useful chains:
+
+- a line lands → the listener's hand stops moving → gaze shifts → answer comes later;
+- an object slips → the subject catches it → posture changes → attention moves to the object;
+- a sound occurs off-screen → eyes move first → head follows → body turns only if needed.
+
+Reactions may begin before a line or action fully finishes when that is how the subject would realistically perceive it.
+
+## Listening and silent tasks
+
+A silent character still needs a live relationship to the scene. Give them a task when relevant: assess whether the speaker is serious, hide recognition, wait for an opening, protect another person, monitor an object, or decide whether to intervene.
+
+Do not fill every silent moment with gestures. Stillness can be active when the viewer can read attention, thought, or restraint.
+
+## Physical state and business
+
+Useful performance controls include:
+
+- center of gravity and posture;
+- movement tempo and economy;
+- openness or guardedness;
+- breath and exertion;
+- gaze behavior;
+- a physical task already underway.
+
+A physical task (`business`) can make dialogue or waiting feel grounded: wiping a surface, packing a bag, checking a gauge, folding fabric, counting money. Use it only when it belongs naturally in the scene. The moment a repeated task stops can become meaningful punctuation.
+
+## Proxemics and blocking
+
+Distance is part of performance. Moving closer, backing away, refusing to cross a threshold, turning partly away, or occupying somebody's path can communicate relationship changes without extra dialogue.
+
+Maintain readable screen direction and eyelines unless a deliberate break serves the scene. If two characters interact across cuts, their orientations must support the intended spatial relationship.
 
 ## Hands, props, and contact
 
-- Give each important prop an owner, location, and state.
-- Motivate every hand gesture through speech, intention, or physical need.
-- Show preparation before decisive contact and a visible consequence afterward.
-- Avoid unnecessary simultaneous handling when one action carries the beat.
-- End with important props in a defined state for continuity.
+For important physical interaction, specify:
 
-## Non-human and animated subjects
+1. starting ownership and position;
+2. approach or preparation;
+3. contact or transfer;
+4. immediate physical consequence;
+5. resulting ownership or position.
 
-Respect the established anatomy, scale, movement system, and expression language. Translate human emotional intent into behaviour the subject can visibly perform. Do not add anatomical capabilities or style conventions absent from the approved character and world design.
+Avoid simultaneous prop actions that require the same hand or occupy incompatible positions.
+
+## Multi-subject scenes
+
+Keep a clear focal relationship. Secondary subjects may react, continue background business, or remain still, but they should not compete with the primary beat unless the scene explicitly depends on divided attention.
+
+For groups, establish lanes, clusters, or depth planes so bodies do not collapse into an unreadable mass.
+
+## Non-human, object, and interface subjects
+
+Translate the same logic into state changes:
+
+- a machine receives an input → mechanism responds → output appears;
+- a product rotates → detail enters view → movement settles on the feature;
+- an interface selection occurs → dependent panel changes → focus moves to the result.
+
+Do not invent human psychology for subjects that only need clear state and motion.

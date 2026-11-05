@@ -1,106 +1,206 @@
 ---
 name: direct-video-scene
-description: "Turn an approved rough video-scene brief into a model-agnostic directed-scene contract covering shot design, staging, performance, sound, and continuity. Use before provider-specific prompt writing or when the user wants to co-direct a scene. Do not use to invent story events, write model prompts, generate media, or review rendered clips."
+description: "Turn an approved video-scene or clip brief into a provider-neutral directing contract. Use after story intent is locked and before provider-specific prompt compilation. Own audience attention, staging, performance, cinematography, temporal construction, sound direction, continuity handoff, and precision/latitude. Do not rewrite story facts, emit provider syntax, generate media, or review rendered output."
 ---
 
 # Direct Video Scene
 
-Convert a rough narrative scene into a precise, filmable direction brief. Decide how the audience experiences the existing story beat; do not rewrite what happens.
+Translate an approved scene or clip into a precise plan for **how the audience experiences it**. The story source decides what happens. This skill decides how that existing event is staged, seen, heard, timed, and handed off.
+
+The result must be useful to any downstream implementation: generative video, deterministic motion graphics, live-action planning, or another provider. Keep the contract semantic and provider-neutral.
 
 ## Ownership boundary
 
-- The source brief owns story events, character motivation, factual state, and exact dialogue.
-- This skill owns viewer focus, shot architecture, composition, blocking, performance, environmental motion, sound direction, and continuity handoff.
-- A provider-specific prompt skill owns model syntax, capability limits, reference binding, and prompt diagnostics.
-- The caller owns persistence, generation, review, retries, and rendering.
+- **Upstream story/brief owns:** story events, factual state, character motivation already established by the source, exact dialogue, required objects, and required outcomes.
+- **This skill owns:** viewer attention, opening and ending presentation, blocking, observable performance, camera and composition, coverage, temporal structure, sound direction, continuity handoff, and which details must remain exact versus may vary.
+- **Provider compiler owns:** model syntax, capability limits, reference binding, first/last-frame mechanisms, task modes, provider-specific mitigations, and prompt diagnostics.
+- **Caller owns:** persistence, asset creation, generation, rendered-output review, retries, and final assembly.
 
-Preserve the source brief. If its content cannot fit the available duration, identify the essential beat and the lowest-value removable material instead of silently changing the story.
+Do not solve a downstream capability problem by quietly changing the story. If the intended direction is coherent but a provider later cannot execute it, return to this skill only to adapt the presentation within the same story facts.
 
-## Direction mode
+## Authority model
 
-Use `autonomous` mode unless the user explicitly asks to co-direct, explore choices, or remain involved.
+Before directing, distinguish four kinds of information:
 
-In `interactive` mode:
+1. **Locked fact** — established by the approved brief, project rules, exact dialogue, or required story outcome.
+2. **Observed continuity evidence** — what an inspected predecessor frame, clip, recording, layout, or approved visual actually shows.
+3. **Creative grammar** — project-level visual, camera, sound, pacing, or motif rules that should shape the scene.
+4. **Directorial freedom** — presentation choices not fixed by the first three.
 
-- Use `ask_question` when available; otherwise ask concise questions in chat.
-- Ask only about unresolved creative choices whose answers materially change the scene.
-- Batch related choices and offer two or three concrete options described by their viewer effect.
-- Recommend one option when there is a defensible choice.
-- Do not ask the user to supply filmmaking terminology; translate their intent into direction.
-
-Keep the selected mode for the active task until the user changes it. In autonomous mode, make and state the directing decisions without routine confirmation.
+Never turn an assumption into a locked fact. For the visible starting state of a continuing physical moment, inspected evidence outranks remembered or inferred continuity. If evidence conflicts with a locked story fact, surface the conflict instead of silently choosing one.
 
 ## Required inputs
 
 Use the available:
 
-- rough scene brief and exact duration;
-- project direction from `story.md`, when present;
-- adjacent-scene entry and exit states;
-- characters, location, props, and dialogue already established;
-- inspected visual continuity evidence when the scene must begin from existing footage or a curated frame.
+- approved scene or clip brief;
+- duration or timing envelope;
+- intended format/canvas when composition depends on it;
+- project creative grammar when present;
+- exact dialogue, narration, music, or timing cues already locked;
+- relevant characters, location, props, and factual state;
+- adjacent-scene obligations;
+- inspected continuity evidence when the clip continues an existing physical moment.
 
-Do not invent missing story facts. Ask only when a missing decision is consequential and cannot be safely inferred from the approved context.
+Ask only when a missing choice materially changes the scene and cannot be safely inferred from the approved context.
 
 ## Direction procedure
 
-### 1. Lock the narrative beat
+### 1. Establish authority and freedom
 
-State the scene's dramatic function, what the viewer should notice first, and what visibly or emotionally changes by the end. Preserve exact dialogue and required actions.
+Identify what is locked, what is observed, what creative grammar applies, and what remains free to direct. Resolve or report conflicts before designing shots.
 
-### 2. Design the shot
+### 2. Define the audience intention
 
-Read [references/shot-design.md](references/shot-design.md). Choose framing, angle, composition, camera behaviour, and any deliberate cuts because they serve the beat. Define an intentional opening image, visual progression, and ending image.
+State:
 
-### 3. Stage visible performance
+- **first read** — what the viewer should notice first;
+- **dominant development or hold** — what changes, becomes clear, or is deliberately sustained during the clip;
+- **end impression** — what the viewer should be left attending to or feeling.
 
-When characters, creatures, or physical interaction are present, read [references/performance-and-blocking.md](references/performance-and-blocking.md). Establish positions, orientations, eyelines, entrances or exits, motivated gestures, reactions, and prop handling. Express action as readable cause, movement, and response.
+Do not force every short clip to contain its own dramatic arc. A clip may only complete a reaction, continue an action, hold tension, establish geography, or deliver one piece of information.
 
-### 4. Direct sound and continuity
+### 3. Lock boundary states before camera design
 
-When sound, dialogue, or adjacent-scene continuity matters, read [references/sound-and-continuity.md](references/sound-and-continuity.md). Assign speech, synchronized effects, ambience, music or intentional silence. Define the incoming state that must be respected and the outgoing state the next scene inherits.
+Read [references/continuity-and-control.md](references/continuity-and-control.md).
 
-### 5. Check density
+Define the relevant opening state and the consequential ending state before choosing coverage. Include only state that affects presentation: position, orientation, eyeline, ongoing motion, prop state, environment, audible state, and any intentional discontinuity.
 
-Ensure the action, dialogue, camera movement, and cuts can be understood within the duration. Keep simultaneous actions only when their relationship is important. Flag optional material rather than compressing everything into unreadable motion.
+### 4. Stage the event
+
+When people, creatures, objects, interfaces, or physical interactions change state, read [references/performance-and-blocking.md](references/performance-and-blocking.md).
+
+Establish readable spatial relationships, paths, entrances/exits, screen direction, eyelines, contact, reactions, and prop handling. For characters, use playable behavior rather than generic emotional labels. Add objectives, tactics, listening tasks, breath, business, or proxemics only when they materially improve the scene.
+
+### 5. Resolve cinematography and coverage together
+
+Read [references/cinematography.md](references/cinematography.md) and [references/coverage-and-timing.md](references/coverage-and-timing.md).
+
+Choose framing, viewpoint, composition, focus, camera position, camera behavior, cuts, and visual progression because they control information and attention. Static is valid. A camera move must have a reason and a meaningful destination.
+
+Do not design camera motion independently of blocking. The chosen view must preserve the spatial relationship and action the audience needs to read.
+
+### 6. Direct sound when it affects the experience
+
+Read [references/sound-direction.md](references/sound-direction.md) whenever speech, synchronized effects, ambience, music, silence, or an audio bridge matters.
+
+If locked dialogue, narration, music, or a sound cue determines timing, treat it as an input to visual timing rather than adding it after the shot is designed.
+
+### 7. Integrate everything on one timeline
+
+Build one temporal plan. Each interval may contain:
+
+- **view** — framing, composition, focus, and spatial relationship;
+- **events** — action, performance, object/state change, or held state;
+- **camera** — position, movement, or deliberate stillness;
+- **sound** — speech, cue, ambience, music, or silence;
+- **transition** — only when a cut or handoff occurs.
+
+Use exact timestamps only when order, synchronization, reading time, dialogue fit, or a hard cue requires them. Otherwise use coarse phases such as opening / development / landing.
+
+The timeline is the integration point. Do not return separate camera, performance, and sound plans that contradict one another.
+
+### 8. Set precision, latitude, and control needs
+
+Separate:
+
+- **must remain exact** — details whose change would break story, continuity, identity, geography, timing, or the intended viewer effect;
+- **may vary** — details whose variation does not change the meaning of the shot;
+- **control/previs dependency** — a relationship that should be visually or temporally anchored before execution because prose alone is too ambiguous.
+
+State the dependency semantically, for example `opening geometry must be visually anchored` or `the hand-to-object contact needs a clear key pose`. Do not prescribe a provider mechanism such as first-frame generation or a reference token.
+
+### 9. Run the density and coherence gate
+
+Before returning the contract, verify:
+
+- the intended events can register within the available duration;
+- dialogue and reaction have enough time to be understood;
+- the final state is physically and temporally reachable;
+- camera movement does not hide the important action;
+- simultaneous actions do not compete for the same viewer priority unless that competition is intentional;
+- spatial relationships and screen direction remain coherent;
+- important cause → movement → consequence is readable;
+- the ending image/state is deliberate rather than accidental.
+
+Simplify discretionary direction before weakening a locked story requirement. When overloaded, identify the lowest-value removable directorial element.
 
 ## Output contract
 
-Return one directed-scene contract in this structure:
+Return a **minimum complete contract**, not a maximum-filled form. Omit inapplicable fields.
 
 ```markdown
 ## Directed scene
 
-- Dramatic function:
-- Viewer focus:
+### Authority
+- Locked facts:
+- Continuity evidence:
+- Creative grammar:
+- Directorial freedom:
+
+### Envelope
 - Duration:
-- Narrative change:
-- Continuity in:
-- Shot architecture:
-- Opening image:
-- Beat progression:
-- Blocking and performance:
-- Camera and composition:
-- Visual treatment:
-- Environment and lighting:
-- Dialogue and delivery:
-- Sound direction:
-- Ending image:
-- Continuity out:
-- Essential constraints:
+- Canvas / format:
+
+### Audience intention
+- First read:
+- Dominant development / hold:
+- End impression:
+
+### Boundary states
+- Opening state:
+- Ending state:
+- Handoff:
+
+### Staging
+- Spatial relationships:
+- Subject paths / screen direction:
+- Performance or subject behaviour:
+- Critical props / contact:
+
+### Timeline
+- <span or phase>
+  - View:
+  - Events:
+  - Camera:
+  - Sound:
+  - Transition: <only when applicable>
+
+### Visual treatment
+- Composition / focus:
+- Environment / lighting:
+- Scene-specific treatment:
+
+### Audio
+- Speech / voice:
+- Synchronized sound:
+- Ambience / music / silence:
+- Priority / bridge:
+
+### Precision and latitude
+- Must remain exact:
+- May vary:
+- Control / previs dependency:
 - Remove first if overloaded: <omit when none>
 ```
 
-Use concrete, observable direction. Omit `Dialogue and delivery` when nobody speaks. Do not emit provider syntax or a generation prompt. Unless the user asks for alternatives or explanation, return only the completed contract.
+Do not repeat the same fact in several sections. If the timeline already fully expresses a simple shot, keep the other sections terse.
 
-## Final check
+## Invariants
 
-Before returning, verify that:
+- Story facts are immutable here; direction changes presentation, not events.
+- One dominant viewer priority should exist at any instant unless intentional ambiguity is itself the effect.
+- Opening state must be explicit when continuity matters.
+- Ending state must be intentional and usable as a handoff when another clip depends on it.
+- Important physical action must expose readable cause, movement/contact, and consequence.
+- Camera movement must change information, relationship, scale, tension, or attention; otherwise stillness is valid.
+- Characters respond to stimuli and pursue playable behavior rather than merely displaying named emotions.
+- Spatial relationships, eyelines, object ownership, and screen direction may not contradict themselves.
+- Exact dialogue remains exact.
+- The plan must fit the actual duration.
+- Must-hold decisions must be distinguished from creative latitude.
+- Inspected evidence outranks assumptions about current visible state.
+- Control/previs needs must be surfaced rather than hidden.
+- No provider syntax, provider capability claim, API reference, or generation mechanism enters this contract.
 
-- every directing choice supports the dramatic function;
-- opening positions and outgoing states are unambiguous;
-- visible action has motivated cause and reaction;
-- dialogue remains exact and has a clear speaker, listener state, and delivery;
-- sound is tied to the setting or action rather than added as decoration;
-- the scene fits its duration;
-- no provider-specific capability, syntax, or guarantee has entered the contract.
+Unless the user asks for alternatives or explanation, return only the selected directed-scene contract.
