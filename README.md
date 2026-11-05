@@ -13,7 +13,9 @@ The creative workflow is agent-guided: writing, direction, visual inspection, an
 
 ## Watch the workflow
 
-https://github.com/user-attachments/assets/d0bbb0e8-4e68-474b-a059-495316c892d1
+https://github.com/user-attachments/assets/6a4c57fd-daaf-44af-bb04-446089f2625f
+
+**Sound on.** Original narration and clip audio are included.
 
 The showcase combines animated workflow diagrams with existing KathaMind Hindi output. Picture, narration, and captions align into frames, then separate pipeline exports resolve into MP4 files. [Media attribution and scope](docs/media/README.md).
 
