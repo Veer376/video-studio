@@ -1,12 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "story-video-maker"
 version = "0.1.0"
 description = "Deterministic renderer for narrated image-based story videos."
-requires-python = ">=3.11"
-dependencies = ["google-genai>=2.16", "pillow>=10"]
+requires-python = ">=3.12"
+dependencies = ["google-genai>=2.25", "pillow>=11", "certifi"]
+
+[tool.setuptools.packages.find]
+where = ["src", "."]
+include = ["studio*", "scripts*"]
 
 [project.scripts]
 story-video = "studio.pipeline_cli:main"
+produce-visuals = "scripts.produce_visuals:main"
+render-story = "scripts.render_kathamind_final:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

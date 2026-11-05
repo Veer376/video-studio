@@ -182,6 +182,30 @@ class NarrationPipelineTests(unittest.TestCase):
             self.assertEqual([1.0, 2.0], [scene["end_time"] for scene in scenes])
             self.assertEqual([0.0, 1.0], [unit["start"] for unit in timestamps["units"]])
 
+    def test_exact_transcript_keeps_short_word_scene_ownership(self):
+        with TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            texts = ["A quiet beginning.", "The story continues."]
+            (project / "scenes.json").write_text(json.dumps({"scenes": [
+                {"id": f"scene-{index:03d}", "text": text}
+                for index, text in enumerate(texts, 1)]}))
+            narration = project / "audio/narration"
+            transcription = project / "audio/transcription"
+            narration.mkdir(parents=True)
+            transcription.mkdir()
+            text = " ".join(texts)
+            (narration / "manifest.json").write_text(json.dumps({"units": [{
+                "id": "unit-001", "scene_ids": ["scene-001", "scene-002"],
+                "text": text, "duration": 2.0, "input_hash": "fixture"}]}))
+            result = _valid_result(text)
+            result.update(duration=2.0, transcription_version=1, input_hash="fixture")
+            (transcription / "unit-001.json").write_text(json.dumps(result))
+            align_narration_units(project)
+            scenes = json.loads((project / "scenes.json").read_text())["scenes"]
+            self.assertEqual([(0, 2), (3, 5)],
+                             [(scene["word_start"], scene["word_end"]) for scene in scenes])
+            self.assertEqual(0.75, scenes[1]["start_time"])
+
     def test_validation_rejects_early_truncation(self):
         valid, reasons = validate_transcription(
             {"words": [{"word": "पहला", "start": 0.0, "end": 0.2}]},

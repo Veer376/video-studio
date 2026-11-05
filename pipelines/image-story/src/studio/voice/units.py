@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import wave
 from pathlib import Path
@@ -94,7 +95,7 @@ def _input_hash(text: str, model: str, voice: str) -> str:
 def _generate_audio(keys: list[str], model: str, voice: str, text: str, output: Path) -> None:
     errors: list[str] = []
     for key_number, key in enumerate(keys, start=1):
-        masked = key[:6] + "..." + key[-4:] if len(key) > 10 else "***"
+        masked = "configured"
         try:
             print(f"  → Requesting TTS with Key {key_number}/{len(keys)} [{masked}]...", flush=True)
             call_gemini_tts(key, model, voice, text, output)
@@ -124,8 +125,8 @@ def generate_narration_units(
     load_env()
     keys: list[str] | None = None
 
-    model = DEFAULT_GEMINI_TTS_MODEL
-    voice = DEFAULT_GEMINI_TTS_VOICE
+    model = os.environ.get("GEMINI_TTS_MODEL", DEFAULT_GEMINI_TTS_MODEL)
+    voice = os.environ.get("GEMINI_TTS_VOICE", DEFAULT_GEMINI_TTS_VOICE)
     narration_dir = project_dir / "audio" / "narration"
     narration_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = narration_dir / "manifest.json"

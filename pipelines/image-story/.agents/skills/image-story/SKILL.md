@@ -53,14 +53,16 @@ session.json -> optional research.md -> script.md -> scenes.json
              -> youtube/metadata.json + thumbnails/ + upload.json
 ```
 
-The project CLI owns production execution:
+The production tools own execution (see the Production reference):
 
 ```bash
 story-video status library/<project_name>
-story-video run library/<project_name>
-story-video stage voice library/<project_name>
-story-video stage illustrate library/<project_name>
-story-video stage render library/<project_name>
+story-video voice-step narrate library/<project_name>
+story-video voice-step transcribe library/<project_name>
+story-video voice-step align library/<project_name>
+produce-visuals plan library/<project_name>
+produce-visuals run library/<project_name> --images-only
+render-story --project-dir library/<project_name>
 ```
 
 ## Hard Rules
@@ -70,6 +72,6 @@ story-video stage render library/<project_name>
 - Never bypass specialist approval gates.
 - Keep all project outputs inside `library/<project_name>/`.
 - Never cast media timings to integers.
-- Run production code through `story-video`; run YouTube operations through the standalone `youtube` skill.
+- Run production through the tools specified by the Production reference; YouTube publishing requires a separately installed integration and explicit user authorization.
 - Do not report completion until the owning reference's verification gate passes.
-- Once rendering completes and the user approves, commit `library/<project_name>/`; media remains ignored.
+- Keep production libraries and generated media outside the public tracked tree; back up production state separately.

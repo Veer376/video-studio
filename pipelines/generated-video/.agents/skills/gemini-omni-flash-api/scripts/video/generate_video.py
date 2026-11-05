@@ -77,7 +77,7 @@ from typing import Any, Sequence
 # This project has verified paid Vertex/ADC access to the Cloud preview model.
 # The stable Developer API model remains available via --model when its quota is
 # enabled for the configured Gemini API key.
-DEFAULT_MODEL = "gemini-omni-1.1-flash-preview"
+DEFAULT_MODEL = "gemini-omni-1.1-flash"
 DEFAULT_SHARED_ENV = Path.home() / ".config/projects/.env"
 
 TASKS = (
@@ -164,15 +164,15 @@ class Result:
 
 
 def _load_shared_env() -> None:
-    """Load shared local credentials without overriding the caller's environment."""
-    if not DEFAULT_SHARED_ENV.is_file():
+    configured = os.environ.get("STUDIO_ENV_FILE")
+    if not configured:
         return
-    for raw_line in DEFAULT_SHARED_ENV.read_text(encoding="utf-8").splitlines():
+    path = Path(configured).expanduser()
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
 def _developer_api_key() -> str | None:

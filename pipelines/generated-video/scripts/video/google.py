@@ -20,7 +20,7 @@ except ImportError:
     from base import BaseProvider, ProviderUnavailableError, VideoError  # type: ignore
 
 
-DEFAULT_MODEL = "gemini-omni-flash-preview"
+DEFAULT_MODEL = "gemini-omni-1.1-flash"
 TASKS = ("text_to_video", "image_to_video", "reference_to_video", "edit")
 
 
@@ -54,10 +54,10 @@ def video_input(path: Path) -> dict[str, str]:
     }
 
 
-def video_response_format(task: str | None, aspect_ratio: str) -> dict[str, str]:
+def video_response_format(task: str | None, aspect_ratio: str, duration: int = 10) -> dict[str, str]:
     if task == "edit":
         return {"type": "video"}
-    return {"type": "video", "aspect_ratio": aspect_ratio}
+    return {"type": "video", "aspect_ratio": aspect_ratio, "duration": f"{duration}s", "resolution": "720p"}
 
 
 def create_client(backend: str = "auto", gcp_project: str | None = None) -> tuple[Any, str]:
@@ -75,7 +75,7 @@ def create_client(backend: str = "auto", gcp_project: str | None = None) -> tupl
         or os.getenv("GCP_PROJECT_ID")
         or os.getenv("GOOGLE_CLOUD_PROJECT")
     )
-    if not cloud_project and backend in {"auto", "vertex"}:
+    if not cloud_project and (backend == "vertex" or backend == "auto" and not api_key):
         try:
             import google.auth
 
@@ -83,7 +83,7 @@ def create_client(backend: str = "auto", gcp_project: str | None = None) -> tupl
         except Exception:
             pass
 
-    use_vertex = backend == "vertex" or (backend == "auto" and bool(cloud_project))
+    use_vertex = backend == "vertex" or (backend == "auto" and not api_key and bool(cloud_project))
     if use_vertex:
         if not cloud_project:
             raise ProviderUnavailableError("Vertex backend requires Google Cloud ADC and a project ID.")
@@ -157,7 +157,7 @@ class GoogleProvider(BaseProvider):
             interaction = active_client.interactions.create(
                 model=target_model,
                 input=request_input,
-                response_format=video_response_format(task, aspect_ratio),
+                response_format=video_response_format(task, aspect_ratio, duration),
                 generation_config=generation_config,
                 timeout=600,
             )

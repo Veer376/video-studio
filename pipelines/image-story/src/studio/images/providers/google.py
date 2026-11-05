@@ -1,4 +1,4 @@
-"""Google Vertex image-generation transport adapter."""
+"""Google image-generation transport adapter with explicit key or ADC access."""
 
 from __future__ import annotations
 
@@ -25,15 +25,9 @@ SUPPORTED_MODELS = {
 }
 
 
-def _load_env() -> None:
-    env_path = Path.home() / ".config/projects/.env"
-    if not env_path.exists():
-        return
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            key, value = line.split("=", 1)
-            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+def _load_env():
+    from studio.core.env import load_env as load_configured_env
+    load_configured_env()
 
 
 def _parse_references(values: list[str]) -> list[SimpleNamespace]:
@@ -61,6 +55,9 @@ def create_client():
     except ImportError as exc:
         raise RuntimeError("Google image generation requires the google-genai package") from exc
 
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if api_key:
+        return genai.Client(api_key=api_key)
     project = os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GCP_PROJECT_ID")
     if not project:
         _, project = google.auth.default()

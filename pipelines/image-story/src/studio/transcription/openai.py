@@ -8,6 +8,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from studio.core.http import tls_context
+
 from studio.transcription.groq import build_multipart
 from studio.voice.voice import load_env
 
@@ -46,7 +48,7 @@ def extract_timestamps_openai(
         },
         method="POST",
     )
-    ctx = ssl._create_unverified_context()
+    ctx = tls_context()
     try:
         with urllib.request.urlopen(request, timeout=180, context=ctx) as response:
             raw = json.loads(response.read().decode("utf-8"))

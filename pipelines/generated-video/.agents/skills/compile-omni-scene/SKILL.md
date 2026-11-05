@@ -188,7 +188,7 @@ For a registered project narrator, put its `@narration-*` handle exactly at the
 voice source in that sentence, for example:
 
 ```text
-A single off-screen @narration-kathamind voiceover says exactly: "[line]". No character dialogue.
+A single off-screen @narration-name voiceover says exactly: "[line]". No character dialogue.
 ```
 
 `@narration-*` handles are audio-only identities resolved from project-root

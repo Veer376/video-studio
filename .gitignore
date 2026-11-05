@@ -1,0 +1,24 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+!.env.example
+*.egg-info/
+build/
+dist/
+temp/
+output/
+work/
+.pytest_cache/
+.uv-cache/
+
+library/
+projects/
+.playwright-cli/
+
+# Tiny reviewed fixture evidence is required for offline rendering.
+!pipelines/generated-video/examples/offline/temp/
+!pipelines/generated-video/examples/offline/temp/contact_sheets/
+!pipelines/generated-video/examples/offline/temp/contact_sheets/*.png

@@ -31,10 +31,10 @@ FINGERPRINT_VERSION = 2
 
 @dataclass(frozen=True)
 class ProductionSettings:
-    image_provider: str = "flow"
-    image_model: str = "pro"
+    image_provider: str = "google"
+    image_model: str = "gemini-3.1-flash-image"
     video_provider: str | None = None
-    video_model: str = "omni_flash"
+    video_model: str = "gemini-omni-1.1-flash"
     aspect_ratio: str = "16:9"
     flow_poll_seconds: float = 3.0
     flow_poll_timeout: float = 900.0
@@ -682,6 +682,7 @@ class ProductionRunner:
                 output=partial,
                 aspect_ratio=self.settings.aspect_ratio,
                 model=model,
+                duration=int(node.duration or 10),
             )
             self.video_verifier(partial)
             output.parent.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,9 @@
+{
+  "production": {
+    "image_provider": "google",
+    "image_model": "gemini-3.1-flash-image",
+    "subtitles": true,
+    "zoom": true,
+    "closing_fade": true
+  }
+}

@@ -46,7 +46,7 @@ def load_production_config(
     config_path: Path | None = None,
 ) -> ProductionConfig:
     """Resolve production settings: invocation overrides > repository config."""
-    path = config_path or project_root() / "kathamind" / "config.json"
+    path = config_path or project_root() / "config.json"
     root = read_json(path) if path.exists() else {}
     configured = root.get("production", {})
     if not isinstance(configured, dict):

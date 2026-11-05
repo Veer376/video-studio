@@ -47,6 +47,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from studio.core.http import tls_context
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from studio.core.io import read_json, write_json
@@ -224,7 +226,7 @@ def transcribe_file(audio_path: Path, language: str, *, api_key: str, timeout: i
         if not isinstance(exc.reason, ssl.SSLError):
             raise
         print("    Warning: TLS verification failed, retrying without verification")
-        raw, request_id = send(ssl._create_unverified_context())
+        raw, request_id = send(tls_context())
 
     words = [
         {"word": word.get("word", "").strip(),

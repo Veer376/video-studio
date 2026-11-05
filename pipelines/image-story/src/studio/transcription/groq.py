@@ -15,15 +15,12 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from studio.core.http import tls_context
+
 
 def load_env():
-    env_path = Path.home() / ".config/projects/.env"
-    if env_path.exists():
-        for line in env_path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    from studio.core.env import load_env as load_configured_env
+    load_configured_env()
 
 
 def load_groq_keys() -> list[str]:
@@ -153,7 +150,7 @@ def extract_timestamps_single(
 
     body = header + file_header + audio_data + footer
     content_type = f"multipart/form-data; boundary={boundary}"
-    ctx = ssl._create_unverified_context()
+    ctx = tls_context()
 
     # Key rotation: cycle through all available keys on retryable errors.
     # Never fall back to a lighter model — always use model_name (whisper-large-v3).
@@ -179,15 +176,9 @@ def extract_timestamps_single(
         )
 
         try:
-            try:
-                with urllib.request.urlopen(req, timeout=180, context=ctx) as resp:
-                    raw = json.loads(resp.read().decode("utf-8"))
-                    break
-            except ssl.SSLCertVerificationError:
-                unverified = ssl._create_unverified_context()
-                with urllib.request.urlopen(req, timeout=180, context=unverified) as resp:
-                    raw = json.loads(resp.read().decode("utf-8"))
-                    break
+            with urllib.request.urlopen(req, timeout=180, context=ctx) as resp:
+                raw = json.loads(resp.read().decode("utf-8"))
+                break
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:400]
             last_exc = exc
@@ -262,7 +253,7 @@ def main():
     load_env()
     keys = load_groq_keys()
     if not keys:
-        print("ERROR: No Groq API keys found. Set GROQ_API_KEY (and optionally GROQ_API_KEY_1, GROQ_API_KEY_2, ...) in ~/.config/projects/.env", file=sys.stderr)
+        print("ERROR: No Groq API keys found. Set GROQ_API_KEY (and optionally GROQ_API_KEY_1, GROQ_API_KEY_2, ...) in the environment or an explicit STUDIO_ENV_FILE", file=sys.stderr)
         sys.exit(1)
     print(f"  Loaded {len(keys)} Groq API key(s) for rotation.")
 

@@ -1,4 +1,5 @@
 import io
+import os
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -20,6 +21,13 @@ def png_bytes() -> bytes:
 
 
 class GoogleImageGenerationTests(unittest.TestCase):
+    def test_explicit_api_key_wins_without_adc_lookup(self) -> None:
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "fixture-not-a-secret"}, clear=True):
+            with patch("google.genai.Client") as client, patch("google.auth.default") as adc:
+                self.assertIs(google.create_client(), client.return_value)
+        client.assert_called_once_with(api_key="fixture-not-a-secret")
+        adc.assert_not_called()
+
     def test_standalone_cli_refuses_existing_output_before_auth(self) -> None:
         with TemporaryDirectory() as tmp:
             output = Path(tmp) / "image.png"

@@ -52,15 +52,9 @@ _REFERENCE_MEDIA_CACHE: dict[tuple[str, int, int], str] = {}
 _REFERENCE_MEDIA_LOCK = threading.Lock()
 
 
-def _load_env() -> None:
-    env_path = Path.home() / ".config/projects/.env"
-    if not env_path.exists():
-        return
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            key, value = line.split("=", 1)
-            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+def _load_env():
+    from studio.core.env import load_env as load_configured_env
+    load_configured_env()
 
 
 def _parse_references(values: list[str]) -> list[SimpleNamespace]:

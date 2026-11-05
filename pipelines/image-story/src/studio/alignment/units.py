@@ -4,7 +4,7 @@ from __future__ import annotations
 import copy
 from pathlib import Path
 
-from studio.alignment.base import normalize_scene_intervals
+from studio.alignment.base import normalize_for_match, normalize_scene_intervals
 from studio.alignment.dp import align_text_dp
 from studio.core.io import read_json, write_json
 from studio.transcription.units import TRANSCRIPTION_VERSION, validate_transcription
@@ -50,7 +50,21 @@ def align_narration_units(project_dir: str | Path) -> dict:
             aligned[0]["start_time"] = 0.0
             aligned[0]["end_time"] = duration
         else:
-            aligned, _ = align_text_dp(group, words, duration)
+            # Exact transcripts need no fuzzy search: preserve authored word
+            # ownership, including short tokens that the fuzzy scorer drops.
+            expected = [normalize_for_match(token) for scene in group
+                        for token in str(scene.get("text", "")).split()]
+            actual = [normalize_for_match(str(word.get("word", ""))) for word in words]
+            if expected and all(expected) and expected == actual:
+                aligned = group
+                cursor = 0
+                for scene in aligned:
+                    count = len(str(scene.get("text", "")).split())
+                    scene["start_time"] = float(words[cursor]["start"])
+                    cursor += count
+                    scene["end_time"] = float(words[cursor - 1]["end"])
+            else:
+                aligned, _ = align_text_dp(group, words, duration)
             aligned = normalize_scene_intervals(aligned, duration)
 
         for local_scene in aligned:
@@ -79,6 +93,24 @@ def align_narration_units(project_dir: str | Path) -> dict:
         "words": all_words,
         "units": provider_units,
     }
+    # The mixed-media renderer uses explicit inclusive word ranges. Derive them
+    # from the same time-based assignment used by subtitle rendering.
+    from studio.subtitles.subtitles import assign_words_to_scenes
+
+    assignments = assign_words_to_scenes(all_words, scenes)
+    cursor = 0
+    for index, scene in enumerate(scenes):
+        assigned = assignments[index]
+        if not assigned:
+            raise RuntimeError(f"No aligned words for scene {scene['id']}")
+        if assigned != all_words[cursor:cursor + len(assigned)]:
+            raise RuntimeError(f"Non-contiguous word assignment for scene {scene['id']}")
+        scene["word_start"] = cursor
+        cursor += len(assigned)
+        scene["word_end"] = cursor - 1
+    if cursor != len(all_words):
+        raise RuntimeError("Some transcription words fall outside the aligned scene intervals")
+
     write_json(project_dir / "audio" / "timestamps.json", timestamps)
     scenes_data["scenes"] = scenes
     write_json(scenes_path, scenes_data)

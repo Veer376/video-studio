@@ -1,0 +1,10 @@
+{
+  "visual": {
+    "aspect_ratio": "16:9",
+    "style_id": "editorial",
+    "style_prompt": "A clean, minimal editorial illustration with simple shapes and soft light."
+  },
+  "voice": {
+    "language": "en-US"
+  }
+}

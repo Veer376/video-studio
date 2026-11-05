@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "assets": {
+    "scene-001:primary": {
+      "status": "complete",
+      "output_path": "images/scene-001.png",
+      "output_sha256": "53f9cf58252e4f84fe5e758c00916b34bbd6604740b77eda8eee180c8c02260a",
+      "fingerprint": "synthetic-offline-fixture"
+    },
+    "scene-001:c01": {
+      "status": "complete",
+      "output_path": "images/scene-001-c01.png",
+      "output_sha256": "93e6b90855dfcd53e44e3057c776091acb7fbb0222df3bbae6288e189c81cd86",
+      "fingerprint": "synthetic-offline-fixture"
+    },
+    "scene-002:primary": {
+      "status": "complete",
+      "output_path": "images/scene-002.png",
+      "output_sha256": "a4cd5aaff830c648b8cd08f313c0f0d68361b93fb6ceed2abe95e68286a68d7e",
+      "fingerprint": "synthetic-offline-fixture"
+    }
+  }
+}

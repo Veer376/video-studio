@@ -590,6 +590,10 @@ class GoogleVideoProvider:
             from google import genai
         except ImportError as exc:
             raise ProviderError("Google video generation requires google-genai") from exc
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if api_key:
+            self._client = genai.Client(api_key=api_key)
+            return self._client
         project = self.project or os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GCP_PROJECT_ID")
         if not project:
             _, project = google.auth.default()
@@ -617,6 +621,7 @@ class GoogleVideoProvider:
         output: Path,
         aspect_ratio: str,
         model: str,
+        duration: int = 10,
     ) -> None:
         model_key = model.strip().lower()
         if model_key in {
@@ -624,7 +629,7 @@ class GoogleVideoProvider:
             "omni-flash",
             "gemini-omni-flash",
         }:
-            model = "gemini-omni-flash-preview"
+            model = "gemini-omni-1.1-flash"
 
         inputs: list[dict[str, str]] = [self._image_input(start_frame)]
         if end_frame is not None and end_frame.resolve() != start_frame.resolve():
@@ -642,7 +647,7 @@ class GoogleVideoProvider:
             interaction = client.interactions.create(
                 model=model,
                 input=inputs,
-                response_format={"type": "video", "aspect_ratio": aspect_ratio},
+                response_format={"type": "video", "aspect_ratio": aspect_ratio, "duration": f"{duration}s", "resolution": "720p"},
                 generation_config={"video_config": {"task": "image_to_video"}},
                 timeout=600,
             )

@@ -1,0 +1,13 @@
+{
+  "scene_id": "s002",
+  "decision": "accepted",
+  "video_path": "examples/offline/videos/s002.mp4",
+  "video_sha256": "efdd5bea3f2e827d6fb16882a0abed7c68e92713b5c3b2eae49b03bcd44a82f9",
+  "contact_sheet_path": "examples/offline/temp/contact_sheets/s002.png",
+  "media_valid": true,
+  "findings": [],
+  "diagnosis": "Synthetic offline fixture; known test media.",
+  "repair_applied": null,
+  "history": [],
+  "next_action": "render"
+}

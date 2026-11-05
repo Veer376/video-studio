@@ -19,7 +19,7 @@ Run this stage when:
 
 Conduct the intake as a natural, friendly conversation. Acknowledge each answer before moving to the next group.
 
-Before asking questions, read `kathamind/config.json`. Use its non-empty `audience` value for `brief.audience`; do not ask the user for an audience. If the value is missing or invalid, report the configuration error instead of inventing a replacement.
+Read the pipeline `config.json` for production defaults. Audience and narration language belong to the selected project brief: reuse values already supplied by the user or ask for missing values during intake; persist them in `session.json`.
 
 **Short Format & Duration Coupling**: YouTube Shorts run up to 3 minutes (180 seconds) and require `9:16` vertical format.
 - If the user requests a "Short", "vertical video", or specifies a duration `<= 180` seconds (e.g., 45s, 60s, 2–3 mins): automatically set `visual.aspect_ratio: "9:16"` and skip **Q3**. Still ask **Q4** because a YouTube Short may run anywhere up to 3 minutes and duration is a creative choice.
@@ -71,11 +71,11 @@ Follow these steps in exact order:
   "brief": {
     "topic": "Motivational story of Lord Krishna offering life wisdom",
     "tone": "motivational",
-    "audience": "<from kathamind/config.json>",
+    "audience": "<selected audience>",
     "target_duration_seconds": 600
   },
   "voice": {
-    "language": "hi-IN"
+    "language": "<selected BCP-47 language>"
   },
   "visual": {
     "aspect_ratio": "16:9"
@@ -89,6 +89,6 @@ Follow these steps in exact order:
 
 ## Hard Rules
 
-- Always write `voice.language: "hi-IN"`; do not ask the user for language during intake.
+- Write the selected narration language to `voice.language`; do not assume a channel-specific language.
 - Aspect ratio defaults: If `target_duration_seconds <= 180` (or Short requested), `visual.aspect_ratio` MUST be `"9:16"`. If `target_duration_seconds > 180`, `visual.aspect_ratio` MUST be `"16:9"`.
 - Never generate story content, images, or audio during this stage. This stage only asks questions and writes `session.json`.

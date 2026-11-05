@@ -1,90 +1,61 @@
-# Story Video Maker
+# Image story
 
-A Story Video Maker workspace with two clear layers:
+Narrated, captioned stories built from primary illustrations, continuation stills, and optional generated motion. The newer `produce-visuals` engine is the primary visual path; `render-story` assembles its manifest-backed output.
 
-1. **Project-owned pipeline code**
-   - Located in `src/`.
-   - The older deterministic manifest renderer is preserved.
-   - The new `src/studio/` package owns the resumable `library/<slug>` production pipeline.
+## Install and render the offline example
 
-2. **Agent-facing creative skills**
-   - Located in `.agents/skills/`.
-   - `image-story` owns intake, research, splitting, production, packaging, and publishing through stage references.
-   - `compose` and `orchestrate-visuals` remain focused creative skills.
-
-## Pipeline CLI
-
-Inspect a project:
+From this directory:
 
 ```bash
-story-video status library/<project_name>
+uv sync --locked --python 3.12
+uv run --locked produce-visuals plan examples/offline
+uv run --locked render-story --project-dir examples/offline --dry-run
+uv run --locked render-story --project-dir examples/offline --width 640 --height 360 --fps 24
 ```
 
-Run or resume the default production flow:
+Requires FFmpeg/FFprobe. Output: `examples/offline/output/final-video-no-bgm.mp4` (8 seconds). Fixture audio is a synthetic tone; the six caption words are illustrative test timings. No provider calls occur.
+
+## Generate a new story
+
+Configure credentials as described in [setup](../../docs/setup.md), then copy the editable template:
 
 ```bash
-story-video run library/<project_name>
+mkdir -p work
+cp -R examples/template work/my-story
 ```
 
-Run one stage:
+Edit `session.json` to lock aspect ratio/style and voice language. Edit `scenes.json`: each scene needs a unique ID, spoken `text`, content-only `image_prompt`, optional continuation prompts, and continuity references. `continuity.json` owns recurring identities/locations; the template is empty. The skills in `.agents/skills/` support writing and visual planning with an agent, or author these files manually.
+
+Generate narration and timestamps in three explicit stages:
 
 ```bash
-story-video stage voice library/<project_name>
-story-video stage illustrate library/<project_name>
-story-video stage render library/<project_name>
+uv run --locked story-video voice-step narrate work/my-story
+uv run --locked story-video voice-step transcribe work/my-story
+uv run --locked story-video voice-step align work/my-story
 ```
 
-Illustration can also run its two resumable phases independently:
+Narrate/transcribe call paid external services. Alignment is local, writes scene start/end times and inclusive word indices, and emits `audio/timestamps.json`. Listen to narration and inspect alignment before proceeding. The template's scene durations are planning estimates, not speech timestamps.
+
+Plan before generating images:
 
 ```bash
-story-video stage illustrate library/<project_name> --illustration-phase characters
-story-video stage illustrate library/<project_name> --illustration-phase scenes
+uv run --locked produce-visuals plan work/my-story
+uv run --locked produce-visuals run work/my-story --images-only --dry-run
+uv run --locked produce-visuals run work/my-story --images-only --image-provider google --image-model gemini-3.1-flash-image
+uv run --locked produce-visuals status work/my-story
 ```
 
-Default stage behavior is missing-only. For example:
+Only the non-dry `run` calls image generation. Inspect outputs. Rerunning reuses verified current assets; changed prompts/style/references invalidate dependencies. Read [visual production](scripts/production/README.md) for continuity approvals, selected-scene execution, durable state, and optional authored video maps. Optional video generation is separate and billable; it is not enabled by `--images-only`.
+
+Render after narration, timestamps, and media are complete:
 
 ```bash
-story-video stage illustrate library/<project_name>
+uv run --locked render-story --project-dir work/my-story --dry-run
+uv run --locked render-story --project-dir work/my-story
 ```
 
-generates only missing character and scene images. To regenerate all character and scene images:
+Output: `work/my-story/output/final-video-no-bgm.mp4`. The renderer uses `audio/narration.wav` (or legacy MP3), the production manifest, scene timings/word indices, and captions. It does not add background music. Inspect playback and audio; use `--force` to rebuild caches after editing upstream files.
 
-```bash
-story-video stage illustrate library/<project_name> --force
-```
+## Compatibility path
 
-## New Studio Layout
-
-```text
-src/studio/
-├── core/                 # session, paths, state, validation helpers
-├── scripts/              # reusable production capabilities
-└── pipeline_scripts/     # ordered flows that compose scripts
-```
-
-## Naming Contract
-
-```text
-Story Video Maker          product/repository name
-image-story                master workflow Codex skill
-story-video                production CLI executable
-```
-
-Default production flow:
-
-```text
-voice -> illustrate -> render
-```
-
-Cloudflare is the only image backend for now. Provider abstraction can be added later without changing the pipeline contract.
-
----
-
-## Key Patterns & Robustness
-
-The codebase is built to be resilient, particularly in resource generation and API interaction. Taking `src/audio/gemini.py` as a reference, the following architectural patterns are used:
-
-- **Round-Robin API Key Rotation:** Distributes request loads across multiple environment API keys (`GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, etc.) sequentially to avoid hitting rate limits.
-- **Resilient Connection Retries:** Implements automatic request retries (up to 5 times) with exponential backoff for network/DNS failures (`URLError`) and retryable HTTP status codes (e.g., `429`, `500`, `503`).
-- **Fail-Safe Error Serialization:** Logs detailed error logs to disk (`errors/audio/`) upon reaching maximum retries, capturing HTTP/URL details, execution context, and masked API credentials for debugging.
-- **SSL Verification Fallback:** Transparently catches SSL cert verification failures and falls back to an unverified context to guarantee execution across varied local development environments.
+`story-video status/run/stage` remains available for existing productions using its older illustration/render artifact contract. New primary projects should use `voice-step`, `produce-visuals`, and `render-story` above. Legacy defaults are in this directory's `config.json`; they do not configure the newer producer. Cloudflare is supported by the older illustration adapter only. See [recovery](../../docs/recovery.md) before regeneration.

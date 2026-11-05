@@ -12,6 +12,8 @@ import urllib.error
 import urllib.request
 import uuid
 from pathlib import Path
+
+from studio.core.http import tls_context
 from types import SimpleNamespace
 
 from PIL import Image
@@ -21,15 +23,9 @@ REFERENCE_MAX_DIMENSION = 511
 MAX_REFERENCE_IMAGES = 4
 
 
-def _load_env() -> None:
-    env_path = Path.home() / ".config/projects/.env"
-    if not env_path.exists():
-        return
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            key, value = line.split("=", 1)
-            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+def _load_env():
+    from studio.core.env import load_env as load_configured_env
+    load_configured_env()
 
 
 def _parse_references(values: list[str]) -> list[SimpleNamespace]:
@@ -228,9 +224,9 @@ def generate_image(
         content_type = "application/json"
 
     try:
-        context = ssl._create_unverified_context()
+        context = tls_context()
     except Exception:
-        context = ssl.create_default_context()
+        context = tls_context()
     max_attempts = len(credentials) * 3
     for attempt in range(1, max_attempts + 1):
         credential_index = (attempt - 1) % len(credentials)

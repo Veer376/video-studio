@@ -84,8 +84,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--config",
         type=Path,
-        default=DEFAULT_CONFIG,
-        help="Story scene configuration (default: current flood story)",
+        required=True,
+        help="Scene configuration (required)",
     )
     parser.add_argument(
         "--scene",
@@ -609,7 +609,7 @@ def run(args: argparse.Namespace) -> int:
                         task=compiled.task,
                         aspect_ratio=config.get("aspect_ratio", "16:9"),
                         duration=scene_duration,
-                        model=config.get("model", "gemini-omni-flash-preview"),
+                        model=config.get("model", "gemini-omni-1.1-flash"),
                     )
                 else:
                     if provider_instance is None:
@@ -624,7 +624,7 @@ def run(args: argparse.Namespace) -> int:
                         task=compiled.task,
                         aspect_ratio=config.get("aspect_ratio", "16:9"),
                         duration=scene_duration,
-                        model=config.get("model", "gemini-omni-flash-preview"),
+                        model=config.get("model", "gemini-omni-1.1-flash"),
                         start_frame=flow_input.start_frame,
                         provider_instance=provider_instance,
                     )

@@ -796,6 +796,14 @@ def mux_narration(captioned_master: Path, narration: Path, output: Path) -> None
     _run(cmd, label="Mux narration")
 
 
+def narration_path(project_dir: Path) -> Path:
+    for name in ("narration.wav", "narration.mp3"):
+        path = project_dir / "audio" / name
+        if path.is_file():
+            return path
+    raise RenderError("Required narration not found: audio/narration.wav or audio/narration.mp3")
+
+
 def validate_project(
     project_dir: Path,
 ) -> tuple[list[dict], list[dict], list[SceneSlot], list[SceneMedia], dict[int, list[dict]], float]:
@@ -813,7 +821,7 @@ def validate_project(
     if not isinstance(assets, dict):
         raise RenderError("production-manifest.json must contain an assets object")
 
-    narration = project_dir / "audio" / "narration.mp3"
+    narration = narration_path(project_dir)
     if not narration.is_file():
         raise RenderError(f"Required narration not found: {narration}")
     narration_duration = _probe_duration(narration)
@@ -951,7 +959,7 @@ def render_project(args: argparse.Namespace) -> Path:
         print(f"✓ Final already exists: {output}", flush=True)
         return output
     print("→ Muxing narration only (no BGM)...", flush=True)
-    mux_narration(captioned_master, project_dir / "audio" / "narration.mp3", output)
+    mux_narration(captioned_master, narration_path(project_dir), output)
     duration = _probe_duration(output)
     size_mb = output.stat().st_size / (1024 * 1024)
     print(f"✓ Render complete: {output}", flush=True)

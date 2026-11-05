@@ -285,44 +285,7 @@ class VisualProductionTests(unittest.TestCase):
                     image_provider=FakeImageProvider(),
                 )
 
-    def test_real_kathamind_plan_has_expected_counts(self) -> None:
-        project = Path("library/koi-tumhe-serious-nahi-leta").resolve()
-        plan = build_plan(
-            project,
-            video_prompts_path=project / "bin/video-prompts.json",
-        )
-        self.assertEqual(len(plan.scene_order), 128)
-        self.assertEqual(len(plan.image_nodes()), 207)
-        self.assertEqual(
-            sum(node.kind == "continuation_image" for node in plan.nodes), 79
-        )
-        self.assertEqual(len(plan.video_candidates), 12)
-        self.assertEqual(len(plan.video_nodes()), 12)
-        self.assertEqual(plan.missing_video_prompts, ())
 
-    def test_real_video_prompt_map_resolves_all_candidates_with_prompt_guardrails(self) -> None:
-        project = Path("library/koi-tumhe-serious-nahi-leta").resolve()
-        prompt_map = project / "bin/video-prompts.json"
-        plan = build_plan(project, video_prompts_path=prompt_map)
-        self.assertEqual(len(plan.video_nodes()), 12)
-        self.assertEqual(set(plan.video_candidates), {node.scene_id for node in plan.video_nodes()})
-        self.assertEqual(plan.missing_video_prompts, ())
-        for node in plan.video_nodes():
-            self.assertIn(node.duration, {4, 6, 8, 10})
-            self.assertIn("single continuous unbroken", node.prompt)
-            self.assertIn("No scene cuts.", node.prompt)
-            self.assertIn("No dialogue.", node.prompt)
-            self.assertIn("No voiceover.", node.prompt)
-            self.assertIn("No music.", node.prompt)
-            self.assertNotIn("<FIRST_FRAME>", node.prompt)
-            self.assertNotIn("<IMAGE_REF_", node.prompt)
-            self.assertNotIn("ref_media_id", node.prompt)
-            self.assertIsNotNone(node.start_asset_id)
-            self.assertIsNotNone(node.end_asset_id)
-            self.assertNotEqual(plan.node_by_id[node.start_asset_id].kind, "video")
-            self.assertNotEqual(plan.node_by_id[node.end_asset_id].kind, "video")
-        self.assertEqual(plan.node_by_id["scene-019:video"].start_asset_id, "scene-018:c01")
-        self.assertEqual(plan.node_by_id["scene-019:video"].end_asset_id, "scene-019:c01")
 
     def test_exact_rerun_makes_zero_new_image_calls(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -413,71 +376,6 @@ class VisualProductionTests(unittest.TestCase):
             runner.run(selected, phase="images")
             self.assertEqual(len(good_provider.calls), 1)
 
-    def test_full_real_207_image_dag_completes_and_reruns_without_new_calls(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            source = Path("library/koi-tumhe-serious-nahi-leta").resolve()
-            project = Path(tmp) / "real-plan"
-            project.mkdir()
-            (project / "scenes.json").write_bytes((source / "scenes.json").read_bytes())
-            (project / "continuity.json").write_bytes((source / "continuity.json").read_bytes())
-            (project / "session.json").write_bytes((source / "session.json").read_bytes())
-            plan = build_plan(project)
-            manifest = ManifestStore(project / "production-manifest.json", project)
-            anchors = AnchorRegistry(project / "production-anchors.json")
-            provider = FakeImageProvider()
-            runner = ProductionRunner(
-                plan=plan,
-                manifest=manifest,
-                anchors=anchors,
-                settings=ProductionSettings(image_provider="google"),
-                image_provider=provider,
-            )
-            # Production intentionally requires human-approved continuity anchors.
-            # Generate only the first canonical candidates, pin their exact bytes,
-            # then prove the complete DAG can run without bypassing those gates.
-            candidate_ids = set(
-                plan.first_subject_asset[subject]
-                for subject in plan.required_subject_anchors
-            ) | set(
-                plan.first_location_asset[location]
-                for location in plan.required_location_anchors
-            )
-            for asset_id in sorted(
-                candidate_ids,
-                key=lambda value: plan.scene_order.index(plan.node_by_id[value].scene_id),
-            ):
-                runner.run({asset_id}, phase="images")
-                record = manifest.get(asset_id)
-                node = plan.node_by_id[asset_id]
-                for subject in node.subjects:
-                    if (
-                        subject in plan.required_subject_anchors
-                        and plan.first_subject_asset[subject] == asset_id
-                    ):
-                        anchors.set_subject(
-                            subject,
-                            asset_id,
-                            output_sha256=record["output_sha256"],
-                            fingerprint=record["fingerprint"],
-                        )
-                if (
-                    node.location_id in plan.required_location_anchors
-                    and plan.first_location_asset[node.location_id] == asset_id
-                ):
-                    anchors.set_location(
-                        node.location_id,
-                        asset_id,
-                        output_sha256=record["output_sha256"],
-                        fingerprint=record["fingerprint"],
-                    )
-            calls_after_anchors = len(provider.calls)
-            selected = select_assets(plan, phase="images")
-            first = runner.run(selected, phase="images")
-            self.assertEqual(len(first.completed) + calls_after_anchors, 207)
-            self.assertEqual(len(provider.calls), 207)
-            second = runner.run(selected, phase="images")
-            self.assertEqual(len(second.skipped), 207)
-            self.assertEqual(len(provider.calls), 207)
 
     def test_anchor_deduplicates_previous_frame_and_subject_anchor(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

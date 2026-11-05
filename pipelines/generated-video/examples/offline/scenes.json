@@ -1,0 +1,28 @@
+{
+  "model": "gemini-omni-1.1-flash",
+  "aspect_ratio": "16:9",
+  "duration": 4,
+  "characters_file": "characters.json",
+  "scenes": [
+    {
+      "id": "s001",
+      "prompt": "A single continuous shot of a small blue paper boat drifting gently on still water at sunrise. Sound design: quiet rippling water. No dialogue, no voiceover, no music.",
+      "subjects": [],
+      "locations": [],
+      "reference_images": [],
+      "reference_scene_id": null,
+      "output_path": "examples/offline/videos/s001.mp4",
+      "duration": 4
+    },
+    {
+      "id": "s002",
+      "prompt": "A single continuous shot of warm sunset light moving across a white ceramic cup on a wooden table. Sound design: quiet room ambience. No dialogue, no voiceover, no music.",
+      "subjects": [],
+      "locations": [],
+      "reference_images": [],
+      "reference_scene_id": null,
+      "output_path": "examples/offline/videos/s002.mp4",
+      "duration": 4
+    }
+  ]
+}

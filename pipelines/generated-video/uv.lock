@@ -752,10 +752,14 @@ wheels = [
 [[package]]
 name = "video-project"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "google-genai" },
     { name = "pillow" },
+]
+
+[package.optional-dependencies]
+browser = [
     { name = "playwright" },
 ]
 
@@ -763,8 +767,9 @@ dependencies = [
 requires-dist = [
     { name = "google-genai", specifier = ">=2.25.0" },
     { name = "pillow", specifier = ">=11.0.0" },
-    { name = "playwright", specifier = ">=1.62.0" },
+    { name = "playwright", marker = "extra == 'browser'", specifier = ">=1.62.0" },
 ]
+provides-extras = ["browser"]
 
 [[package]]
 name = "websockets"

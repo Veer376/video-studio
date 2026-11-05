@@ -32,13 +32,8 @@ class CharacterTask:
 
 
 def load_env():
-    env_path = Path.home() / ".config/projects/.env"
-    if env_path.exists():
-        for line in env_path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    from studio.core.env import load_env as load_configured_env
+    load_configured_env()
 
 
 def is_valid_image(path: Path) -> bool:
@@ -351,7 +346,7 @@ def main():
             if not credentials:
                 raise RuntimeError(
                     "No Cloudflare ACCOUNT_ID / API_TOKEN credentials found in "
-                    "~/.config/projects/.env"
+                    "an explicit STUDIO_ENV_FILE"
                 )
             if not credentials_reported:
                 print(f"  Loaded {len(credentials)} Cloudflare account credential pair(s).")

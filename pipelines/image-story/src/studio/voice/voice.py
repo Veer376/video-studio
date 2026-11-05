@@ -16,19 +16,15 @@ import urllib.request
 import wave
 from pathlib import Path
 
+from studio.core.http import tls_context
+
 DEFAULT_GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview"
 # DEFAULT_GEMINI_TTS_VOICE = "Puck"
 DEFAULT_GEMINI_TTS_VOICE = "Aoede"
 
 def load_env():
-    for env_path in (Path.home() / ".config/projects/.env", Path.home() / "projects/.env"):
-        if not env_path.exists():
-            continue
-        for line in env_path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    from studio.core.env import load_env as load_configured_env
+    load_configured_env()
 
 
 def load_api_keys() -> list[str]:
@@ -60,7 +56,7 @@ def extract_narration(script_path: Path) -> str:
 
 
 def call_gemini_tts(api_key: str, model: str, voice: str, text: str, out_path: Path) -> None:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     payload = {
         "contents": [{"parts": [{"text": text}]}],
         "generationConfig": {
@@ -73,12 +69,12 @@ def call_gemini_tts(api_key: str, model: str, voice: str, text: str, out_path: P
         }
     }
 
-    ctx = ssl._create_unverified_context()
+    ctx = tls_context()
 
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "story-video-maker/0.1"},
+        headers={"Content-Type": "application/json", "x-goog-api-key": api_key, "User-Agent": "story-video-maker/0.1"},
         method="POST",
     )
 
@@ -138,7 +134,7 @@ def main():
     load_env()
     api_keys = load_api_keys()
     if not api_keys:
-        print("ERROR: No Gemini API keys found. Set GEMINI_API_KEY in ~/.config/projects/.env", file=sys.stderr)
+        print("ERROR: No Gemini API keys found. Export GEMINI_API_KEY or select a file with STUDIO_ENV_FILE", file=sys.stderr)
         sys.exit(1)
 
     project_dir = Path(args.project_dir)

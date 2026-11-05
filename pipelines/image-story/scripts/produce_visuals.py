@@ -247,7 +247,7 @@ def cmd_anchor(args: argparse.Namespace) -> int:
 
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(
-        description="Crash-safe image + continuation + video producer for KathaMind scene plans"
+        description="Resumable image, continuation, and video production for scene plans"
     )
     sub = root.add_subparsers(dest="command", required=True)
 
@@ -268,10 +268,10 @@ def parser() -> argparse.ArgumentParser:
     phase.add_argument("--images-only", action="store_true")
     phase.add_argument("--videos-only", action="store_true")
     p_run.add_argument("--dry-run", action="store_true")
-    p_run.add_argument("--image-provider", choices=("flow", "google"), default="flow")
-    p_run.add_argument("--image-model", default="pro")
-    p_run.add_argument("--video-provider", choices=("flow", "google"))
-    p_run.add_argument("--video-model", default="omni_flash")
+    p_run.add_argument("--image-provider", choices=("flow", "google"), default="google")
+    p_run.add_argument("--image-model", default="gemini-3.1-flash-image")
+    p_run.add_argument("--video-provider", choices=("flow", "google"), default="google")
+    p_run.add_argument("--video-model", default="gemini-omni-1.1-flash")
     p_run.add_argument(
         "--aspect-ratio",
         choices=("16:9", "9:16"),
@@ -297,7 +297,8 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
-    load_env_file(Path.home() / ".config/projects/.env")
+    from studio.core.env import load_env
+    load_env()
     args = parser().parse_args()
     try:
         return int(args.func(args))

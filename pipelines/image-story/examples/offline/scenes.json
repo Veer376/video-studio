@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "scenes": [
+    {
+      "id": "scene-001",
+      "text": "A quiet beginning.",
+      "image_prompt": "A blue ceramic cup beside a bright window.",
+      "continuation_image_prompts": [
+        "The light shifts gently across the cup."
+      ],
+      "subjects": [],
+      "location_id": null,
+      "reference_scene_id": null,
+      "asset_strategy": "new_still_candidate",
+      "duration": 4.0,
+      "start_time": 0.0,
+      "end_time": 4.0,
+      "word_start": 0,
+      "word_end": 2
+    },
+    {
+      "id": "scene-002",
+      "text": "The story continues.",
+      "image_prompt": "The same cup under soft evening light.",
+      "continuation_image_prompts": [],
+      "subjects": [],
+      "location_id": null,
+      "reference_scene_id": null,
+      "asset_strategy": "new_still_candidate",
+      "duration": 4.0,
+      "start_time": 4.0,
+      "end_time": 8.0,
+      "word_start": 3,
+      "word_end": 5
+    }
+  ]
+}

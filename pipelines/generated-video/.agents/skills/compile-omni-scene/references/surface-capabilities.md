@@ -1,6 +1,6 @@
 # Surface capabilities
 
-Last verified: 2026-08-20.
+Gemini API documentation checked: 2026-11-05. Flow feature snapshot: 2026-08-20; verify its current product table before promising Flow-specific features.
 
 Read this file before emitting platform-specific asset syntax or promising editing, Avatar, voice, audio-reference, extension, or interpolation behavior.
 
@@ -9,15 +9,16 @@ Current dated first-party documentation outranks this snapshot when behavior cha
 ## Canonical model
 
 - Model family: Google Gemini Omni / Gemini Omni Flash.
-- Public API model ID: `gemini-omni-flash-preview`.
-- Current API model output range: 3–10 seconds, 720p, 24 FPS.
+- Public Developer API model ID: `gemini-omni-1.1-flash`; the previous `gemini-omni-flash-preview` is shut down. Vertex uses its own published model IDs.
+- Current API model output range: 3–10 seconds, 24 FPS; 360p/720p and upscaled 1080p/4K output are documented.
 - Current API aspect ratios: `16:9` and `9:16`.
 - Flow exposes selectable 4, 6, 8, and 10 second durations.
-- The current API guide documents no duration request parameter. Duration language in an API prompt is therefore intent within the supported output range, not a guaranteed setting.
+- The runtime sends `response_format.duration` as an integer-seconds string (3–10 seconds) and requests 720p. Verify actual output duration after generation; request serialization is mock-tested, account acceptance is not live-verified.
 
 Sources:
 
 - [Gemini Omni Flash model reference](https://ai.google.dev/gemini-api/docs/models/gemini-omni-flash)
+- [Google Cloud video duration field](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/video/generate-videos-from-text)
 - [Flow supported models and features](https://support.google.com/flow/answer/16352836?hl=en)
 
 ## Surface routing
@@ -32,8 +33,8 @@ Sources:
 | Avatar/character references | Advanced Flow references | Not equivalent to Flow |
 | Audio/custom voice reference | Supported Flow features | Uploaded audio reference unsupported |
 | Voice editing | Flow custom-voice features vary | Unsupported |
-| Video extension | Coming soon in the current feature table | Unsupported |
-| First + last frame interpolation | Coming soon in the current feature table | Unsupported in current API guide |
+| Video extension | Verify current Flow feature table | Documented; uploaded-video/region limits apply |
+| First + last frame interpolation | Verify current Flow feature table | Documented two-image input with transition instruction |
 
 ## Project authoring boundary
 
@@ -43,7 +44,7 @@ The runtime adapter owns provider serialization:
 
 | Concern | Flow adapter | Gemini API adapter |
 |---|---|---|
-| Duration | Select 4, 6, 8, or 10 seconds | No documented request field; prompt intent is best-effort within the 3–10 second output range |
+| Duration | Select 4, 6, 8, or 10 seconds | `response_format.duration`, e.g. `4s`; measure returned output |
 | Aspect ratio | Flow landscape/portrait setting | `response_format.aspect_ratio` |
 | First frame | Uploaded start-media role | Ordered image input plus `<FIRST_FRAME>` when explicit binding is needed |
 | References | Uploaded media IDs or Flow `@AssetName` | Ordered image inputs plus `<IMAGE_REF_N>` when explicit binding is needed |
@@ -151,17 +152,16 @@ No exact special syntax is required. Use timecodes only when sequence or synchro
 As of the current guide:
 
 - uploaded audio references are unsupported;
-- short video references may be accepted but not processed correctly;
+- video references support at most three clips of up to three seconds each; reference audio is ignored;
 - multiple-video reasoning is unsupported or degrades output;
-- video extension is unsupported;
-- first/last-frame interpolation is unsupported;
+- uploaded-video extension is limited to appending and has input/region/dialogue constraints;
 - voice editing is unsupported;
 - system instructions, temperature, `top_p`, stop sequences, and a separate negative-prompt parameter are unsupported;
 - YouTube URLs are unsupported as media sources;
 - uploaded-video editing has regional restrictions;
 - recognizable-person and minor-related input restrictions apply in some contexts.
 
-Do not copy the two-image interpolation example from the Google-owned GitHub skill when targeting the current public API; it conflicts with the newer dated API guide.
+Service capabilities do not imply that every operation is exposed by this repository's scene runner. The primary public template uses text-to-video; inspect adapter support before planning editing or extension workflows.
 
 ## Language and model limitations
 

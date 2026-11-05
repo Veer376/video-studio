@@ -1,0 +1,37 @@
+name: Offline checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  pipelines:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        pipeline: [image-story, generated-video]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: pipelines/${{ matrix.pipeline }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.11.2"
+      - name: Install media tools (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-core
+      - name: Install media tools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+      - run: uv sync --locked --python 3.12
+      - name: Offline tests
+        run: uv run --locked python ../../tools/check_offline.py
+      - name: Render image fixture
+        if: matrix.pipeline == 'image-story'
+        run: uv run --locked render-story --project-dir examples/offline --width 640 --height 360 --fps 24
+      - name: Render video fixture
+        if: matrix.pipeline == 'generated-video'
+        run: uv run --locked python -m scripts.render_video --config examples/offline/scenes.json --output output/offline.mp4
